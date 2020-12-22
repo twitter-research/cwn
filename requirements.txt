@@ -1,10 +1,9 @@
 torch==1.7.0
 torchvision==0.8.1
 
-# PyTorch Geometric might not work via pip.
-# Use the pyG_install script if pip install doesn't work.
-torch-cluster==1.5.8
-torch-scatter==2.0.5
-torch-sparse==0.6.8
-torch-spline-conv==1.2.0
-torch-geometric==1.6.3
+# Use the pyG_install script to install these.
+# torch-cluster==1.5.8
+# torch-scatter==2.0.5
+# torch-sparse==0.6.8
+# torch-spline-conv==1.2.0
+# torch-geometric==1.6.3
