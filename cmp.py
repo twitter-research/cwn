@@ -17,7 +17,7 @@ from torch_scatter import gather_csr, scatter, segment_csr
 from torch_geometric.nn.conv.utils.helpers import expand_left
 from torch_geometric.nn.conv.utils.jit import class_from_module_repr
 from torch_geometric.nn.conv.utils.typing import (sanitize, split_types_repr, parse_types,
-                           resolve_types)
+                                                  resolve_types)
 from torch_geometric.nn.conv.utils.inspector import Inspector, func_header_repr, func_body_repr
 
 
@@ -69,11 +69,14 @@ class ChainMessagePassing(torch.nn.Module):
         self.node_dim = node_dim
 
         self.inspector = Inspector(self)
-        self.inspector.inspect(self.message)
+        # This stores the parameters of these functions. If pop first is true
+        # the first parameter is not stored (I presume this is for self.)
+        self.inspector.inspect(self.message)  # Not sure why this doesn't pop first?
         self.inspector.inspect(self.aggregate, pop_first=True)
         self.inspector.inspect(self.message_and_aggregate, pop_first=True)
         self.inspector.inspect(self.update, pop_first=True)
 
+        # Return the parameter name for these functions minus those specified in special_args
         self.__user_args__ = self.inspector.keys(
             ['message', 'aggregate', 'update']).difference(self.special_args)
         self.__fused_user_args__ = self.inspector.keys(
@@ -216,9 +219,11 @@ class ChainMessagePassing(torch.nn.Module):
 
         # Run "fused" message and aggregation (if applicable).
         if isinstance(edge_index, SparseTensor) and self.fuse:
+            # Collect the objects to pass to the function params in __user_arg.
             coll_dict = self.__collect__(self.__fused_user_args__, edge_index,
                                          size, kwargs)
 
+            # Extract the right objects to pass for each function.
             msg_aggr_kwargs = self.inspector.distribute(
                 'message_and_aggregate', coll_dict)
             out = self.message_and_aggregate(edge_index, **msg_aggr_kwargs)
@@ -228,9 +233,11 @@ class ChainMessagePassing(torch.nn.Module):
 
         # Otherwise, run both functions in separation.
         elif isinstance(edge_index, Tensor) or not self.fuse:
+            # Collect the objects to pass to the function params in __user_arg.
             coll_dict = self.__collect__(self.__user_args__, edge_index, size,
                                          kwargs)
 
+            # Extract the right objects to pass for each function.
             msg_kwargs = self.inspector.distribute('message', coll_dict)
             out = self.message(**msg_kwargs)
 
@@ -290,85 +297,3 @@ class ChainMessagePassing(torch.nn.Module):
         which was initially passed to :meth:`propagate`.
         """
         return inputs
-
-    @torch.jit.unused
-    def jittable(self, typing: Optional[str] = None):
-        r"""Analyzes the :class:`MessagePassing` instance and produces a new
-        jittable module.
-
-        Args:
-            typing (string, optional): If given, will generate a concrete
-                instance with :meth:`forward` types based on :obj:`typing`,
-                *e.g.*: :obj:`"(Tensor, Optional[Tensor]) -> Tensor"`.
-        """
-        # Find and parse `propagate()` types to format `{arg1: type1, ...}`.
-        if hasattr(self, 'propagate_type'):
-            prop_types = {
-                k: sanitize(str(v))
-                for k, v in self.propagate_type.items()
-            }
-        else:
-            source = inspect.getsource(self.__class__)
-            match = re.search(r'#\s*propagate_type:\s*\((.*)\)', source)
-            if match is None:
-                raise TypeError(
-                    'TorchScript support requires the definition of the types '
-                    'passed to `propagate()`. Please specificy them via\n\n'
-                    'propagate_type = {"arg1": type1, "arg2": type2, ... }\n\n'
-                    'or via\n\n'
-                    '# propagate_type: (arg1: type1, arg2: type2, ...)\n\n'
-                    'inside the `MessagePassing` module.')
-            prop_types = split_types_repr(match.group(1))
-            prop_types = dict([re.split(r'\s*:\s*', t) for t in prop_types])
-
-        # Parse `__collect__()` types to format `{arg:1, type1, ...}`.
-        collect_types = self.inspector.types(
-            ['message', 'aggregate', 'update'])
-
-        # Collect `forward()` header, body and @overload types.
-        forward_types = parse_types(self.forward)
-        forward_types = [resolve_types(*types) for types in forward_types]
-        forward_types = list(chain.from_iterable(forward_types))
-
-        keep_annotation = len(forward_types) < 2
-        forward_header = func_header_repr(self.forward, keep_annotation)
-        forward_body = func_body_repr(self.forward, keep_annotation)
-
-        if keep_annotation:
-            forward_types = []
-        elif typing is not None:
-            forward_types = []
-            forward_body = 8 * ' ' + f'# type: {typing}\n{forward_body}'
-
-        root = os.path.dirname(osp.realpath(__file__))
-        with open(osp.join(root, 'message_passing.jinja'), 'r') as f:
-            template = Template(f.read())
-
-        uid = uuid1().hex[:6]
-        cls_name = f'{self.__class__.__name__}Jittable_{uid}'
-        jit_module_repr = template.render(
-            uid=uid,
-            module=str(self.__class__.__module__),
-            cls_name=cls_name,
-            parent_cls_name=self.__class__.__name__,
-            prop_types=prop_types,
-            collect_types=collect_types,
-            user_args=self.__user_args__,
-            forward_header=forward_header,
-            forward_types=forward_types,
-            forward_body=forward_body,
-            msg_args=self.inspector.keys(['message']),
-            aggr_args=self.inspector.keys(['aggregate']),
-            msg_and_aggr_args=self.inspector.keys(['message_and_aggregate']),
-            update_args=self.inspector.keys(['update']),
-            check_input=inspect.getsource(self.__check_input__)[:-1],
-            lift=inspect.getsource(self.__lift__)[:-1],
-        )
-
-        # Instantiate a class from the rendered JIT module representation.
-        cls = class_from_module_repr(cls_name, jit_module_repr)
-        module = cls.__new__(cls)
-        module.__dict__ = self.__dict__.copy()
-        module.jittable = None
-
-        return module
