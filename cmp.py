@@ -66,12 +66,15 @@ class ChainMessagePassing(torch.nn.Module):
         self.flow = flow
         assert self.flow in ['source_to_target', 'target_to_source']
 
+        # This is the dimension in which nodes live in the feature matrix x.
+        # i.e. if x has shape [N, in_channels], then node_dim = 0 or -2
         self.node_dim = node_dim
 
         self.inspector = Inspector(self)
         # This stores the parameters of these functions. If pop first is true
         # the first parameter is not stored (I presume this is for self.)
-        self.inspector.inspect(self.message)  # Not sure why this doesn't pop first?
+        # I presume this doesn't pop first to avoid including the self parameter multiple times.
+        self.inspector.inspect(self.message)
         self.inspector.inspect(self.aggregate, pop_first=True)
         self.inspector.inspect(self.message_and_aggregate, pop_first=True)
         self.inspector.inspect(self.update, pop_first=True)
@@ -142,20 +145,31 @@ class ChainMessagePassing(torch.nn.Module):
 
         out = {}
         for arg in args:
+            # Here the x_i and x_j parameters are automatically extracted
+            # from an argument having the prefix x.
             if arg[-2:] not in ['_i', '_j']:
                 out[arg] = kwargs.get(arg, Parameter.empty)
             else:
                 dim = 0 if arg[-2:] == '_j' else 1
+                # Extract any part up to _j or _i. So for x_j extract x
                 data = kwargs.get(arg[:-2], Parameter.empty)
 
+                # If data is tuple or list.
+                # I believe this is for the case when data is supplied directly
+                # as (x_i, x_j) as opposed to a matrix X [N, in_channels]
+                # (the 2nd case is handled by the next if)
                 if isinstance(data, (tuple, list)):
+                    # In either case, check it is a pair.
                     assert len(data) == 2
                     if isinstance(data[1 - dim], Tensor):
+                        # This mutates size in dim 1-dim if it is none.
+                        # Otherwise, it checks it is set to the right value.
                         self.__set_size__(size, 1 - dim, data[1 - dim])
                     data = data[dim]
 
                 if isinstance(data, Tensor):
                     self.__set_size__(size, dim, data)
+                    # Select the features of the nodes indexed by i or j
                     data = self.__lift__(data, edge_index,
                                          j if arg[-2:] == '_j' else i)
 
