@@ -1,24 +1,14 @@
-import os
-import re
-import inspect
-import os.path as osp
-from uuid import uuid1
-from itertools import chain
 from inspect import Parameter
 from typing import List, Optional, Set
 from torch_geometric.typing import Adj, Size
 
 import torch
 from torch import Tensor
-from jinja2 import Template
 from torch_sparse import SparseTensor
 from torch_scatter import gather_csr, scatter, segment_csr
 
 from torch_geometric.nn.conv.utils.helpers import expand_left
-from torch_geometric.nn.conv.utils.jit import class_from_module_repr
-from torch_geometric.nn.conv.utils.typing import (sanitize, split_types_repr, parse_types,
-                                                  resolve_types)
-from torch_geometric.nn.conv.utils.inspector import Inspector, func_header_repr, func_body_repr
+from torch_geometric.nn.conv.utils.inspector import Inspector
 
 
 class ChainMessagePassing(torch.nn.Module):
@@ -160,7 +150,7 @@ class ChainMessagePassing(torch.nn.Module):
                 # as (x_i, x_j) as opposed to a matrix X [N, in_channels]
                 # (the 2nd case is handled by the next if)
                 if isinstance(data, (tuple, list)):
-                    raise ValueError('This format is not supported for simplicial message passing').
+                    raise ValueError('This format is not supported for simplicial message passing')
                     # In either case, check it is a pair.
                     # assert len(data) == 2
                     # if isinstance(data[1 - dim], Tensor):
@@ -176,7 +166,7 @@ class ChainMessagePassing(torch.nn.Module):
                     # Same size checks as above.
                     self.__set_size__(up_size, dim, data)
                     self.__set_size__(down_size, dim, data)
-                    # Select the features of the nodes indexed by i or j
+                    # Select the features of the nodes indexed by i or j from the data matrix
                     up_data = self.__lift__(data, up_index, j if arg[-2:] == '_j' else i)
                     down_data = self.__lift__(data, down_index, j if arg[-2:] == '_j' else i)
 
@@ -213,7 +203,7 @@ class ChainMessagePassing(torch.nn.Module):
             out['down_weight'] = down_index.storage.value()
             out['down_attr'] = down_index.storage.value()
             out['down_type'] = down_index.storage.value()
-        
+
         # Up
         out['up_index'] = out['up_index_i']
         out['up_size'] = up_size
@@ -264,40 +254,55 @@ class ChainMessagePassing(torch.nn.Module):
             **kwargs: Any additional data which is needed to construct and
                 aggregate messages, and to update node embeddings.
         """
+        # TODO(Cris): Add a check for consistency between the up and down sizes.
         up_size = self.__check_input__(up_index, up_size)
         down_size = self.__check_input__(down_index, down_size)
 
         # Run "fused" message and aggregation (if applicable).
         if isinstance(up_index, SparseTensor) and self.fuse:
+            assert isinstance(down_index, SparseTensor)
             # Collect the objects to pass to the function params in __user_arg.
             coll_dict = self.__collect__(self.__fused_user_args__, up_index, down_index,
                                          up_size, down_size, kwargs)
 
-            # Extract the right objects to pass for each function.
-            msg_aggr_kwargs = self.inspector.distribute(
-                'message_and_aggregate', coll_dict)
-            out = self.message_and_aggregate(edge_index, **msg_aggr_kwargs)
+            # Up message and aggregation
+            up_msg_aggr_kwargs = self.inspector.distribute(
+                'up_message_and_aggregate', coll_dict)
+            up_out = self.up_message_and_aggregate(up_index, **up_msg_aggr_kwargs)
+
+            # Down message and aggregation
+            down_msg_aggr_kwargs = self.inspector.distribute(
+                'down_message_and_aggregate', coll_dict)
+            down_out = self.down_message_and_aggregate(up_index, **down_msg_aggr_kwargs)
 
             update_kwargs = self.inspector.distribute('update', coll_dict)
-            return self.update(out, **update_kwargs)
+            return self.update(up_out, down_out, **update_kwargs)
 
         # Otherwise, run both functions in separation.
-        elif isinstance(edge_index, Tensor) or not self.fuse:
+        elif isinstance(down_index, Tensor) or not self.fuse:
+            assert isinstance(down_index, Tensor)
             # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__user_args__, edge_index, size,
+            coll_dict = self.__collect__(self.__user_args__, down_index, down_size,
                                          kwargs)
 
-            # Extract the right objects to pass for each function.
-            msg_kwargs = self.inspector.distribute('message', coll_dict)
-            out = self.message(**msg_kwargs)
+            # Up message and aggregation
+            up_msg_kwargs = self.inspector.distribute('up_message', coll_dict)
+            up_out = self.message(**up_msg_kwargs)
 
-            aggr_kwargs = self.inspector.distribute('aggregate', coll_dict)
-            out = self.aggregate(out, **aggr_kwargs)
+            up_aggr_kwargs = self.inspector.distribute('up_aggregate', coll_dict)
+            up_out = self.aggregate(up_out, **up_aggr_kwargs)
+
+            # Down message and aggregation
+            down_msg_kwargs = self.inspector.distribute('down_message', coll_dict)
+            down_out = self.message(**down_msg_kwargs)
+
+            down_aggr_kwargs = self.inspector.distribute('down_aggregate', coll_dict)
+            down_out = self.aggregate(down_out, **down_aggr_kwargs)
 
             update_kwargs = self.inspector.distribute('update', coll_dict)
-            return self.update(out, **update_kwargs)
+            return self.update(up_out, down_out, **update_kwargs)
 
-    def message(self, x_j: Tensor) -> Tensor:
+    def up_message(self, x_j: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -309,7 +314,29 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return x_j
 
-    def aggregate(self, inputs: Tensor, index: Tensor,
+    def down_message(self, x_j: Tensor) -> Tensor:
+        r"""Constructs messages from node :math:`j` to node :math:`i`
+        in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
+        :obj:`edge_index`.
+        This function can take any argument as input which was initially
+        passed to :meth:`propagate`.
+        Furthermore, tensors passed to :meth:`propagate` can be mapped to the
+        respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
+        :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
+        """
+        return x_j
+
+    def __aggregate__(self, inputs: Tensor, index: Tensor,
+                  ptr: Optional[Tensor] = None,
+                  dim_size: Optional[int] = None) -> Tensor:
+        if ptr is not None:
+            ptr = expand_left(ptr, dim=self.node_dim, dims=inputs.dim())
+            return segment_csr(inputs, ptr, reduce=self.aggr)
+        else:
+            return scatter(inputs, index, dim=self.node_dim, dim_size=dim_size,
+                           reduce=self.aggr)
+
+    def up_aggregate(self, inputs: Tensor, index: Tensor,
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
@@ -322,14 +349,25 @@ class ChainMessagePassing(torch.nn.Module):
         that support "add", "mean" and "max" operations as specified in
         :meth:`__init__` by the :obj:`aggr` argument.
         """
-        if ptr is not None:
-            ptr = expand_left(ptr, dim=self.node_dim, dims=inputs.dim())
-            return segment_csr(inputs, ptr, reduce=self.aggr)
-        else:
-            return scatter(inputs, index, dim=self.node_dim, dim_size=dim_size,
-                           reduce=self.aggr)
+        return self.__aggregate__(inputs, index, ptr, dim_size)
 
-    def message_and_aggregate(self, adj_t: SparseTensor) -> Tensor:
+    def down_aggregate(self, inputs: Tensor, index: Tensor,
+                  ptr: Optional[Tensor] = None,
+                  dim_size: Optional[int] = None) -> Tensor:
+        r"""Aggregates messages from neighbors as
+        :math:`\square_{j \in \mathcal{N}(i)}`.
+
+        Takes in the output of message computation as first argument and any
+        argument which was initially passed to :meth:`propagate`.
+
+        By default, this function will delegate its call to scatter functions
+        that support "add", "mean" and "max" operations as specified in
+        :meth:`__init__` by the :obj:`aggr` argument.
+        """
+        return self.__aggregate__(inputs, index, ptr, dim_size)
+
+
+    def up_message_and_aggregate(self, adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not
@@ -339,11 +377,21 @@ class ChainMessagePassing(torch.nn.Module):
         """
         raise NotImplementedError
 
-    def update(self, inputs: Tensor) -> Tensor:
+    def down_message_and_aggregate(self, adj_t: SparseTensor) -> Tensor:
+        r"""Fuses computations of :func:`message` and :func:`aggregate` into a
+        single function.
+        If applicable, this saves both time and memory since messages do not
+        explicitly need to be materialized.
+        This function will only gets called in case it is implemented and
+        propagation takes place based on a :obj:`torch_sparse.SparseTensor`.
+        """
+        raise NotImplementedError
+
+    def update(self, up_inputs: Tensor, down_inputs: Tensor) -> Tensor:
         r"""Updates node embeddings in analogy to
         :math:`\gamma_{\mathbf{\Theta}}` for each node
         :math:`i \in \mathcal{V}`.
         Takes in the output of aggregation as first argument and any argument
         which was initially passed to :meth:`propagate`.
         """
-        return inputs
+        return up_inputs + down_inputs
