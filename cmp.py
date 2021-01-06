@@ -192,7 +192,7 @@ class ChainMessagePassing(torch.nn.Module):
             out['up_adj_t'] = up_index
             out['up_index_i'] = up_index.storage.row()
             out['up_index_j'] = up_index.storage.col()
-            out['ptr'] = up_index.storage.rowptr()
+            out['up_ptr'] = up_index.storage.rowptr()
             out['up_weight'] = up_index.storage.value()
             out['up_attr'] = up_index.storage.value()
             out['up_type'] = up_index.storage.value()
@@ -200,6 +200,7 @@ class ChainMessagePassing(torch.nn.Module):
             out['down_adj_t'] = down_index
             out['down_index_i'] = down_index.storage.row()
             out['down_index_j'] = down_index.storage.col()
+            out['down_ptr'] = down_index.storage.rowptr()
             out['down_weight'] = down_index.storage.value()
             out['down_attr'] = down_index.storage.value()
             out['down_type'] = down_index.storage.value()
@@ -302,7 +303,7 @@ class ChainMessagePassing(torch.nn.Module):
             update_kwargs = self.inspector.distribute('update', coll_dict)
             return self.update(up_out, down_out, **update_kwargs)
 
-    def up_message(self, x_j: Tensor) -> Tensor:
+    def up_message(self, up_x_j: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -312,9 +313,9 @@ class ChainMessagePassing(torch.nn.Module):
         respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
         :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
         """
-        return x_j
+        return up_x_j
 
-    def down_message(self, x_j: Tensor) -> Tensor:
+    def down_message(self, down_x_j: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -324,7 +325,7 @@ class ChainMessagePassing(torch.nn.Module):
         respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
         :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
         """
-        return x_j
+        return down_x_j
 
     def __aggregate__(self, inputs: Tensor, index: Tensor,
                   ptr: Optional[Tensor] = None,
@@ -336,9 +337,9 @@ class ChainMessagePassing(torch.nn.Module):
             return scatter(inputs, index, dim=self.node_dim, dim_size=dim_size,
                            reduce=self.aggr)
 
-    def up_aggregate(self, inputs: Tensor, index: Tensor,
-                  ptr: Optional[Tensor] = None,
-                  dim_size: Optional[int] = None) -> Tensor:
+    def up_aggregate(self, inputs: Tensor, up_index: Tensor,
+                  up_ptr: Optional[Tensor] = None,
+                  up_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
         :math:`\square_{j \in \mathcal{N}(i)}`.
 
@@ -349,11 +350,11 @@ class ChainMessagePassing(torch.nn.Module):
         that support "add", "mean" and "max" operations as specified in
         :meth:`__init__` by the :obj:`aggr` argument.
         """
-        return self.__aggregate__(inputs, index, ptr, dim_size)
+        return self.__aggregate__(inputs, up_index, up_ptr, up_dim_size)
 
-    def down_aggregate(self, inputs: Tensor, index: Tensor,
-                  ptr: Optional[Tensor] = None,
-                  dim_size: Optional[int] = None) -> Tensor:
+    def down_aggregate(self, inputs: Tensor, down_index: Tensor,
+                  down_ptr: Optional[Tensor] = None,
+                  down_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
         :math:`\square_{j \in \mathcal{N}(i)}`.
 
@@ -364,10 +365,9 @@ class ChainMessagePassing(torch.nn.Module):
         that support "add", "mean" and "max" operations as specified in
         :meth:`__init__` by the :obj:`aggr` argument.
         """
-        return self.__aggregate__(inputs, index, ptr, dim_size)
+        return self.__aggregate__(inputs, down_index, down_ptr, down_dim_size)
 
-
-    def up_message_and_aggregate(self, adj_t: SparseTensor) -> Tensor:
+    def up_message_and_aggregate(self, up_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not
@@ -377,7 +377,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         raise NotImplementedError
 
-    def down_message_and_aggregate(self, adj_t: SparseTensor) -> Tensor:
+    def down_message_and_aggregate(self, down_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not
