@@ -88,19 +88,20 @@ class ChainMessagePassing(torch.nn.Module):
         # Support for "fused" message passing.
         self.fuse = self.inspector.implements('message_and_aggregate')
 
-    def __check_input__(self, edge_index, size):
+    def __check_input__(self, index, size):
+        """This gets an up or down index and the size of the assignment matrix"""
         the_size: List[Optional[int]] = [None, None]
 
-        if isinstance(edge_index, Tensor):
-            assert edge_index.dtype == torch.long
-            assert edge_index.dim() == 2
-            assert edge_index.size(0) == 2
+        if isinstance(index, Tensor):
+            assert index.dtype == torch.long
+            assert index.dim() == 2
+            assert index.size(0) == 2
             if size is not None:
                 the_size[0] = size[0]
                 the_size[1] = size[1]
             return the_size
 
-        elif isinstance(edge_index, SparseTensor):
+        elif isinstance(index, SparseTensor):
             if self.flow == 'target_to_source':
                 raise ValueError(
                     ('Flow direction "target_to_source" is invalid for '
@@ -108,8 +109,8 @@ class ChainMessagePassing(torch.nn.Module):
                      'you really want to make use of a reverse message '
                      'passing flow, pass in the transposed sparse tensor to '
                      'the message passing module, e.g., `adj_t.t()`.'))
-            the_size[0] = edge_index.sparse_size(1)
-            the_size[1] = edge_index.sparse_size(0)
+            the_size[0] = index.sparse_size(1)
+            the_size[1] = index.sparse_size(0)
             return the_size
 
         raise ValueError(
@@ -126,21 +127,21 @@ class ChainMessagePassing(torch.nn.Module):
                 (f'Encountered tensor with size {src.size(self.node_dim)} in '
                  f'dimension {self.node_dim}, but expected size {the_size}.'))
 
-    def __lift__(self, src, edge_index, dim):
-        if isinstance(edge_index, Tensor):
-            index = edge_index[dim]
+    def __lift__(self, src, index, dim):
+        if isinstance(index, Tensor):
+            index = index[dim]
             return src.index_select(self.node_dim, index)
-        elif isinstance(edge_index, SparseTensor):
+        elif isinstance(index, SparseTensor):
             if dim == 1:
-                rowptr = edge_index.storage.rowptr()
+                rowptr = index.storage.rowptr()
                 rowptr = expand_left(rowptr, dim=self.node_dim, dims=src.dim())
                 return gather_csr(src, rowptr)
             elif dim == 0:
-                col = edge_index.storage.col()
+                col = index.storage.col()
                 return src.index_select(self.node_dim, col)
         raise ValueError
 
-    def __collect__(self, args, edge_index, size, kwargs):
+    def __collect__(self, args, up_index, down_index, up_size, down_size, kwargs):
         i, j = (1, 0) if self.flow == 'source_to_target' else (0, 1)
 
         out = {}
@@ -150,56 +151,90 @@ class ChainMessagePassing(torch.nn.Module):
             if arg[-2:] not in ['_i', '_j']:
                 out[arg] = kwargs.get(arg, Parameter.empty)
             else:
+                up_data, down_data = None, None
                 dim = 0 if arg[-2:] == '_j' else 1
                 # Extract any part up to _j or _i. So for x_j extract x
                 data = kwargs.get(arg[:-2], Parameter.empty)
 
-                # If data is tuple or list.
                 # I believe this is for the case when data is supplied directly
                 # as (x_i, x_j) as opposed to a matrix X [N, in_channels]
                 # (the 2nd case is handled by the next if)
                 if isinstance(data, (tuple, list)):
+                    raise ValueError('This format is not supported for simplicial message passing').
                     # In either case, check it is a pair.
-                    assert len(data) == 2
-                    if isinstance(data[1 - dim], Tensor):
+                    # assert len(data) == 2
+                    # if isinstance(data[1 - dim], Tensor):
                         # This mutates size in dim 1-dim if it is none.
-                        # Otherwise, it checks it is set to the right value.
-                        self.__set_size__(size, 1 - dim, data[1 - dim])
-                    data = data[dim]
+                        # Otherwise, it check the size of the adj matrix and the data matrix
+                        # agree with each other.
+                    #     self.__set_size__(up_size, 1 - dim, data[1 - dim])
+                    #     self.__set_size__(down_size, 1 - dim, data[1 - dim])
+                    # data = data[dim]
 
+                # This is the usual case when we get a feature matrix of shape [N, in_channels]
                 if isinstance(data, Tensor):
-                    self.__set_size__(size, dim, data)
+                    # Same size checks as above.
+                    self.__set_size__(up_size, dim, data)
+                    self.__set_size__(down_size, dim, data)
                     # Select the features of the nodes indexed by i or j
-                    data = self.__lift__(data, edge_index,
-                                         j if arg[-2:] == '_j' else i)
+                    up_data = self.__lift__(data, up_index, j if arg[-2:] == '_j' else i)
+                    down_data = self.__lift__(data, down_index, j if arg[-2:] == '_j' else i)
 
-                out[arg] = data
+                out[f'up{arg}'] = up_data
+                out[f'down{arg}'] = down_data
 
-        if isinstance(edge_index, Tensor):
+        # Automatically builds some default parameters that can be used in the message passing
+        # functions as needed. This was modified to be discriminative of upper and lower adjacency.
+        if isinstance(up_index, Tensor):
             out['adj_t'] = None
-            out['edge_index'] = edge_index
-            out['edge_index_i'] = edge_index[i]
-            out['edge_index_j'] = edge_index[j]
             out['ptr'] = None
-        elif isinstance(edge_index, SparseTensor):
-            out['adj_t'] = edge_index
+            # Upper adjacency
+            out['up_index'] = up_index
+            out['up_index_i'] = up_index[i]
+            out['up_index_j'] = up_index[j]
+            # Down adjacency
+            out['down_index'] = down_index
+            out['down_index_i'] = down_index[i]
+            out['down_index_j'] = down_index[j]
+        elif isinstance(up_index, SparseTensor):
             out['edge_index'] = None
-            out['edge_index_i'] = edge_index.storage.row()
-            out['edge_index_j'] = edge_index.storage.col()
-            out['ptr'] = edge_index.storage.rowptr()
-            out['edge_weight'] = edge_index.storage.value()
-            out['edge_attr'] = edge_index.storage.value()
-            out['edge_type'] = edge_index.storage.value()
+            # Upper adjacency
+            out['up_adj_t'] = up_index
+            out['up_index_i'] = up_index.storage.row()
+            out['up_index_j'] = up_index.storage.col()
+            out['ptr'] = up_index.storage.rowptr()
+            out['up_weight'] = up_index.storage.value()
+            out['up_attr'] = up_index.storage.value()
+            out['up_type'] = up_index.storage.value()
+            # Lower adjacency
+            out['down_adj_t'] = down_index
+            out['down_index_i'] = down_index.storage.row()
+            out['down_index_j'] = down_index.storage.col()
+            out['down_weight'] = down_index.storage.value()
+            out['down_attr'] = down_index.storage.value()
+            out['down_type'] = down_index.storage.value()
+        
+        # Up
+        out['up_index'] = out['up_index_i']
+        out['up_size'] = up_size
+        out['up_size_i'] = up_size[1] or up_size[0]
+        out['up_size_j'] = up_size[0] or up_size[1]
+        out['up_dim_size'] = out['up_size_i']
+        # Down
+        out['down_index'] = out['down_index_i']
+        out['down_size'] = down_size
+        out['down_size_i'] = down_size[1] or down_size[0]
+        out['down_size_j'] = down_size[0] or down_size[1]
+        out['down_dim_size'] = out['down_size_i']
 
-        out['index'] = out['edge_index_i']
-        out['size'] = size
-        out['size_i'] = size[1] or size[0]
-        out['size_j'] = size[0] or size[1]
-        out['dim_size'] = out['size_i']
+
 
         return out
 
-    def propagate(self, edge_index: Adj, size: Size = None, **kwargs):
+    def propagate(self, up_index: Adj, down_index: Adj,
+                  up_size: Size = None,
+                  down_size: Size = None,
+                  **kwargs):
         r"""The initial call to start propagating messages.
 
         Args:
@@ -229,13 +264,14 @@ class ChainMessagePassing(torch.nn.Module):
             **kwargs: Any additional data which is needed to construct and
                 aggregate messages, and to update node embeddings.
         """
-        size = self.__check_input__(edge_index, size)
+        up_size = self.__check_input__(up_index, up_size)
+        down_size = self.__check_input__(down_index, down_size)
 
         # Run "fused" message and aggregation (if applicable).
-        if isinstance(edge_index, SparseTensor) and self.fuse:
+        if isinstance(up_index, SparseTensor) and self.fuse:
             # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__fused_user_args__, edge_index,
-                                         size, kwargs)
+            coll_dict = self.__collect__(self.__fused_user_args__, up_index, down_index,
+                                         up_size, down_size, kwargs)
 
             # Extract the right objects to pass for each function.
             msg_aggr_kwargs = self.inspector.distribute(
