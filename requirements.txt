@@ -7,3 +7,7 @@ torchvision==0.8.1
 # torch-sparse==0.6.8
 # torch-spline-conv==1.2.0
 # torch-geometric==1.6.3
+
+# Other packages
+pytest==6.2.1
+

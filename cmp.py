@@ -9,6 +9,7 @@ from torch_scatter import gather_csr, scatter, segment_csr
 
 from torch_geometric.nn.conv.utils.helpers import expand_left
 from torch_geometric.nn.conv.utils.inspector import Inspector
+from sinspector import SimplicialInspector
 
 
 class ChainMessagePassing(torch.nn.Module):
@@ -51,7 +52,8 @@ class ChainMessagePassing(torch.nn.Module):
 
         self.aggr_up = aggr_up
         self.aggr_down = aggr_down
-        assert self.aggr in ['add', 'mean', 'max', None]
+        assert self.aggr_up in ['add', 'mean', 'max', None]
+        assert self.aggr_down in ['add', 'mean', 'max', None]
 
         self.flow = flow
         assert self.flow in ['source_to_target', 'target_to_source']
@@ -60,23 +62,29 @@ class ChainMessagePassing(torch.nn.Module):
         # i.e. if x has shape [N, in_channels], then node_dim = 0 or -2
         self.node_dim = node_dim
 
-        self.inspector = Inspector(self)
+        self.inspector = SimplicialInspector(self)
         # This stores the parameters of these functions. If pop first is true
         # the first parameter is not stored (I presume this is for self.)
         # I presume this doesn't pop first to avoid including the self parameter multiple times.
-        self.inspector.inspect(self.message)
-        self.inspector.inspect(self.aggregate, pop_first=True)
-        self.inspector.inspect(self.message_and_aggregate, pop_first=True)
-        self.inspector.inspect(self.update, pop_first=True)
+        self.inspector.inspect(self.message_up)
+        self.inspector.inspect(self.message_down)
+        self.inspector.inspect(self.aggregate_up, pop_first=True)
+        self.inspector.inspect(self.aggregate_down, pop_first=True)
+        self.inspector.inspect(self.message_and_aggregate_up, pop_first=True)
+        self.inspector.inspect(self.message_and_aggregate_down, pop_first=True)
+        self.inspector.inspect(self.update, pop_first_two=True)
 
         # Return the parameter name for these functions minus those specified in special_args
         self.__user_args__ = self.inspector.keys(
-            ['message', 'aggregate', 'update']).difference(self.special_args)
+            ['message_up', 'message_down', 'aggregate_up',
+             'aggregate_down', 'update']).difference(self.special_args)
         self.__fused_user_args__ = self.inspector.keys(
-            ['message_and_aggregate', 'update']).difference(self.special_args)
+            ['message_and_aggregate_up', 'message_and_aggregate_down',
+             'update']).difference(self.special_args)
 
         # Support for "fused" message passing.
-        self.fuse = self.inspector.implements('message_and_aggregate')
+        self.fuse = (self.inspector.implements('message_and_aggregate_up')
+                     and self.inspector.implements('message_and_aggregate_down'))
 
     def __check_input__(self, index, size):
         """This gets an up or down index and the size of the assignment matrix"""
@@ -141,10 +149,15 @@ class ChainMessagePassing(torch.nn.Module):
             if arg[-2:] not in ['_i', '_j']:
                 out[arg] = kwargs.get(arg, Parameter.empty)
             else:
-                up_data, down_data = None, None
                 dim = 0 if arg[-2:] == '_j' else 1
                 # Extract any part up to _j or _i. So for x_j extract x
-                data = kwargs.get(arg[:-2], Parameter.empty)
+                index, data = None, None
+                if arg.startswith('up_'):
+                    data = kwargs.get(arg[3:-2], Parameter.empty)
+                    index = up_index
+                elif arg.startswith('down_'):
+                    data = kwargs.get(arg[5:-2], Parameter.empty)
+                    index = down_index
 
                 # I believe this is for the case when data is supplied directly
                 # as (x_i, x_j) as opposed to a matrix X [N, in_channels]
@@ -167,15 +180,14 @@ class ChainMessagePassing(torch.nn.Module):
                     self.__set_size__(up_size, dim, data)
                     self.__set_size__(down_size, dim, data)
                     # Select the features of the nodes indexed by i or j from the data matrix
-                    up_data = self.__lift__(data, up_index, j if arg[-2:] == '_j' else i)
-                    down_data = self.__lift__(data, down_index, j if arg[-2:] == '_j' else i)
+                    data = self.__lift__(data, index, j if arg[-2:] == '_j' else i)
 
-                out[f'up{arg}'] = up_data
-                out[f'down{arg}'] = down_data
+                out[arg] = data
 
         # Automatically builds some default parameters that can be used in the message passing
         # functions as needed. This was modified to be discriminative of upper and lower adjacency.
         if isinstance(up_index, Tensor):
+            assert isinstance(down_index, Tensor)
             out['adj_t'] = None
             out['ptr'] = None
             # Upper adjacency
@@ -187,6 +199,7 @@ class ChainMessagePassing(torch.nn.Module):
             out['down_index_i'] = down_index[i]
             out['down_index_j'] = down_index[j]
         elif isinstance(up_index, SparseTensor):
+            assert isinstance(down_index, SparseTensor)
             out['edge_index'] = None
             # Upper adjacency
             out['up_adj_t'] = up_index
@@ -218,42 +231,15 @@ class ChainMessagePassing(torch.nn.Module):
         out['down_size_j'] = down_size[0] or down_size[1]
         out['down_dim_size'] = out['down_size_i']
 
-
-
         return out
 
-    def propagate(self, up_index: Adj, down_index: Adj,
+    def propagate(self, up_index: Adj,
+                  down_index: Adj,
                   up_size: Size = None,
                   down_size: Size = None,
                   **kwargs):
         r"""The initial call to start propagating messages.
 
-        Args:
-            edge_index (Tensor or SparseTensor): A :obj:`torch.LongTensor` or a
-                :obj:`torch_sparse.SparseTensor` that defines the underlying
-                graph connectivity/message passing flow.
-                :obj:`edge_index` holds the indices of a general (sparse)
-                assignment matrix of shape :obj:`[N, M]`.
-                If :obj:`edge_index` is of type :obj:`torch.LongTensor`, its
-                shape must be defined as :obj:`[2, num_messages]`, where
-                messages from nodes in :obj:`edge_index[0]` are sent to
-                nodes in :obj:`edge_index[1]`
-                (in case :obj:`flow="source_to_target"`).
-                If :obj:`edge_index` is of type
-                :obj:`torch_sparse.SparseTensor`, its sparse indices
-                :obj:`(row, col)` should relate to :obj:`row = edge_index[1]`
-                and :obj:`col = edge_index[0]`.
-                The major difference between both formats is that we need to
-                input the *transposed* sparse adjacency matrix into
-                :func:`propagate`.
-            size (tuple, optional): The size :obj:`(N, M)` of the assignment
-                matrix in case :obj:`edge_index` is a :obj:`LongTensor`.
-                If set to :obj:`None`, the size will be automatically inferred
-                and assumed to be quadratic.
-                This argument is ignored in case :obj:`edge_index` is a
-                :obj:`torch_sparse.SparseTensor`. (default: :obj:`None`)
-            **kwargs: Any additional data which is needed to construct and
-                aggregate messages, and to update node embeddings.
         """
         # TODO(Cris): Add a check for consistency between the up and down sizes.
         up_size = self.__check_input__(up_index, up_size)
@@ -268,13 +254,13 @@ class ChainMessagePassing(torch.nn.Module):
 
             # Up message and aggregation
             up_msg_aggr_kwargs = self.inspector.distribute(
-                'up_message_and_aggregate', coll_dict)
-            up_out = self.up_message_and_aggregate(up_index, **up_msg_aggr_kwargs)
+                'message_and_aggregate_up', coll_dict)
+            up_out = self.message_and_aggregate_up(up_index, **up_msg_aggr_kwargs)
 
             # Down message and aggregation
             down_msg_aggr_kwargs = self.inspector.distribute(
-                'down_message_and_aggregate', coll_dict)
-            down_out = self.down_message_and_aggregate(up_index, **down_msg_aggr_kwargs)
+                'message_and_aggregate_down', coll_dict)
+            down_out = self.message_and_aggregate_down(up_index, **down_msg_aggr_kwargs)
 
             update_kwargs = self.inspector.distribute('update', coll_dict)
             return self.update(up_out, down_out, **update_kwargs)
@@ -283,27 +269,27 @@ class ChainMessagePassing(torch.nn.Module):
         elif isinstance(down_index, Tensor) or not self.fuse:
             assert isinstance(down_index, Tensor)
             # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__user_args__, down_index, down_size,
-                                         kwargs)
+            coll_dict = self.__collect__(self.__user_args__, up_index, down_index,
+                                         up_size, down_size, kwargs)
 
             # Up message and aggregation
-            up_msg_kwargs = self.inspector.distribute('up_message', coll_dict)
-            up_out = self.message(**up_msg_kwargs)
+            up_msg_kwargs = self.inspector.distribute('message_up', coll_dict)
+            up_out = self.message_up(**up_msg_kwargs)
 
-            up_aggr_kwargs = self.inspector.distribute('up_aggregate', coll_dict)
-            up_out = self.aggregate(up_out, **up_aggr_kwargs)
+            up_aggr_kwargs = self.inspector.distribute('aggregate_up', coll_dict)
+            up_out = self.aggregate_up(up_out, **up_aggr_kwargs)
 
             # Down message and aggregation
-            down_msg_kwargs = self.inspector.distribute('down_message', coll_dict)
-            down_out = self.message(**down_msg_kwargs)
+            down_msg_kwargs = self.inspector.distribute('message_down', coll_dict)
+            down_out = self.message_down(**down_msg_kwargs)
 
-            down_aggr_kwargs = self.inspector.distribute('down_aggregate', coll_dict)
-            down_out = self.aggregate(down_out, **down_aggr_kwargs)
+            down_aggr_kwargs = self.inspector.distribute('aggregate_down', coll_dict)
+            down_out = self.aggregate_down(down_out, **down_aggr_kwargs)
 
             update_kwargs = self.inspector.distribute('update', coll_dict)
             return self.update(up_out, down_out, **update_kwargs)
 
-    def up_message(self, up_x_j: Tensor) -> Tensor:
+    def message_up(self, up_x_j: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -315,7 +301,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return up_x_j
 
-    def down_message(self, down_x_j: Tensor) -> Tensor:
+    def message_down(self, down_x_j: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -327,19 +313,29 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return down_x_j
 
-    def __aggregate__(self, inputs: Tensor, index: Tensor,
-                  ptr: Optional[Tensor] = None,
-                  dim_size: Optional[int] = None) -> Tensor:
-        if ptr is not None:
-            ptr = expand_left(ptr, dim=self.node_dim, dims=inputs.dim())
-            return segment_csr(inputs, ptr, reduce=self.aggr)
+    def aggregate_up(self, inputs: Tensor, up_index: Tensor,
+                     up_ptr: Optional[Tensor] = None,
+                     up_dim_size: Optional[int] = None) -> Tensor:
+        r"""Aggregates messages from neighbors as
+        :math:`\square_{j \in \mathcal{N}(i)}`.
+
+        Takes in the output of message computation as first argument and any
+        argument which was initially passed to :meth:`propagate`.
+
+        By default, this function will delegate its call to scatter functions
+        that support "add", "mean" and "max" operations as specified in
+        :meth:`__init__` by the :obj:`aggr` argument.
+        """
+        if up_ptr is not None:
+            up_ptr = expand_left(up_ptr, dim=self.node_dim, dims=inputs.dim())
+            return segment_csr(inputs, up_ptr, reduce=self.aggr_up)
         else:
-            return scatter(inputs, index, dim=self.node_dim, dim_size=dim_size,
-                           reduce=self.aggr)
+            return scatter(inputs, up_index, dim=self.node_dim, dim_size=up_dim_size,
+                           reduce=self.aggr_up)
 
-    def up_aggregate(self, inputs: Tensor, up_index: Tensor,
-                  up_ptr: Optional[Tensor] = None,
-                  up_dim_size: Optional[int] = None) -> Tensor:
+    def aggregate_down(self, inputs: Tensor, down_index: Tensor,
+                       down_ptr: Optional[Tensor] = None,
+                       down_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
         :math:`\square_{j \in \mathcal{N}(i)}`.
 
@@ -350,24 +346,14 @@ class ChainMessagePassing(torch.nn.Module):
         that support "add", "mean" and "max" operations as specified in
         :meth:`__init__` by the :obj:`aggr` argument.
         """
-        return self.__aggregate__(inputs, up_index, up_ptr, up_dim_size)
+        if down_ptr is not None:
+            down_ptr = expand_left(down_ptr, dim=self.node_dim, dims=inputs.dim())
+            return segment_csr(inputs, down_ptr, reduce=self.aggr_down)
+        else:
+            return scatter(inputs, down_index, dim=self.node_dim, dim_size=down_dim_size,
+                           reduce=self.aggr_down)
 
-    def down_aggregate(self, inputs: Tensor, down_index: Tensor,
-                  down_ptr: Optional[Tensor] = None,
-                  down_dim_size: Optional[int] = None) -> Tensor:
-        r"""Aggregates messages from neighbors as
-        :math:`\square_{j \in \mathcal{N}(i)}`.
-
-        Takes in the output of message computation as first argument and any
-        argument which was initially passed to :meth:`propagate`.
-
-        By default, this function will delegate its call to scatter functions
-        that support "add", "mean" and "max" operations as specified in
-        :meth:`__init__` by the :obj:`aggr` argument.
-        """
-        return self.__aggregate__(inputs, down_index, down_ptr, down_dim_size)
-
-    def up_message_and_aggregate(self, up_adj_t: SparseTensor) -> Tensor:
+    def message_and_aggregate_up(self, up_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not
@@ -377,7 +363,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         raise NotImplementedError
 
-    def down_message_and_aggregate(self, down_adj_t: SparseTensor) -> Tensor:
+    def message_and_aggregate_down(self, down_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not
