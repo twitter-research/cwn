@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from cmp import ChainMessagePassing
+from mp.cmp import ChainMessagePassing
 
 
 @pytest.fixture

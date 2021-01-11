@@ -8,8 +8,7 @@ from torch_sparse import SparseTensor
 from torch_scatter import gather_csr, scatter, segment_csr
 
 from torch_geometric.nn.conv.utils.helpers import expand_left
-from torch_geometric.nn.conv.utils.inspector import Inspector
-from sinspector import SimplicialInspector
+from mp.smp_inspector import SimplicialInspector
 
 
 class ChainMessagePassing(torch.nn.Module):
