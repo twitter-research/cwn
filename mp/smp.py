@@ -85,7 +85,17 @@ class ChainMessagePassing(torch.nn.Module):
         self.fuse = (self.inspector.implements('message_and_aggregate_up')
                      and self.inspector.implements('message_and_aggregate_down'))
 
-    def __check_input__(self, index, size):
+    def __check_input_together__(self, index_up, index_down, size_up, size_down):
+        # Check that at most one of these is missing (i.e. we must have at least upper
+        # or lower adjacency at each level of the complex)
+        assert not (index_up is None and index_down is None)
+        # If we have both up and down adjacency, then check the sizes agree.
+        if (index_up is not None and index_down is not None
+                and size_up is not None and size_down is not None):
+            assert size_up[0] == size_down[0]
+            assert size_up[1] == size_down[1]
+
+    def __check_input_separately__(self, index, size):
         """This gets an up or down index and the size of the assignment matrix"""
         the_size: List[Optional[int]] = [None, None]
 
@@ -166,9 +176,9 @@ class ChainMessagePassing(torch.nn.Module):
                     # In either case, check it is a pair.
                     # assert len(data) == 2
                     # if isinstance(data[1 - dim], Tensor):
-                        # This mutates size in dim 1-dim if it is none.
-                        # Otherwise, it check the size of the adj matrix and the data matrix
-                        # agree with each other.
+                    # This mutates size in dim 1-dim if it is none.
+                    # Otherwise, it check the size of the adj matrix and the data matrix
+                    # agree with each other.
                     #     self.__set_size__(up_size, 1 - dim, data[1 - dim])
                     #     self.__set_size__(down_size, 1 - dim, data[1 - dim])
                     # data = data[dim]
@@ -232,17 +242,17 @@ class ChainMessagePassing(torch.nn.Module):
 
         return out
 
-    def propagate(self, up_index: Adj,
-                  down_index: Adj,
+    def propagate(self, up_index: Optional[Adj],
+                  down_index: Optional[Adj],
                   up_size: Size = None,
                   down_size: Size = None,
                   **kwargs):
         r"""The initial call to start propagating messages.
 
         """
-        # TODO(Cris): Add a check for consistency between the up and down sizes.
-        up_size = self.__check_input__(up_index, up_size)
-        down_size = self.__check_input__(down_index, down_size)
+        up_size = self.__check_input_separately__(up_index, up_size)
+        down_size = self.__check_input_separately__(down_index, down_size)
+        self.__check_input_together__(up_index, down_index, up_size, down_size)
 
         # Run "fused" message and aggregation (if applicable).
         if isinstance(up_index, SparseTensor) and self.fuse:
@@ -380,3 +390,17 @@ class ChainMessagePassing(torch.nn.Module):
         which was initially passed to :meth:`propagate`.
         """
         return up_inputs + down_inputs
+
+
+class SimplicialMessagePassing(torch.nn.Module):
+    def __init__(self, vertex_mp: ChainMessagePassing, edge_mp: ChainMessagePassing,
+                 triangle_mp: ChainMessagePassing):
+
+        super(SimplicialMessagePassing, self).__init__()
+
+        self.vertex_mp = vertex_mp
+        self.edge_mp = edge_mp
+        self.triangle_mp = triangle_mp
+
+    def propagate(self, vertex_params, edge_params, triangle_param):
+        pass
