@@ -76,14 +76,16 @@ class ChainMessagePassing(torch.nn.Module):
         # Return the parameter name for these functions minus those specified in special_args
         self.__user_args__ = self.inspector.keys(
             ['message_up', 'message_down', 'aggregate_up',
-             'aggregate_down', 'update']).difference(self.special_args)
+             'aggregate_down']).difference(self.special_args)
         self.__fused_user_args__ = self.inspector.keys(
-            ['message_and_aggregate_up', 'message_and_aggregate_down',
-             'update']).difference(self.special_args)
+            ['message_and_aggregate_up',
+             'message_and_aggregate_down']).difference(self.special_args)
+        self.__update_user_args__ = self.inspector.keys(
+            ['update']).difference(self.special_args)
 
         # Support for "fused" message passing.
-        self.fuse = (self.inspector.implements('message_and_aggregate_up')
-                     and self.inspector.implements('message_and_aggregate_down'))
+        self.fuse_up = self.inspector.implements('message_and_aggregate_up')
+        self.fuse_down = self.inspector.implements('message_and_aggregate_down')
 
     def __check_input_together__(self, index_up, index_down, size_up, size_down):
         # Check that at most one of these is missing (i.e. we must have at least upper
@@ -95,8 +97,9 @@ class ChainMessagePassing(torch.nn.Module):
             assert size_up[0] == size_down[0]
             assert size_up[1] == size_down[1]
 
-    def __check_input_separately__(self, index, size):
+    def __check_input_separately__(self, index, size, direction):
         """This gets an up or down index and the size of the assignment matrix"""
+        assert direction == 'up' or direction == 'down'
         the_size: List[Optional[int]] = [None, None]
 
         if isinstance(index, Tensor):
@@ -168,20 +171,11 @@ class ChainMessagePassing(torch.nn.Module):
                     data = kwargs.get(arg[5:-2], Parameter.empty)
                     index = down_index
 
-                # I believe this is for the case when data is supplied directly
+                # This was used before for the case when data is supplied directly
                 # as (x_i, x_j) as opposed to a matrix X [N, in_channels]
                 # (the 2nd case is handled by the next if)
                 if isinstance(data, (tuple, list)):
                     raise ValueError('This format is not supported for simplicial message passing')
-                    # In either case, check it is a pair.
-                    # assert len(data) == 2
-                    # if isinstance(data[1 - dim], Tensor):
-                    # This mutates size in dim 1-dim if it is none.
-                    # Otherwise, it check the size of the adj matrix and the data matrix
-                    # agree with each other.
-                    #     self.__set_size__(up_size, 1 - dim, data[1 - dim])
-                    #     self.__set_size__(down_size, 1 - dim, data[1 - dim])
-                    # data = data[dim]
 
                 # This is the usual case when we get a feature matrix of shape [N, in_channels]
                 if isinstance(data, Tensor):
@@ -242,6 +236,33 @@ class ChainMessagePassing(torch.nn.Module):
 
         return out
 
+    def __message_and_aggregate__(self, index: Adj, direction: str, size: Size = None,
+                                  **kwargs):
+        size = self.__check_input_separately__(index, size, direction)
+
+        # Fused message and aggregation
+        fuse = self.fuse_up if direction == 'up' else self.fuse_down
+        if isinstance(index, SparseTensor) and fuse:
+            # Collect the objects to pass to the function params in __user_arg.
+            coll_dict = self.__collect__(self.__fused_user_args__, index, size, kwargs)
+
+            # message and aggregation are fused in a single function
+            msg_aggr_kwargs = self.inspector.distribute(
+                f'message_and_aggregate_{direction}', coll_dict)
+            return self.message_and_aggregate_up(index, **msg_aggr_kwargs)
+
+        # Otherwise, run message and aggregation in separation.
+        elif isinstance(index, Tensor) or not fuse:
+            # Collect the objects to pass to the function params in __user_arg.
+            coll_dict = self.__collect__(self.__user_args__, index, size, kwargs)
+
+            # Up message and aggregation
+            msg_kwargs = self.inspector.distribute(f'message_{direction}', coll_dict)
+            out = self.message_up(**msg_kwargs)
+
+            aggr_kwargs = self.inspector.distribute(f'aggregate_{direction}', coll_dict)
+            return self.aggregate_up(out, **aggr_kwargs)
+
     def propagate(self, up_index: Optional[Adj],
                   down_index: Optional[Adj],
                   up_size: Size = None,
@@ -250,53 +271,14 @@ class ChainMessagePassing(torch.nn.Module):
         r"""The initial call to start propagating messages.
 
         """
-        up_size = self.__check_input_separately__(up_index, up_size)
-        down_size = self.__check_input_separately__(down_index, down_size)
         self.__check_input_together__(up_index, down_index, up_size, down_size)
 
-        # Run "fused" message and aggregation (if applicable).
-        if isinstance(up_index, SparseTensor) and self.fuse:
-            assert isinstance(down_index, SparseTensor)
-            # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__fused_user_args__, up_index, down_index,
-                                         up_size, down_size, kwargs)
+        up_out = self.__message_and_aggregate__(up_index, 'up', up_size, **kwargs)
+        down_out = self.__message_and_aggregate__(down_index, 'down', down_size, **kwargs)
 
-            # Up message and aggregation
-            up_msg_aggr_kwargs = self.inspector.distribute(
-                'message_and_aggregate_up', coll_dict)
-            up_out = self.message_and_aggregate_up(up_index, **up_msg_aggr_kwargs)
-
-            # Down message and aggregation
-            down_msg_aggr_kwargs = self.inspector.distribute(
-                'message_and_aggregate_down', coll_dict)
-            down_out = self.message_and_aggregate_down(up_index, **down_msg_aggr_kwargs)
-
-            update_kwargs = self.inspector.distribute('update', coll_dict)
-            return self.update(up_out, down_out, **update_kwargs)
-
-        # Otherwise, run both functions in separation.
-        elif isinstance(down_index, Tensor) or not self.fuse:
-            assert isinstance(down_index, Tensor)
-            # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__user_args__, up_index, down_index,
-                                         up_size, down_size, kwargs)
-
-            # Up message and aggregation
-            up_msg_kwargs = self.inspector.distribute('message_up', coll_dict)
-            up_out = self.message_up(**up_msg_kwargs)
-
-            up_aggr_kwargs = self.inspector.distribute('aggregate_up', coll_dict)
-            up_out = self.aggregate_up(up_out, **up_aggr_kwargs)
-
-            # Down message and aggregation
-            down_msg_kwargs = self.inspector.distribute('message_down', coll_dict)
-            down_out = self.message_down(**down_msg_kwargs)
-
-            down_aggr_kwargs = self.inspector.distribute('aggregate_down', coll_dict)
-            down_out = self.aggregate_down(down_out, **down_aggr_kwargs)
-
-            update_kwargs = self.inspector.distribute('update', coll_dict)
-            return self.update(up_out, down_out, **update_kwargs)
+        coll_dict = self.__collect__(self.__update_user_args__, up_index, down_index, up_size, down_size, kwargs)
+        update_kwargs = self.inspector.distribute('update', coll_dict)
+        return self.update(up_out, down_out, **update_kwargs)
 
     def message_up(self, up_x_j: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
