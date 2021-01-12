@@ -1,12 +1,21 @@
 import pytest
 import torch
 
-from mp.smp import ChainMessagePassing
+from mp.smp import ChainMessagePassing, SimplicialMessagePassing
 
 
 @pytest.fixture
 def build_cmp():
     return ChainMessagePassing()
+
+
+@pytest.fixture
+def build_smp():
+    return SimplicialMessagePassing(
+        ChainMessagePassing(),
+        ChainMessagePassing(),
+        ChainMessagePassing(),
+    )
 
 
 def test_propagate_in_cmp(build_cmp):
@@ -94,3 +103,9 @@ def test_propagate_at_triangle_level_in_cmp(build_cmp):
     expected_updated_x = torch.tensor([[17], [32]], dtype=torch.float)
 
     assert torch.equal(updated_x, expected_updated_x)
+
+
+def test_simplicial_message_passing_on_house_complex(build_smp):
+    """Tests message propagation at all layers of a house-shaped complex."""
+    pass
+

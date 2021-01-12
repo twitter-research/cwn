@@ -1,5 +1,5 @@
 from inspect import Parameter
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple, Dict
 from torch_geometric.typing import Adj, Size
 
 import torch
@@ -9,6 +9,9 @@ from torch_scatter import gather_csr, scatter, segment_csr
 
 from torch_geometric.nn.conv.utils.helpers import expand_left
 from mp.smp_inspector import SimplicialInspector
+
+
+ChainParams = Tuple[Optional[Adj], Optional[Adj], Tensor, Dict]
 
 
 class ChainMessagePassing(torch.nn.Module):
@@ -387,5 +390,16 @@ class SimplicialMessagePassing(torch.nn.Module):
         self.edge_mp = edge_mp
         self.triangle_mp = triangle_mp
 
-    def propagate(self, vertex_params, edge_params, triangle_param):
-        pass
+    def propagate(self,
+                  vertex_params: ChainParams,
+                  edge_params: ChainParams,
+                  triangle_params:ChainParams):
+        v_up_index, v_down_index, v_x, v_kwargs = vertex_params
+        e_up_index, e_down_index, e_x, e_kwargs = edge_params
+        t_up_index, t_down_index, t_x, t_kwargs = triangle_params
+
+        v_x = self.vertex_mp.propagate(v_up_index, v_down_index, x=v_x, **v_kwargs)
+        e_x = self.edge_mp.propagate(e_up_index, e_down_index, x=e_x, **v_kwargs)
+        t_x = self.vertex_mp.propagate(t_up_index, t_down_index, t=t_x, **t_kwargs)
+
+        return v_x, e_x, t_x
