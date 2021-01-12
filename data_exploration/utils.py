@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import itertools as it
 import torch
 
-
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
     G = nx.Graph()
@@ -207,4 +206,8 @@ def get_adj_index(simplices, connectivity):
                 edges.append([s, index[neighbor]])
                 edges.append([index[neighbor], s])
                 seen.add(edge)
-    return torch.LongTensor(edges), index, rev_index
+    if len(edges) == 0:
+        edges = torch.LongTensor([[],[]])
+    else:
+        edges = torch.LongTensor(edges).transpose(1,0)
+    return edges, index, rev_index
