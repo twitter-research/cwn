@@ -278,7 +278,7 @@ class ChainMessagePassing(torch.nn.Module):
         update_kwargs = self.inspector.distribute('update', coll_dict)
         return self.update(up_out, down_out, **update_kwargs)
 
-    def message_up(self, up_x_j: Tensor) -> Tensor:
+    def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -290,7 +290,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return up_x_j
 
-    def message_down(self, down_x_j: Tensor) -> Tensor:
+    def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
