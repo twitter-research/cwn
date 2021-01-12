@@ -88,9 +88,6 @@ class ChainMessagePassing(torch.nn.Module):
         self.fuse_down = self.inspector.implements('message_and_aggregate_down')
 
     def __check_input_together__(self, index_up, index_down, size_up, size_down):
-        # Check that at most one of these is missing (i.e. we must have at least upper
-        # or lower adjacency at each level of the complex)
-        assert not (index_up is None and index_down is None)
         # If we have both up and down adjacency, then check the sizes agree.
         if (index_up is not None and index_down is not None
                 and size_up is not None and size_down is not None):
@@ -120,6 +117,9 @@ class ChainMessagePassing(torch.nn.Module):
                      'the message passing module, e.g., `adj_t.t()`.'))
             the_size[0] = index.sparse_size(1)
             the_size[1] = index.sparse_size(0)
+            return the_size
+
+        elif index is None:
             return the_size
 
         raise ValueError(
@@ -160,7 +160,7 @@ class ChainMessagePassing(torch.nn.Module):
             # from an argument having the prefix x.
             if arg[-2:] not in ['_i', '_j']:
                 out[arg] = kwargs.get(arg, Parameter.empty)
-            else:
+            elif index is not None:
                 dim = 0 if arg[-2:] == '_j' else 1
                 # Extract any part up to _j or _i. So for x_j extract x
                 if direction == 'up' and arg.startswith('up_'):
@@ -203,7 +203,9 @@ class ChainMessagePassing(torch.nn.Module):
             out[f'{direction}_attr'] = index.storage.value()
             out[f'{direction}_type'] = index.storage.value()
 
-        out[f'{direction}_index'] = out[f'{direction}_index_i']
+        if isinstance(index, Tensor) or isinstance(index, SparseTensor):
+            out[f'{direction}_index'] = out[f'{direction}_index_i']
+
         out[f'{direction}_size'] = size
         out[f'{direction}_size_i'] = size[1] or size[0]
         out[f'{direction}_size_j'] = size[0] or size[1]
@@ -253,20 +255,21 @@ class ChainMessagePassing(torch.nn.Module):
 
         """
         up_size = self.__check_input_separately__(up_index, up_size)
-        down_size = self.__check_input_separately__(up_index, up_size)
+        down_size = self.__check_input_separately__(down_index, down_size)
         self.__check_input_together__(up_index, down_index, up_size, down_size)
 
         up_out, down_out = None, None
-        coll_dict, up_coll_dict, down_coll_dict = {}, {}, {}
         if up_index is not None:
             up_out = self.__message_and_aggregate__(up_index, 'up', up_size, **kwargs)
-            up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
-                                            kwargs)
+
         if down_index is not None:
             down_out = self.__message_and_aggregate__(down_index, 'down', down_size, **kwargs)
-            down_coll_dict = self.__collect__(self.__update_user_args__,
-                                              down_index, down_size, 'down', kwargs)
 
+        coll_dict = {}
+        up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
+                                        kwargs)
+        down_coll_dict = self.__collect__(self.__update_user_args__,
+                                          down_index, down_size, 'down', kwargs)
         coll_dict.update(up_coll_dict)
         coll_dict.update(down_coll_dict)
         update_kwargs = self.inspector.distribute('update', coll_dict)
@@ -356,15 +359,17 @@ class ChainMessagePassing(torch.nn.Module):
         """
         raise NotImplementedError
 
-    def update(self, up_inputs: Optional[Tensor], down_inputs: Optional[Tensor]) -> Tensor:
+    def update(self, up_inputs: Optional[Tensor], down_inputs: Optional[Tensor],
+               x: Tensor) -> Tensor:
         r"""Updates node embeddings in analogy to
         :math:`\gamma_{\mathbf{\Theta}}` for each node
         :math:`i \in \mathcal{V}`.
         Takes in the output of aggregation as first argument and any argument
         which was initially passed to :meth:`propagate`.
         """
-        assert not (up_inputs is None and down_inputs is None)
 
+        if up_inputs is None and down_inputs is None:
+            return x
         if up_inputs is None:
             return down_inputs
         if down_inputs is None:

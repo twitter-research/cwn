@@ -34,7 +34,9 @@ def test_propagate_in_cmp(build_cmp):
 
 def test_propagate_at_vertex_level_in_cmp(build_cmp):
     """We build a graph in the shape of a house (a triangle on top of a square)
-    and test propagation at the edge level."""
+    and test propagation at the vertex level. This makes sure propagate works when
+    down_index is None.
+    """
 
     # [0, 1, 2] are the edges that form the triangle. They are all upper adjacent.
     up_index = torch.tensor([[0, 1, 0, 4, 1, 2, 1, 4, 2, 3, 3, 4],
@@ -50,5 +52,45 @@ def test_propagate_at_vertex_level_in_cmp(build_cmp):
     cmp = build_cmp
     updated_x = cmp.propagate(up_index, down_index, x=x)
     expected_updated_x = torch.tensor([[7], [9], [6], [8], [7]], dtype=torch.float)
+
+    assert torch.equal(updated_x, expected_updated_x)
+
+
+def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one(build_cmp):
+    """We build a graph in the shape of a house (a triangle on top of a square)
+    and test propagation at the triangle level. This makes sure that propagate works when
+    up_index is None."""
+
+    # When there is a single triangle, there is no upper or lower adjacency
+    up_index = None
+    down_index = None
+
+    # We initialise the vertices with dummy scalar features
+    x = torch.tensor([[1]], dtype=torch.float)
+
+    # Extract the message passing object and propagate
+    cmp = build_cmp
+    updated_x = cmp.propagate(up_index, down_index, x=x)
+    expected_updated_x = torch.tensor([[1]], dtype=torch.float)
+
+    assert torch.equal(updated_x, expected_updated_x)
+
+
+def test_propagate_at_triangle_level_in_cmp(build_cmp):
+    """We build a graph formed of two triangles sharing an edge.
+    This makes sure that propagate works when up_index is None."""
+
+    # When there is a single triangle, there is no upper or lower adjacency
+    up_index = None
+    down_index = torch.tensor([[0, 1],
+                               [1, 0]], dtype=torch.long)
+
+    # We initialise the vertices with dummy scalar features
+    x = torch.tensor([[32], [17]], dtype=torch.float)
+
+    # Extract the message passing object and propagate
+    cmp = build_cmp
+    updated_x = cmp.propagate(up_index, down_index, x=x)
+    expected_updated_x = torch.tensor([[17], [32]], dtype=torch.float)
 
     assert torch.equal(updated_x, expected_updated_x)
