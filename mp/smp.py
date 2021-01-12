@@ -97,9 +97,8 @@ class ChainMessagePassing(torch.nn.Module):
             assert size_up[0] == size_down[0]
             assert size_up[1] == size_down[1]
 
-    def __check_input_separately__(self, index, size, direction):
+    def __check_input_separately__(self, index, size):
         """This gets an up or down index and the size of the assignment matrix"""
-        assert direction == 'up' or direction == 'down'
         the_size: List[Optional[int]] = [None, None]
 
         if isinstance(index, Tensor):
@@ -151,8 +150,9 @@ class ChainMessagePassing(torch.nn.Module):
                 return src.index_select(self.node_dim, col)
         raise ValueError
 
-    def __collect__(self, args, up_index, down_index, up_size, down_size, kwargs):
+    def __collect__(self, args, index, size, direction, kwargs):
         i, j = (1, 0) if self.flow == 'source_to_target' else (0, 1)
+        assert direction == 'up' or direction == 'down'
 
         out = {}
         for arg in args:
@@ -163,13 +163,12 @@ class ChainMessagePassing(torch.nn.Module):
             else:
                 dim = 0 if arg[-2:] == '_j' else 1
                 # Extract any part up to _j or _i. So for x_j extract x
-                index, data = None, None
-                if arg.startswith('up_'):
+                if direction == 'up' and arg.startswith('up_'):
                     data = kwargs.get(arg[3:-2], Parameter.empty)
-                    index = up_index
-                elif arg.startswith('down_'):
+                elif direction == 'down' and arg.startswith('down_'):
                     data = kwargs.get(arg[5:-2], Parameter.empty)
-                    index = down_index
+                else:
+                    continue
 
                 # This was used before for the case when data is supplied directly
                 # as (x_i, x_j) as opposed to a matrix X [N, in_channels]
@@ -180,8 +179,7 @@ class ChainMessagePassing(torch.nn.Module):
                 # This is the usual case when we get a feature matrix of shape [N, in_channels]
                 if isinstance(data, Tensor):
                     # Same size checks as above.
-                    self.__set_size__(up_size, dim, data)
-                    self.__set_size__(down_size, dim, data)
+                    self.__set_size__(size, dim, data)
                     # Select the features of the nodes indexed by i or j from the data matrix
                     data = self.__lift__(data, index, j if arg[-2:] == '_j' else i)
 
@@ -189,79 +187,62 @@ class ChainMessagePassing(torch.nn.Module):
 
         # Automatically builds some default parameters that can be used in the message passing
         # functions as needed. This was modified to be discriminative of upper and lower adjacency.
-        if isinstance(up_index, Tensor):
-            assert isinstance(down_index, Tensor)
+        if isinstance(index, Tensor):
             out['adj_t'] = None
             out['ptr'] = None
-            # Upper adjacency
-            out['up_index'] = up_index
-            out['up_index_i'] = up_index[i]
-            out['up_index_j'] = up_index[j]
-            # Down adjacency
-            out['down_index'] = down_index
-            out['down_index_i'] = down_index[i]
-            out['down_index_j'] = down_index[j]
-        elif isinstance(up_index, SparseTensor):
-            assert isinstance(down_index, SparseTensor)
+            out[f'{direction}_index'] = index
+            out[f'{direction}_index_i'] = index[i]
+            out[f'{direction}_index_j'] = index[j]
+        elif isinstance(index, SparseTensor):
             out['edge_index'] = None
-            # Upper adjacency
-            out['up_adj_t'] = up_index
-            out['up_index_i'] = up_index.storage.row()
-            out['up_index_j'] = up_index.storage.col()
-            out['up_ptr'] = up_index.storage.rowptr()
-            out['up_weight'] = up_index.storage.value()
-            out['up_attr'] = up_index.storage.value()
-            out['up_type'] = up_index.storage.value()
-            # Lower adjacency
-            out['down_adj_t'] = down_index
-            out['down_index_i'] = down_index.storage.row()
-            out['down_index_j'] = down_index.storage.col()
-            out['down_ptr'] = down_index.storage.rowptr()
-            out['down_weight'] = down_index.storage.value()
-            out['down_attr'] = down_index.storage.value()
-            out['down_type'] = down_index.storage.value()
+            out[f'{direction}_adj_t'] = index
+            out[f'{direction}_index_i'] = index.storage.row()
+            out[f'{direction}_index_j'] = index.storage.col()
+            out[f'{direction}_ptr'] = index.storage.rowptr()
+            out[f'{direction}_weight'] = index.storage.value()
+            out[f'{direction}_attr'] = index.storage.value()
+            out[f'{direction}_type'] = index.storage.value()
 
-        # Up
-        out['up_index'] = out['up_index_i']
-        out['up_size'] = up_size
-        out['up_size_i'] = up_size[1] or up_size[0]
-        out['up_size_j'] = up_size[0] or up_size[1]
-        out['up_dim_size'] = out['up_size_i']
-        # Down
-        out['down_index'] = out['down_index_i']
-        out['down_size'] = down_size
-        out['down_size_i'] = down_size[1] or down_size[0]
-        out['down_size_j'] = down_size[0] or down_size[1]
-        out['down_dim_size'] = out['down_size_i']
+        out[f'{direction}_index'] = out[f'{direction}_index_i']
+        out[f'{direction}_size'] = size
+        out[f'{direction}_size_i'] = size[1] or size[0]
+        out[f'{direction}_size_j'] = size[0] or size[1]
+        out[f'{direction}_dim_size'] = out[f'{direction}_size_i']
 
         return out
 
-    def __message_and_aggregate__(self, index: Adj, direction: str, size: Size = None,
+    def __message_and_aggregate__(self, index: Adj,
+                                  direction: str,
+                                  size: List[Optional[int]] = None,
                                   **kwargs):
-        size = self.__check_input_separately__(index, size, direction)
+        assert direction == 'up' or direction == 'down'
 
         # Fused message and aggregation
         fuse = self.fuse_up if direction == 'up' else self.fuse_down
         if isinstance(index, SparseTensor) and fuse:
             # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__fused_user_args__, index, size, kwargs)
+            coll_dict = self.__collect__(self.__fused_user_args__, index, size, direction, kwargs)
 
             # message and aggregation are fused in a single function
             msg_aggr_kwargs = self.inspector.distribute(
                 f'message_and_aggregate_{direction}', coll_dict)
-            return self.message_and_aggregate_up(index, **msg_aggr_kwargs)
+            message_and_aggregate = (self.message_and_aggregate_up if direction == 'up'
+                                     else self.message_and_aggregate_down)
+            return message_and_aggregate(index, **msg_aggr_kwargs)
 
         # Otherwise, run message and aggregation in separation.
         elif isinstance(index, Tensor) or not fuse:
             # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__user_args__, index, size, kwargs)
+            coll_dict = self.__collect__(self.__user_args__, index, size, direction, kwargs)
 
             # Up message and aggregation
             msg_kwargs = self.inspector.distribute(f'message_{direction}', coll_dict)
-            out = self.message_up(**msg_kwargs)
+            message = self.message_up if direction == 'up' else self.message_down
+            out = message(**msg_kwargs)
 
             aggr_kwargs = self.inspector.distribute(f'aggregate_{direction}', coll_dict)
-            return self.aggregate_up(out, **aggr_kwargs)
+            aggregate = self.aggregate_up if direction == 'up' else self.aggregate_down
+            return aggregate(out, **aggr_kwargs)
 
     def propagate(self, up_index: Optional[Adj],
                   down_index: Optional[Adj],
@@ -271,12 +252,23 @@ class ChainMessagePassing(torch.nn.Module):
         r"""The initial call to start propagating messages.
 
         """
+        up_size = self.__check_input_separately__(up_index, up_size)
+        down_size = self.__check_input_separately__(up_index, up_size)
         self.__check_input_together__(up_index, down_index, up_size, down_size)
 
-        up_out = self.__message_and_aggregate__(up_index, 'up', up_size, **kwargs)
-        down_out = self.__message_and_aggregate__(down_index, 'down', down_size, **kwargs)
+        up_out, down_out = None, None
+        coll_dict, up_coll_dict, down_coll_dict = {}, {}, {}
+        if up_index is not None:
+            up_out = self.__message_and_aggregate__(up_index, 'up', up_size, **kwargs)
+            up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
+                                            kwargs)
+        if down_index is not None:
+            down_out = self.__message_and_aggregate__(down_index, 'down', down_size, **kwargs)
+            down_coll_dict = self.__collect__(self.__update_user_args__,
+                                              down_index, down_size, 'down', kwargs)
 
-        coll_dict = self.__collect__(self.__update_user_args__, up_index, down_index, up_size, down_size, kwargs)
+        coll_dict.update(up_coll_dict)
+        coll_dict.update(down_coll_dict)
         update_kwargs = self.inspector.distribute('update', coll_dict)
         return self.update(up_out, down_out, **update_kwargs)
 
@@ -364,13 +356,19 @@ class ChainMessagePassing(torch.nn.Module):
         """
         raise NotImplementedError
 
-    def update(self, up_inputs: Tensor, down_inputs: Tensor) -> Tensor:
+    def update(self, up_inputs: Optional[Tensor], down_inputs: Optional[Tensor]) -> Tensor:
         r"""Updates node embeddings in analogy to
         :math:`\gamma_{\mathbf{\Theta}}` for each node
         :math:`i \in \mathcal{V}`.
         Takes in the output of aggregation as first argument and any argument
         which was initially passed to :meth:`propagate`.
         """
+        assert not (up_inputs is None and down_inputs is None)
+
+        if up_inputs is None:
+            return down_inputs
+        if down_inputs is None:
+            return up_inputs
         return up_inputs + down_inputs
 
 

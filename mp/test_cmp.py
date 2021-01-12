@@ -32,7 +32,6 @@ def test_propagate_in_cmp(build_cmp):
     assert torch.equal(updated_x, expected_updated_x)
 
 
-@pytest.mark.skip("Work in progress")
 def test_propagate_at_vertex_level_in_cmp(build_cmp):
     """We build a graph in the shape of a house (a triangle on top of a square)
     and test propagation at the edge level."""
@@ -45,11 +44,11 @@ def test_propagate_at_vertex_level_in_cmp(build_cmp):
     down_index = None
 
     # We initialise the vertices with dummy scalar features
-    x = torch.tensor([[1], [2], [3], [4], [5], [6]], dtype=torch.float)
+    x = torch.tensor([[1], [2], [3], [4], [5]], dtype=torch.float)
 
     # Extract the message passing object and propagate
     cmp = build_cmp
     updated_x = cmp.propagate(up_index, down_index, x=x)
-    expected_updated_x = torch.tensor([[14], [14], [16], [9], [10], [10]], dtype=torch.float)
+    expected_updated_x = torch.tensor([[7], [9], [6], [8], [7]], dtype=torch.float)
 
     assert torch.equal(updated_x, expected_updated_x)
