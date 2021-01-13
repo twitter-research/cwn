@@ -62,7 +62,7 @@ def lower_adj(a, b, min_k=1, all_simplices=None):
     return result 
 
 
-def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper_adjacencies):
+def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled):
     '''
         Recursive function to compute upper adjacencies between the faces of a given simplex.
         Parameters:
@@ -82,7 +82,7 @@ def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper
     # stop recursion if nodes have been reached
     k = len(nodes)
     if k == 1:
-        return all_simplices, non_facets, upper_adjacencies
+        return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
     
     # get faces of the input simplex: all of them are
     # considered to be upper adjacent w.r.t present simplex
@@ -92,12 +92,15 @@ def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper
         # add adjacencies to all other faces in the simplex
         if face not in upper_adjacencies[k-1]:
             upper_adjacencies[k-1][face] = set()
+            upper_adjacencies_labeled[k-1][face] = dict()
         upper_adjacencies[k-1][face] |= faces - {face}
+        for neighbor in faces - {face}:
+            upper_adjacencies_labeled[k-1][face][neighbor] = nodes
         
         # recur down w.r.t. present face
-        all_simplices, non_facets, upper_adjacencies = get_simplex_upper_adjs(face, all_facets, all_simplices, non_facets, upper_adjacencies)
+        all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(face, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
 
-    return all_simplices, non_facets, upper_adjacencies
+    return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
 
 
 def compute_upper_adjs(all_facets, all_facets_by_size, max_size):
@@ -112,8 +115,10 @@ def compute_upper_adjs(all_facets, all_facets_by_size, max_size):
     '''
     # initialize dictionary of adjacencies
     upper_adjacencies = dict()
+    upper_adjacencies_labeled = dict()
     for k in range(1, max_size):
         upper_adjacencies[k] = dict()
+        upper_adjacencies_labeled[k] = dict()
     all_simplices = set()
     non_facets = set()
 
@@ -123,9 +128,9 @@ def compute_upper_adjs(all_facets, all_facets_by_size, max_size):
         
         # iterate over facets of size k
         for facet in facets:
-            all_simplices, non_facets, upper_adjacencies = get_simplex_upper_adjs(facet, all_facets, all_simplices, non_facets, upper_adjacencies)
+            all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(facet, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
 
-    return all_simplices, non_facets, upper_adjacencies
+    return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
         
     
 def compute_lower_adjs(all_simplices, all_simplices_by_size, max_size):
@@ -172,7 +177,7 @@ def compute_connectivity(all_facets, all_facets_by_size, max_size):
             - `max_size`: maximum number of nodes for facets to be considered here; e.g. if `max_size` equals 3, then facets are considered only up to triangles
     '''
     # 1. compute upper adjacencies starting from the facets
-    all_simplices, non_facets, upper_adjacencies = compute_upper_adjs(all_facets, all_facets_by_size, max_size)
+    all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = compute_upper_adjs(all_facets, all_facets_by_size, max_size)
     
     # 2. group all simplices by their size
     all_simplices_by_size = dict()
@@ -185,7 +190,7 @@ def compute_connectivity(all_facets, all_facets_by_size, max_size):
     # 3. compute lower_adjacencies
     lower_adjacencies = compute_lower_adjs(all_simplices, all_simplices_by_size, max_size)
     
-    return upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size
+    return upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, upper_adjacencies_labeled
 
 
 def get_adj_index(simplices, connectivity):
