@@ -106,7 +106,7 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
         
     # compute connectivity
     connectivity = compute_connectivity(all_facets, all_facets_by_size, max_size)
-    upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size = connectivity
+    upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, upper_adjacencies_labeled = connectivity
     
     # construct chains
     chains = list()
@@ -134,6 +134,6 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
         else:
             x = None
         
-        chains.append(Chain(k, x=x, upper_index=upper_index, lower_index=lower_index, mapping=index_to_simplex))
+        chains.append(Chain(k, x=x, upper_index=upper_index, lower_index=lower_index, mapping=index_to_simplex, upper_adjs=upper_adjacencies_labeled.get(k, None)))
         
     return Complex(*chains, y=ego.y), upper_adjacencies, lower_adjacencies
