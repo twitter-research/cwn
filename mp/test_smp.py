@@ -117,6 +117,44 @@ def test_propagate_at_triangle_level_in_cmp(build_cmp):
 
 
 def test_simplicial_message_passing_on_house_complex(build_smp):
-    """Tests message propagation at all layers of a house-shaped complex."""
-    pass
+    """Tests message propagation at all layers of a house-shaped complex.
 
+    This test that propagation is correctly routed at all layers.
+    This test is simplified. The features between levels do not match and are duplicated.
+    """
+    smp = build_smp
+
+    # Initialise vertex parameters
+    v_up_index = torch.tensor([[0, 1, 0, 4, 1, 2, 1, 4, 2, 3, 3, 4],
+                             [1, 0, 4, 0, 2, 1, 4, 1, 3, 2, 4, 3]], dtype=torch.long)
+    v_up_attr = torch.tensor([[1], [1], [2], [2], [3], [3], [4], [4], [5], [5], [6], [6]])
+    v_x = torch.tensor([[1], [2], [3], [4], [5]], dtype=torch.float)
+    v_params = (v_up_index, None, v_x, {'up_attr': v_up_attr})
+
+    # Initialise edge parameters
+    e_up_index = torch.tensor([[0, 1, 0, 2, 1, 2],
+                             [1, 0, 2, 0, 2, 1]], dtype=torch.long)
+    e_up_attr = torch.tensor([[1], [1], [2], [2], [3], [3]])
+    e_down_index = torch.tensor([[0, 1, 0, 2, 1, 2, 2, 3, 3, 4, 4, 5, 2, 5, 0, 3, 1, 5],
+                               [1, 0, 2, 0, 2, 1, 3, 2, 4, 3, 5, 4, 5, 2, 3, 0, 5, 1]],
+                              dtype=torch.long)
+    e_down_attr = torch.tensor([[1], [1], [2], [2], [3], [3], [4], [4],
+                              [5], [5], [6], [6], [7], [7], [8], [8], [9], [9]])
+    e_x = torch.tensor([[1], [2], [3], [4], [5], [6]], dtype=torch.float)
+    e_params = (e_up_index, e_down_index, e_x, {'up_attr': e_up_attr, 'down_attr': e_down_attr})
+
+    # Initialise triangle parameters
+    t_x = torch.tensor([[1]], dtype=torch.float)
+    t_params = (None, None, t_x, {})
+
+    # Propagate
+    v_x, e_x, t_x = smp.propagate(v_params, e_params, t_params)
+
+    expected_v_x = torch.tensor([[7], [9], [6], [8], [7]], dtype=torch.float)
+    assert torch.equal(v_x, expected_v_x)
+
+    expected_e_x = torch.tensor([[14], [14], [16], [9], [10], [10]], dtype=torch.float)
+    assert torch.equal(e_x, expected_e_x)
+
+    expected_t_x = torch.tensor([[1]], dtype=torch.float)
+    assert torch.equal(t_x, expected_t_x)
