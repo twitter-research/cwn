@@ -88,7 +88,7 @@ all_facets_by_size = {
     1: set()}
 max_size = 3
 
-upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size = compute_connectivity(all_facets,  all_facets_by_size, max_size)
+upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, _ = compute_connectivity(all_facets,  all_facets_by_size, max_size)
 
 validate_adj_dict(upper_adjacencies[1], expected_node_upper)  # <- node upper adjacency
 validate_adj_dict(upper_adjacencies[2], expected_edge_upper)  # <- edge upper adjacency
