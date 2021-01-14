@@ -1,10 +1,8 @@
 import torch
+from torch_geometric.data import Data
 from .utils import compute_connectivity, get_adj_index
 from .ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
-import copy
-from ogb.graphproppred import PygGraphPropPredDataset
-from torch_geometric.data import DataLoader
 import numpy as np
 import pytest
 import os
@@ -181,15 +179,7 @@ def test_edge_lower_adj(yielded_connectivity, house_edge_lower_adjacency):
 def test_clique_complex(house_edge_index, house_node_upper_adjacency, house_edge_upper_adjacency, house_edge_lower_adjacency):
     # Test the overall construction of a clique-Complex object from a ppa egonet -like structure
 
-    d_name = 'ogbg-ppa'
-    dataset = PygGraphPropPredDataset(name=d_name, root=os.path.join(ROOT_DIR,'data_exploration/dataset'))
-    split_idx = dataset.get_idx_split() 
-    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=1, shuffle=False, )
-
-    for ego in train_loader: break
-    house = copy.deepcopy(ego)
-    house.edge_index = house_edge_index
-    house.edge_attr = torch.ones((house_edge_index.shape[1]), house.edge_attr.shape[1])
+    house = Data(edge_index=house_edge_index, edge_attr=torch.ones((house_edge_index.shape[1]), 7))
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_complex, upper, lower = extract_complex(house, 0.0, 0.0, max_size=3)
