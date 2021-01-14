@@ -392,7 +392,7 @@ class SimplicialMessagePassing(torch.nn.Module):
     def propagate(self,
                   vertex_params: ChainParams,
                   edge_params: ChainParams,
-                  triangle_params:ChainParams):
+                  triangle_params: ChainParams):
         v_up_index, v_down_index, v_x, v_kwargs = vertex_params
         e_up_index, e_down_index, e_x, e_kwargs = edge_params
         t_up_index, t_down_index, t_x, t_kwargs = triangle_params
