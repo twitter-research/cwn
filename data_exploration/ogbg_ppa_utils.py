@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from data_exploration.data import Chain, Complex
-from data_exploration.utils import get_nx_graph, compute_connectivity, get_adj_index
+from data_exploration.utils import get_nx_graph, compute_connectivity, get_adj_index, generate_complex
 import itertools as it
 import torch
 
@@ -108,7 +108,11 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
     upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, upper_adjacencies_labeled = connectivity
     
     # construct chains
-    chains = list()
+    attributes = dict()
+    labels = dict()
+    upper_indices = dict()
+    lower_indices = dict()
+    mappings = dict()
     for k in range(1, max_size+1):
         
         simplices = all_simplices_by_size[k]
@@ -120,7 +124,7 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
             upper_index = None
         else:
             upper_index, index_to_simplex = get_adj_index(simplices, upper_adjacencies[k], k)
-        
+
         # in the case of edges we do have feats!
         if k == 2:
             # take only those edges that have not been filtered out and the related features
@@ -133,6 +137,10 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
         else:
             x = None
         
-        chains.append(Chain(k, x=x, upper_index=upper_index, lower_index=lower_index, mapping=index_to_simplex, upper_adjs=upper_adjacencies_labeled.get(k, None)))
+        attributes[k-1] = x
+        labels[k-1] = None
+        upper_indices[k-1] = upper_index
+        lower_indices[k-1] = lower_index
+        mappings[k-1] = index_to_simplex
         
-    return Complex(*chains, y=ego.y), upper_adjacencies, lower_adjacencies
+    return generate_complex(attributes, labels, upper_indices, lower_indices, mappings, upper_adjacencies_labeled, 0, max_size-1), upper_adjacencies, lower_adjacencies

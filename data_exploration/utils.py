@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools as it
 import torch
+from data_exploration.data import Chain, Complex
 
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
@@ -219,3 +220,56 @@ def get_adj_index(simplices, connectivity, size):
     else:
         edges = torch.LongTensor(edges).transpose(1,0)
     return edges, mapping
+
+
+def generate_complex(attributes, labels, upper_indices, lower_indices, mappings, upper_adjs, min_order, max_order):
+    
+    # generate mappings nodes -> simplex index
+    rev_mappings = dict()
+    for order in range(min_order, max_order+1):
+        current_rev_map = dict()
+        current_map = mappings[order]
+        for key in range(current_map.shape[0]):
+            current_rev_map[tuple(current_map[key].numpy())] = key
+        rev_mappings[order] = current_rev_map
+    
+    shared_faces = dict()
+    shared_cofaces = dict()
+    shared_faces[min_order] = None
+    shared_cofaces[max_order] = None
+    for order in range(min_order, max_order):
+        
+        shared = list()
+        lower = lower_indices[order+1].numpy().T
+        for link in lower:
+            a, b = link
+            nodes_a = set(mappings[order+1][a].numpy().tolist())
+            nodes_b = set(mappings[order+1][b].numpy().tolist())
+            shared_face = rev_mappings[order][tuple(sorted(nodes_a & nodes_b))]
+            shared.append(shared_face)
+        shared_faces[order+1] = torch.LongTensor(shared)
+        
+        shared = list()
+        upper = upper_indices[order].numpy().T
+        for link in upper:
+            a, b = link
+            nodes_a = tuple(mappings[order][a].numpy().tolist())
+            nodes_b = tuple(mappings[order][b].numpy().tolist())
+            shared_coface = rev_mappings[order+1][upper_adjs[order+1][nodes_a][nodes_b]]
+            shared.append(shared_coface)
+        shared_cofaces[order] = torch.LongTensor(shared)
+        
+    chains = list()
+    for k in range(min_order, max_order+1):
+        try:
+            y = labels[k]
+        except TypeError:
+            y = None
+        chains.append(Chain(k, x=attributes[k], y=y, upper_index=upper_indices[k], lower_index=lower_indices[k], mapping=mappings[k], shared_faces=shared_faces[k], shared_cofaces=shared_cofaces[k]))
+    
+    try:
+        _ = labels.keys()
+        y = labels
+    except AttributeError:
+        y = None
+    return Complex(*chains, y=y)

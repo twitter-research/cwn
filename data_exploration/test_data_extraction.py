@@ -5,7 +5,6 @@ from data_exploration.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 import numpy as np
 import pytest
-import os
 
 # Define here below the `house graph` and the expected connectivity to be constructed.
 # The `house graph` (3-2-4 is a filled triangle):
@@ -121,7 +120,6 @@ def validate_index(yielded, expected, yielded_mapping, expected_mapping):
     size = torch.max(yielded).item()+1
     
     # coalesce
-    # coalesced = coalesce(yielded.transpose(1,0), None, size, size)[0]
     coalesced = coalesce(yielded, None, size, size)[0]
     translated = list()
     
@@ -176,6 +174,7 @@ def test_edge_lower_adj(yielded_connectivity, house_edge_lower_adjacency):
 
 
 def test_clique_complex(house_edge_index, house_node_upper_adjacency, house_edge_upper_adjacency, house_edge_lower_adjacency):
+
     # Test the overall construction of a clique-Complex object from a ppa egonet -like structure
 
     house = Data(edge_index=house_edge_index, edge_attr=torch.ones((house_edge_index.shape[1]), 7))
