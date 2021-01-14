@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
-from utils import get_nx_graph
 import networkx as nx
 import numpy as np
-from data import Chain, Complex
-from utils import compute_connectivity, get_adj_index
+from .data import Chain, Complex
+from .utils import get_nx_graph, compute_connectivity, get_adj_index
 import itertools as it
 import torch
 
