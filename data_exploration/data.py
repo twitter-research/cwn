@@ -98,8 +98,8 @@ class Complex(object):
         for order in range(self.min_order, self.max_order+1):
             current_rev_map = dict()
             current_map = self.chains[order].mapping
-            for key in current_map:
-                current_rev_map[current_map[key]] = key
+            for key in range(current_map.shape[0]):
+                current_rev_map[tuple(current_map[key].numpy())] = key
             rev_mappings[order] = current_rev_map
         
         shared_faces = dict()
@@ -110,8 +110,8 @@ class Complex(object):
             lower = upper_chain.lower_index.numpy().T
             for link in lower:
                 a, b = link
-                nodes_a = set(upper_chain.mapping[a])
-                nodes_b = set(upper_chain.mapping[b])
+                nodes_a = set(upper_chain.mapping[a].numpy().tolist())
+                nodes_b = set(upper_chain.mapping[b].numpy().tolist())
                 shared_face = rev_mappings[order][tuple(sorted(nodes_a & nodes_b))]
                 shared.append(shared_face)
             shared_faces[order+1] = torch.LongTensor(shared)
@@ -120,8 +120,8 @@ class Complex(object):
             upper = current_chain.upper_index.numpy().T
             for link in upper:
                 a, b = link
-                nodes_a = current_chain.mapping[a]
-                nodes_b = current_chain.mapping[b]
+                nodes_a = tuple(current_chain.mapping[a].numpy().tolist())
+                nodes_b = tuple(current_chain.mapping[b].numpy().tolist())
                 shared_coface = rev_mappings[order+1][current_chain.upper_adjs[nodes_a][nodes_b]]
                 shared.append(shared_coface)
             shared_cofaces[order] = torch.LongTensor(shared)

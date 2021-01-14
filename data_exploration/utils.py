@@ -193,7 +193,7 @@ def compute_connectivity(all_facets, all_facets_by_size, max_size):
     return upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, upper_adjacencies_labeled
 
 
-def get_adj_index(simplices, connectivity):
+def get_adj_index(simplices, connectivity, size):
     '''
         Transforms a connectivity dictionary into an PyG-like edge index (torch.LongTensor).
         Additionally, it builds dictionaries to map original node tuples to indices and vice-versa.
@@ -211,8 +211,11 @@ def get_adj_index(simplices, connectivity):
                 edges.append([s, index[neighbor]])
                 edges.append([index[neighbor], s])
                 seen.add(edge)
+    mapping = torch.LongTensor(len(simplices), size)
+    for s in rev_index:
+        mapping[s] = torch.LongTensor(list(rev_index[s]))
     if len(edges) == 0:
         edges = torch.LongTensor([[],[]])
     else:
         edges = torch.LongTensor(edges).transpose(1,0)
-    return edges, index, rev_index
+    return edges, mapping

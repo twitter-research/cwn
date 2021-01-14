@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from .data import Chain, Complex
-from .utils import get_nx_graph, compute_connectivity, get_adj_index
+from data_exploration.data import Chain, Complex
+from data_exploration.utils import get_nx_graph, compute_connectivity, get_adj_index
 import itertools as it
 import torch
 
@@ -115,11 +115,11 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
         if k == 1:
             lower_index = None
         else:
-            lower_index, simplex_to_index, index_to_simplex = get_adj_index(simplices, lower_adjacencies[k])
+            lower_index, index_to_simplex = get_adj_index(simplices, lower_adjacencies[k], k)
         if k == max_size:
             upper_index = None
         else:
-            upper_index, simplex_to_index, index_to_simplex = get_adj_index(simplices, upper_adjacencies[k])
+            upper_index, index_to_simplex = get_adj_index(simplices, upper_adjacencies[k], k)
         
         # in the case of edges we do have feats!
         if k == 2:
@@ -128,7 +128,7 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
             feats = ego.edge_attr[kept_edges]
             # just for convenience, create mapping edge -> feats
             edge_to_feats = {tuple(sorted(edge)): feat for edge, feat in zip(edges, feats)}
-            x = [edge_to_feats[index_to_simplex[index]] for index in range(len(index_to_simplex))]
+            x = [edge_to_feats[tuple(index_to_simplex[index].numpy())] for index in range(len(index_to_simplex))]
             x = torch.stack(x)
         else:
             x = None

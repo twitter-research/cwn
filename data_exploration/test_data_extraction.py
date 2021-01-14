@@ -1,12 +1,11 @@
 import torch
 from torch_geometric.data import Data
-from .utils import compute_connectivity, get_adj_index
-from .ogbg_ppa_utils import draw_ppa_ego, extract_complex
+from data_exploration.utils import compute_connectivity, get_adj_index
+from data_exploration.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 import numpy as np
 import pytest
 import os
-from ..definitions import ROOT_DIR
 
 # Define here below the `house graph` and the expected connectivity to be constructed.
 # The `house graph` (3-2-4 is a filled triangle):
@@ -51,7 +50,7 @@ def house_node_upper_adjacency():
        (3,): 3,
        (4,): 4,}
     expected_node_upper_index = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4],
-                               [1, 3, 0, 2, 1, 3, 4, 0, 2, 4, 2, 3]], dtype=torch.long)
+                                              [1, 3, 0, 2, 1, 3, 4, 0, 2, 4, 2, 3]], dtype=torch.long)
     return expected_node_upper, expected_node_upper_index, tuples_to_nodes
 
 @pytest.fixture
@@ -118,7 +117,7 @@ def validate_adj_dict(yielded, expected):
 def validate_index(yielded, expected, yielded_mapping, expected_mapping):
     
     # simplex -> tuple -> simplex
-    mapping = {simplex: expected_mapping[yielded_mapping[simplex]] for simplex in yielded_mapping}
+    mapping = {simplex: expected_mapping[tuple(yielded_mapping[simplex].numpy())] for simplex in range(yielded_mapping.shape[0])}
     size = torch.max(yielded).item()+1
     
     # coalesce
@@ -146,7 +145,7 @@ def test_node_upper_adj(yielded_connectivity, house_node_upper_adjacency):
     upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size  = yielded_connectivity
     
     validate_adj_dict(upper_adjacencies[1], expected_node_upper)
-    node_upper_adj, _, node_mappings = get_adj_index(all_simplices_by_size[1],  upper_adjacencies[1])
+    node_upper_adj, node_mappings = get_adj_index(all_simplices_by_size[1],  upper_adjacencies[1], 1)
     validate_index(node_upper_adj, expected_node_upper_index, node_mappings, tuples_to_nodes)
 
     return
@@ -158,7 +157,7 @@ def test_edge_upper_adj(yielded_connectivity, house_edge_upper_adjacency):
     upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size  = yielded_connectivity
 
     validate_adj_dict(upper_adjacencies[2], expected_edge_upper)
-    edge_upper_adj, _, edge_mappings = get_adj_index(all_simplices_by_size[2],  upper_adjacencies[2])
+    edge_upper_adj, edge_mappings = get_adj_index(all_simplices_by_size[2],  upper_adjacencies[2], 2)
     validate_index(edge_upper_adj, expected_edge_upper_index, edge_mappings, tuples_to_edges)
     
     return
@@ -170,7 +169,7 @@ def test_edge_lower_adj(yielded_connectivity, house_edge_lower_adjacency):
     upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size  = yielded_connectivity
     
     validate_adj_dict(lower_adjacencies[2], expected_edge_lower)
-    edge_lower_adj, _, edge_mappings = get_adj_index(all_simplices_by_size[2],  lower_adjacencies[2])
+    edge_lower_adj, edge_mappings = get_adj_index(all_simplices_by_size[2],  lower_adjacencies[2], 2)
     validate_index(edge_lower_adj, expected_edge_lower_index, edge_mappings, tuples_to_edges)
 
     return
