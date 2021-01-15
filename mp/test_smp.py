@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from mp.smp import ChainMessagePassing, SimplicialMessagePassing, ChainParams
+from mp.smp import ChainMessagePassing, SimplicialMessagePassing, ChainMessagePassingParams
 
 @pytest.fixture
 def build_cmp():
@@ -128,7 +128,7 @@ def test_simplicial_message_passing_on_house_complex(build_smp):
                              [1, 0, 4, 0, 2, 1, 4, 1, 3, 2, 4, 3]], dtype=torch.long)
     v_up_attr = torch.tensor([[1], [1], [2], [2], [3], [3], [4], [4], [5], [5], [6], [6]])
     v_x = torch.tensor([[1], [2], [3], [4], [5]], dtype=torch.float)
-    v_params = ChainParams(v_x, v_up_index, None, {'up_attr': v_up_attr})
+    v_params = ChainMessagePassingParams(v_x, v_up_index, None, {'up_attr': v_up_attr})
 
     # Initialise edge parameters
     e_up_index = torch.tensor([[0, 1, 0, 2, 1, 2],
@@ -140,12 +140,12 @@ def test_simplicial_message_passing_on_house_complex(build_smp):
     e_down_attr = torch.tensor([[1], [1], [2], [2], [3], [3], [4], [4],
                               [5], [5], [6], [6], [7], [7], [8], [8], [9], [9]])
     e_x = torch.tensor([[1], [2], [3], [4], [5], [6]], dtype=torch.float)
-    e_params = ChainParams(e_x, e_up_index, e_down_index,
-                           {'up_attr': e_up_attr, 'down_attr': e_down_attr})
+    e_params = ChainMessagePassingParams(e_x, e_up_index, e_down_index,
+                                         {'up_attr': e_up_attr, 'down_attr': e_down_attr})
 
     # Initialise triangle parameters
     t_x = torch.tensor([[1]], dtype=torch.float)
-    t_params = ChainParams(t_x, None, None)
+    t_params = ChainMessagePassingParams(t_x, None, None)
 
     # Propagate
     v_x, e_x, t_x = smp.propagate(v_params, e_params, t_params)

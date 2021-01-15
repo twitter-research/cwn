@@ -1,14 +1,16 @@
 import torch
 
-from mp.smp import ChainParams
+from torch import Tensor
+from mp.smp import ChainMessagePassingParams
+from torch_geometric.typing import Adj
 
 
 class Chain(object):
     """
         Class representing a chain of k-order simplices.
     """
-    def __init__(self, order, x=None, upper_index=None, lower_index=None, y=None, mapping=None,
-                 shared_faces=None, shared_cofaces=None):
+    def __init__(self, dim: int, x: Tensor, upper_index: Adj = None, lower_index: Adj = None,
+                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, y=None):
         """
             Constructs a `order`-chain.
             - `order`: order of the simplices in the chain
@@ -18,14 +20,12 @@ class Chain(object):
             - `lower_index`: lower adjacency, matrix, shape [2, num_lower_connections];
             may not be available, e.g. when `order` is the top level order of a complex
             - `y`: labels over simplices in the chain, shape [num_simplices,]
-            - `mapping`: matrix, shape [num_simplices, order+1]; simplex_id to nodes
         """
-        self.order = order
+        self.order = dim
         self.x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
         self.y = y
-        self.mapping = mapping
         self.shared_faces = shared_faces
         self.shared_cofaces = shared_cofaces
         self.oriented = False
@@ -79,13 +79,14 @@ class Complex(object):
     """
 
     def __init__(self, nodes: Chain, edges: Chain, triangles: Chain, y=None):
-        
+
+        # TODO: This needs some data checking to check that these chains are consistent together
         self.nodes = nodes
         self.edges = edges
         self.triangles = triangles
         self.chains = {0: self.nodes, 1: self.edges, 2: self.triangles}
         self.min_order = 0
-        self.max_order = 2
+        self.max_dim = 2
         # ^^^ these will be abstracted later allowing for generic orders;
         # in that case they will be provided as an array (or similar) and min and
         # max orders will be set automatically, according to what passed
@@ -93,37 +94,37 @@ class Complex(object):
         self.y = y  # complex-wise label for complex-level tasks
         return
 
-    def get_chain_params(self, order) -> ChainParams:
+    def get_chain_params(self, dim) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-order
             neural message passing at the specified `order`.
         """
-        if order in self.chains:
-            simplices = self.chains[order]
+        if dim in self.chains:
+            simplices = self.chains[dim]
             x = simplices.x
-            if order < self.max_order:
+            if dim < self.max_dim and simplices.upper_index is not None:
                 upper_index = simplices.upper_index
-                upper_features = self.chains[order + 1].x
+                upper_features = self.chains[dim + 1].x
                 if upper_features is not None:
                     upper_features = torch.index_select(upper_features, 0,
-                                                        self.chains[order].shared_cofaces)
+                                                        self.chains[dim].shared_cofaces)
             else:
                 upper_index = None
                 upper_features = None
-            if order > self.min_order:
+            if dim > self.min_order and simplices.lower_index is not None:
                 lower_index = simplices.lower_index
-                lower_features = self.chains[order - 1].x
+                lower_features = self.chains[dim - 1].x
                 if lower_features is not None:
                     lower_features = torch.index_select(lower_features, 0,
-                                                        self.chains[order].shared_faces)
+                                                        self.chains[dim].shared_faces)
             else:
                 lower_index = None
                 lower_features = None
-            kwargs = {'up_attr': upper_features, 'down_attr'}
-            inputs = ChainParams(x, upper_index, lower_index, upper_features, lower_features)
+            inputs = ChainMessagePassingParams(x, upper_index, lower_index,
+                                               up_attr=upper_features, down_attr=lower_features)
         else:
             raise NotImplementedError(
-                'Order {} is not present in the complex or not yet supported.'.format(order))
+                'Order {} is not present in the complex or not yet supported.'.format(dim))
         return inputs
 
     def get_labels(self, order=None):
