@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.data import Data
-from data_exploration.utils import compute_connectivity, get_adj_index
-from data_exploration.ogbg_ppa_utils import draw_ppa_ego, extract_complex
+from data.utils import compute_connectivity, get_adj_index
+from data.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 import numpy as np
 import pytest

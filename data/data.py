@@ -1,5 +1,7 @@
 import torch
 
+from mp.smp import ChainParams
+
 
 class Chain(object):
     """
@@ -24,11 +26,10 @@ class Chain(object):
         self.lower_index = lower_index
         self.y = y
         self.mapping = mapping
-        self.shared_faces=shared_faces
-        self.shared_cofaces=shared_cofaces
+        self.shared_faces = shared_faces
+        self.shared_cofaces = shared_cofaces
         self.oriented = False
         self._hodge_laplacian = None
-        return
 
     def orient(self, arbitrary=None):
         """
@@ -92,7 +93,7 @@ class Complex(object):
         self.y = y  # complex-wise label for complex-level tasks
         return
 
-    def get_inputs(self, order):
+    def get_chain_params(self, order) -> ChainParams:
         """
             Conveniently returns all necessary input parameters to perform higher-order
             neural message passing at the specified `order`.
@@ -105,7 +106,7 @@ class Complex(object):
                 upper_features = self.chains[order + 1].x
                 if upper_features is not None:
                     upper_features = torch.index_select(upper_features, 0,
-                                                        self.shared_cofaces[order])
+                                                        self.chains[order].shared_cofaces)
             else:
                 upper_index = None
                 upper_features = None
@@ -113,11 +114,13 @@ class Complex(object):
                 lower_index = simplices.lower_index
                 lower_features = self.chains[order - 1].x
                 if lower_features is not None:
-                    lower_features = torch.index_select(lower_features, 0, self.shared_faces[order])
+                    lower_features = torch.index_select(lower_features, 0,
+                                                        self.chains[order].shared_faces)
             else:
                 lower_index = None
                 lower_features = None
-            inputs = (x, upper_index, upper_features, lower_index, lower_features)
+            kwargs = {'up_attr': upper_features, 'down_attr'}
+            inputs = ChainParams(x, upper_index, lower_index, upper_features, lower_features)
         else:
             raise NotImplementedError(
                 'Order {} is not present in the complex or not yet supported.'.format(order))

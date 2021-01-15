@@ -11,9 +11,6 @@ from torch_geometric.nn.conv.utils.helpers import expand_left
 from mp.smp_inspector import SimplicialInspector
 
 
-ChainParams = Tuple[Optional[Adj], Optional[Adj], Tensor, Dict]
-
-
 class ChainMessagePassing(torch.nn.Module):
     r"""Base class for creating message passing layers of the form
 
@@ -380,6 +377,15 @@ class ChainMessagePassing(torch.nn.Module):
         return up_inputs + down_inputs
 
 
+class ChainParams:
+    def __init__(self, x: Tensor, up_index: Optional[Adj], down_index: Optional[Adj],
+                 kwargs: Dict = {}):
+        self.x = x
+        self.up_index = up_index
+        self.down_index = down_index
+        self.kwargs = kwargs
+
+
 class SimplicialMessagePassing(torch.nn.Module):
     def __init__(self, vertex_mp: ChainMessagePassing, edge_mp: ChainMessagePassing,
                  triangle_mp: ChainMessagePassing):
@@ -393,12 +399,12 @@ class SimplicialMessagePassing(torch.nn.Module):
                   vertex_params: ChainParams,
                   edge_params: ChainParams,
                   triangle_params: ChainParams):
-        v_up_index, v_down_index, v_x, v_kwargs = vertex_params
-        e_up_index, e_down_index, e_x, e_kwargs = edge_params
-        t_up_index, t_down_index, t_x, t_kwargs = triangle_params
 
-        v_x = self.vertex_mp.propagate(v_up_index, v_down_index, x=v_x, **v_kwargs)
-        e_x = self.edge_mp.propagate(e_up_index, e_down_index, x=e_x, **e_kwargs)
-        t_x = self.vertex_mp.propagate(t_up_index, t_down_index, x=t_x, **t_kwargs)
+        v_x = self.vertex_mp.propagate(vertex_params.up_index, vertex_params.down_index,
+                                       x=vertex_params.x, **vertex_params.kwargs)
+        e_x = self.edge_mp.propagate(edge_params.up_index, edge_params.down_index,
+                                     x=edge_params.x, **edge_params.kwargs)
+        t_x = self.vertex_mp.propagate(triangle_params.up_index, triangle_params.down_index,
+                                       x=triangle_params.x, **triangle_params.kwargs)
 
         return v_x, e_x, t_x
