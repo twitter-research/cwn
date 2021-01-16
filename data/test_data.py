@@ -19,8 +19,8 @@ def test_up_and_down_feature_extraction_on_house_complex():
     assert torch.equal(expected_e_up_attr, e_up_attr)
 
     e_down_attr = e_chain_params.kwargs['down_attr']
-    expected_e_down_attr = torch.tensor([[2], [2], [1], [1], [3], [3], [3], [3],
-                                         [4], [4], [4], [4], [3], [3], [5], [5]], dtype=torch.float)
+    expected_e_down_attr = torch.tensor([[2], [2], [1], [1], [3], [3], [3], [3], [4], [4], [4], [4],
+                                         [3], [3], [4], [4], [5], [5]], dtype=torch.float)
     assert torch.equal(expected_e_down_attr, e_down_attr)
 
     t_chain_params = house_complex.get_chain_params(dim=2)

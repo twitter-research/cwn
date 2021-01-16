@@ -34,10 +34,10 @@ def get_house_complex():
     e_up_index = torch.tensor([[2, 4, 2, 5, 4, 5],
                                [4, 2, 5, 2, 5, 4]], dtype=torch.long)
     e_shared_cofaces = torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
-    e_down_index = torch.tensor([[0, 1, 0, 3, 1, 2, 1, 5, 2, 3, 2, 4, 2, 5, 4, 5],
-                                 [1, 0, 3, 0, 2, 1, 5, 1, 3, 2, 4, 2, 5, 2, 5, 4]],
+    e_down_index = torch.tensor([[0, 1, 0, 3, 1, 2, 1, 5, 2, 3, 2, 4, 2, 5, 3, 4, 4, 5],
+                                 [1, 0, 3, 0, 2, 1, 5, 1, 3, 2, 4, 2, 5, 2, 4, 3, 5, 4]],
                                 dtype=torch.long)
-    e_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 4, 4],
+    e_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4],
                                   dtype=torch.long)
     e_x = torch.tensor([[1], [2], [3], [4], [5], [6]], dtype=torch.float)
     e_chain = Chain(dim=1, x=e_x, upper_index=e_up_index, lower_index=e_down_index,

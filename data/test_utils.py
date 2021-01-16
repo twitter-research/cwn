@@ -105,7 +105,7 @@ def yielded_connectivity(house_facets):
     upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, _ = compute_connectivity(all_facets,  all_facets_by_size, max_size)
     return upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size
     
-# Test the extraction of higher-order connectivity
+# Test the extraction of higher-dim connectivity
 
 def validate_adj_dict(yielded, expected):
     for simplex in yielded:

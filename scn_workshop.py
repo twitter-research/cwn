@@ -1,6 +1,6 @@
 """
 Input: Simplicial complex of dimension d
-Output: k-order Laplacians up to dimension d
+Output: k-dim Laplacians up to dimension d
 """
 
 

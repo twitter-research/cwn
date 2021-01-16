@@ -7,21 +7,21 @@ from torch_geometric.typing import Adj
 
 class Chain(object):
     """
-        Class representing a chain of k-order simplices.
+        Class representing a chain of k-dim simplices.
     """
     def __init__(self, dim: int, x: Tensor, upper_index: Adj = None, lower_index: Adj = None,
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, y=None):
         """
-            Constructs a `order`-chain.
-            - `order`: order of the simplices in the chain
+            Constructs a `dim`-chain.
+            - `dim`: dim of the simplices in the chain
             - `x`: feature matrix, shape [num_simplices, num_features]; may not be available
             - `upper_index`: upper adjacency, matrix, shape [2, num_upper_connections];
-            may not be available, e.g. when `order` is the top level order of a complex
+            may not be available, e.g. when `dim` is the top level dim of a complex
             - `lower_index`: lower adjacency, matrix, shape [2, num_lower_connections];
-            may not be available, e.g. when `order` is the top level order of a complex
+            may not be available, e.g. when `dim` is the top level dim of a complex
             - `y`: labels over simplices in the chain, shape [num_simplices,]
         """
-        self.order = dim
+        self.dim = dim
         self.x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
@@ -85,7 +85,6 @@ class Complex(object):
         self.edges = edges
         self.triangles = triangles
         self.chains = {0: self.nodes, 1: self.edges, 2: self.triangles}
-        self.min_order = 0
         self.max_dim = 2
         # ^^^ these will be abstracted later allowing for generic orders;
         # in that case they will be provided as an array (or similar) and min and
@@ -96,13 +95,13 @@ class Complex(object):
 
     def get_chain_params(self, dim) -> ChainMessagePassingParams:
         """
-            Conveniently returns all necessary input parameters to perform higher-order
-            neural message passing at the specified `order`.
+            Conveniently returns all necessary input parameters to perform higher-dim
+            neural message passing at the specified `dim`.
         """
         if dim in self.chains:
             simplices = self.chains[dim]
             x = simplices.x
-            if dim < self.max_dim and simplices.upper_index is not None:
+            if simplices.upper_index is not None:
                 upper_index = simplices.upper_index
                 upper_features = self.chains[dim + 1].x
                 if upper_features is not None:
@@ -111,7 +110,7 @@ class Complex(object):
             else:
                 upper_index = None
                 upper_features = None
-            if dim > self.min_order and simplices.lower_index is not None:
+            if simplices.lower_index is not None:
                 lower_index = simplices.lower_index
                 lower_features = self.chains[dim - 1].x
                 if lower_features is not None:
@@ -124,23 +123,23 @@ class Complex(object):
                                                up_attr=upper_features, down_attr=lower_features)
         else:
             raise NotImplementedError(
-                'Order {} is not present in the complex or not yet supported.'.format(dim))
+                'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return inputs
 
-    def get_labels(self, order=None):
+    def get_labels(self, dim=None):
         """
             Returns target labels.
-            If `order`==k (integer in [self.min_order, self.max_order]) then the labels over
+            If `dim`==k (integer in [0, self.max_dim]) then the labels over
             k-simplices are returned.
-            In the case `order` is None the complex-wise label is returned.
+            In the case `dim` is None the complex-wise label is returned.
         """
-        if order is None:
+        if dim is None:
             y = self.y
         else:
-            if order in self.chains:
-                y = self.chains[order].y
+            if dim in self.chains:
+                y = self.chains[dim].y
             else:
                 raise NotImplementedError(
-                    'Order {} is not present in the complex or not yet supported.'.format(order))
+                    'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return y
 
