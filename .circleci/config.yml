@@ -19,7 +19,7 @@ jobs:
           command: ./pyG_install.sh
           name: DepPyG
       - run:
-          command: pytest ./
+          command: python -m pytest ./
           name: Test
 
 workflows:
