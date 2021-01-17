@@ -1,0 +1,29 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  build-and-test:
+    docker:
+      - image: circleci/python:3.8
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache
+      - run:
+          command: pip install torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
+          name: pytorch
+      - python/install-deps
+      - run:
+          command: ./pyG_install.sh
+          name: DepPyG
+      - python/save-cache
+      - run:
+          command: python -m pytest -v ./
+          name: Test
+
+workflows:
+  main:
+    jobs:
+      - build-and-test
