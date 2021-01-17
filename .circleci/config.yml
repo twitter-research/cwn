@@ -6,7 +6,7 @@ orbs:
 jobs:
   build-and-test:
     docker:
-      image: circleci/python:3.8
+      - image: circleci/python:3.8
     executor: python/default
     steps:
       - checkout
