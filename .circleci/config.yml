@@ -18,8 +18,9 @@ jobs:
       - run:
           command: ./pyG_install.sh
           name: DepPyG
+      - python/save-cache
       - run:
-          command: python -m pytest ./
+          command: python -m pytest -v ./
           name: Test
 
 workflows:
