@@ -10,7 +10,8 @@ class Chain(object):
         Class representing a chain of k-dim simplices.
     """
     def __init__(self, dim: int, x: Tensor, upper_index: Adj = None, lower_index: Adj = None,
-                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, y=None):
+                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
+                 y=None):
         """
             Constructs a `dim`-chain.
             - `dim`: dim of the simplices in the chain
@@ -30,6 +31,7 @@ class Chain(object):
         self.shared_cofaces = shared_cofaces
         self.oriented = False
         self._hodge_laplacian = None
+        self.mapping = mapping
 
     def orient(self, arbitrary=None):
         """
