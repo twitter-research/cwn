@@ -31,6 +31,7 @@ class Chain(object):
         self.shared_cofaces = shared_cofaces
         self.oriented = False
         self._hodge_laplacian = None
+        # TODO: Figure out what to do with mapping.
         self.mapping = mapping
 
     def orient(self, arbitrary=None):
