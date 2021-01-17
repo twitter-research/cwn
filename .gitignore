@@ -133,8 +133,5 @@ dmypy.json
 .vscode/
 
 *.gz
-data/dataset/ogbg_molbace/RELEASE_v1.txt
-data/dataset/ogbg_molbace/processed/pre_transform.pt
-data/dataset/ogbg_molbace/processed/pre_filter.pt
-data/dataset/ogbg_molbace/processed/geometric_data_processed.pt
+data/dataset/
 *.pt
