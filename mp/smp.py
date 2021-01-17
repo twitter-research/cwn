@@ -403,7 +403,7 @@ class SimplicialMessagePassing(torch.nn.Module):
                                        x=vertex_params.x, **vertex_params.kwargs)
         e_x = self.edge_mp.propagate(edge_params.up_index, edge_params.down_index,
                                      x=edge_params.x, **edge_params.kwargs)
-        t_x = self.vertex_mp.propagate(triangle_params.up_index, triangle_params.down_index,
+        t_x = self.triangle_mp.propagate(triangle_params.up_index, triangle_params.down_index,
                                        x=triangle_params.x, **triangle_params.kwargs)
 
         return v_x, e_x, t_x
