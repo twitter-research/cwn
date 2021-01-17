@@ -1,17 +1,13 @@
 import torch
 import pytest
 
-from mp.models import DummyChainMessagePassing, DummySimplicialMessagePassing
+from mp.models import DummySimplicialMessagePassing
 from data.dummy_complexes import get_house_complex
 
 
 @pytest.fixture
 def build_dummy_smp():
-    return lambda: DummySimplicialMessagePassing(
-        DummyChainMessagePassing(),
-        DummyChainMessagePassing(),
-        DummyChainMessagePassing(),
-    )
+    return lambda: DummySimplicialMessagePassing()
 
 
 def test_dummy_simplicial_message_passing(build_dummy_smp):
