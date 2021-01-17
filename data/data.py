@@ -81,7 +81,7 @@ class Complex(object):
         Class representing an attributed simplicial complex.
     """
 
-    def __init__(self, nodes: Chain, edges: Chain, triangles: Chain, y=None):
+    def __init__(self, nodes: Chain, edges: Chain, triangles: Chain, y: torch.Tensor = None):
 
         # TODO: This needs some data checking to check that these chains are consistent together
         self.nodes = nodes
