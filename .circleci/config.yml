@@ -20,7 +20,7 @@ jobs:
           name: DepPyG
       - python/save-cache    
       - run:
-          command: pytest ./
+          command: pytest -v ./
           name: Test
 
 workflows:
