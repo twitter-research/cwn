@@ -58,7 +58,7 @@ def test_propagate_at_vertex_level_in_cmp(build_cmp):
     x = torch.tensor([[1], [2], [3], [4], [5]], dtype=torch.float)
 
     # Extract the message passing object and propagate
-    cmp = build_cmp
+    cmp = build_cmp()
     updated_x = cmp.propagate(up_index, down_index, x=x, up_attr=up_attr)
     expected_updated_x = torch.tensor([[7], [9], [6], [8], [7]], dtype=torch.float)
 
@@ -78,7 +78,7 @@ def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one(build_cmp
     x = torch.tensor([[1]], dtype=torch.float)
 
     # Extract the message passing object and propagate
-    cmp = build_cmp
+    cmp = build_cmp()
     updated_x = cmp.propagate(up_index, down_index, x=x)
     expected_updated_x = torch.tensor([[1]], dtype=torch.float)
 
@@ -100,7 +100,7 @@ def test_propagate_at_triangle_level_in_cmp(build_cmp):
     x = torch.tensor([[32], [17]], dtype=torch.float)
 
     # Extract the message passing object and propagate
-    cmp = build_cmp
+    cmp = build_cmp()
     updated_x = cmp.propagate(up_index, down_index, x=x, down_attr=down_attr)
     expected_updated_x = torch.tensor([[17], [32]], dtype=torch.float)
 
