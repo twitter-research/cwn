@@ -383,5 +383,3 @@ class ChainMessagePassingParams:
         self.up_index = up_index
         self.down_index = down_index
         self.kwargs = kwargs
-
-
