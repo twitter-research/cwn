@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.data import Data
-from data_exploration.utils import compute_connectivity, get_adj_index
-from data_exploration.ogbg_ppa_utils import draw_ppa_ego, extract_complex
+from data.utils import compute_connectivity, get_adj_index
+from data.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 import numpy as np
 import pytest
@@ -105,7 +105,7 @@ def yielded_connectivity(house_facets):
     upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, _ = compute_connectivity(all_facets,  all_facets_by_size, max_size)
     return upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size
     
-# Test the extraction of higher-order connectivity
+# Test the extraction of higher-dim connectivity
 
 def validate_adj_dict(yielded, expected):
     for simplex in yielded:
