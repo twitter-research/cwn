@@ -383,27 +383,3 @@ class ChainMessagePassingParams:
         self.up_index = up_index
         self.down_index = down_index
         self.kwargs = kwargs
-
-
-class SimplicialMessagePassing(torch.nn.Module):
-    def __init__(self, vertex_mp: ChainMessagePassing, edge_mp: ChainMessagePassing,
-                 triangle_mp: ChainMessagePassing):
-        super(SimplicialMessagePassing, self).__init__()
-
-        self.vertex_mp = vertex_mp
-        self.edge_mp = edge_mp
-        self.triangle_mp = triangle_mp
-
-    def propagate(self,
-                  vertex_params: ChainMessagePassingParams,
-                  edge_params: ChainMessagePassingParams,
-                  triangle_params: ChainMessagePassingParams):
-
-        v_x = self.vertex_mp.propagate(vertex_params.up_index, vertex_params.down_index,
-                                       x=vertex_params.x, **vertex_params.kwargs)
-        e_x = self.edge_mp.propagate(edge_params.up_index, edge_params.down_index,
-                                     x=edge_params.x, **edge_params.kwargs)
-        t_x = self.triangle_mp.propagate(triangle_params.up_index, triangle_params.down_index,
-                                       x=triangle_params.x, **triangle_params.kwargs)
-
-        return v_x, e_x, t_x
