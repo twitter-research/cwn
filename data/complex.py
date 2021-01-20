@@ -343,58 +343,62 @@ class ChainBatch(Chain):
         for i, data in enumerate(data_list):
             for key in keys:
                 item = data[key]
-
-                # Increase values by `cumsum` value.
-                cum = cumsum[key][-1]
-                if isinstance(item, Tensor) and item.dtype != torch.bool:
-                    if not isinstance(cum, int) or cum != 0:
-                        item = item + cum
-                elif isinstance(item, SparseTensor):
-                    value = item.storage.value()
-                    if value is not None and value.dtype != torch.bool:
+                
+                if item is not None:
+                    
+                    # Increase values by `cumsum` value.
+                    cum = cumsum[key][-1]
+                    if isinstance(item, Tensor) and item.dtype != torch.bool:
                         if not isinstance(cum, int) or cum != 0:
-                            value = value + cum
-                        item = item.set_value(value, layout='coo')
-                elif isinstance(item, (int, float)):
-                    item = item + cum
+                            item = item + cum
+                    elif isinstance(item, SparseTensor):
+                        value = item.storage.value()
+                        if value is not None and value.dtype != torch.bool:
+                            if not isinstance(cum, int) or cum != 0:
+                                value = value + cum
+                            item = item.set_value(value, layout='coo')
+                    elif isinstance(item, (int, float)):
+                        item = item + cum
 
-                # Treat 0-dimensional tensors as 1-dimensional.
-                if isinstance(item, Tensor) and item.dim() == 0:
-                    item = item.unsqueeze(0)
+                    # Treat 0-dimensional tensors as 1-dimensional.
+                    if isinstance(item, Tensor) and item.dim() == 0:
+                        item = item.unsqueeze(0)
 
-                batch[key].append(item)
+                    batch[key].append(item)
 
-                # Gather the size of the `cat` dimension.
-                size = 1
-                cat_dim = data.__cat_dim__(key, data[key])
-                cat_dims[key] = cat_dim
-                if isinstance(item, Tensor):
-                    size = item.size(cat_dim)
-                    device = item.device
-                elif isinstance(item, SparseTensor):
-                    size = torch.tensor(item.sizes())[torch.tensor(cat_dim)]
-                    device = item.device()
-
-                slices[key].append(size + slices[key][-1])
-                inc = data.__inc__(key, item)
-                if isinstance(inc, (tuple, list)):
-                    inc = torch.tensor(inc)
-                cumsum[key].append(inc + cumsum[key][-1])
-
-                if key in follow_batch:
-                    if isinstance(size, Tensor):
-                        for j, size in enumerate(size.tolist()):
-                            tmp = f'{key}_{j}_batch'
+                    # Gather the size of the `cat` dimension.
+                    size = 1
+                    cat_dim = data.__cat_dim__(key, data[key])
+                    cat_dims[key] = cat_dim
+                    if isinstance(item, Tensor):
+                        size = item.size(cat_dim)
+                        device = item.device
+                    elif isinstance(item, SparseTensor):
+                        size = torch.tensor(item.sizes())[torch.tensor(cat_dim)]
+                        device = item.device()
+                    
+                    # TODO: do we really need slices, and, are we managing them correctly?
+                    slices[key].append(size + slices[key][-1])
+                    
+                    if key in follow_batch:
+                        if isinstance(size, Tensor):
+                            for j, size in enumerate(size.tolist()):
+                                tmp = f'{key}_{j}_batch'
+                                batch[tmp] = [] if i == 0 else batch[tmp]
+                                batch[tmp].append(
+                                    torch.full((size, ), i, dtype=torch.long,
+                                               device=device))
+                        else:
+                            tmp = f'{key}_batch'
                             batch[tmp] = [] if i == 0 else batch[tmp]
                             batch[tmp].append(
                                 torch.full((size, ), i, dtype=torch.long,
                                            device=device))
-                    else:
-                        tmp = f'{key}_batch'
-                        batch[tmp] = [] if i == 0 else batch[tmp]
-                        batch[tmp].append(
-                            torch.full((size, ), i, dtype=torch.long,
-                                       device=device))
+                    
+                inc = data.__inc__(key, item)
+                if isinstance(inc, (tuple, list)):
+                    inc = torch.tensor(inc)
+                cumsum[key].append(inc + cumsum[key][-1])
 
             if hasattr(data, '__num_simplices__'):
                 num_simplices_list.append(data.__num_simplices__)
