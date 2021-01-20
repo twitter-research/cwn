@@ -4,13 +4,14 @@ import logging
 from torch import Tensor
 from mp.smp import ChainMessagePassingParams
 from torch_geometric.typing import Adj
+from typing import List
 
 __num_warn_msg__ = (
-    'The number of {} in your chain object can only be inferred by its {}, '
+    'The number of {1} in your chain object can only be inferred by its {2}, '
     'and hence may result in unexpected batch-wise behavior, e.g., '
     'in case there exists isolated simplices. Please consider explicitly setting '
     'the number of simplices for this data object by assigning it to '
-    'chain.num_simplices.')
+    'chain.num_{1}.')
 
 class Chain(object):
     """
@@ -174,7 +175,7 @@ class Chain(object):
     def num_faces(self, num_faces):
         self.__num_faces__ = num_faces
 
-        def __apply__(self, item, func):
+    def __apply__(self, item, func):
         if torch.is_tensor(item):
             return func(item)
         elif isinstance(item, SparseTensor):
@@ -271,8 +272,8 @@ class Chain(object):
 
 class ChainBatch(Chain):
 
-    def __init__(self, batch=None, ptr=None, **kwargs):
-        super(ChainBatch, self).__init__(**kwargs)
+    def __init__(self, dim, batch=None, ptr=None, **kwargs):
+        super(ChainBatch, self).__init__(dim, **kwargs)
 
         for key, item in kwargs.items():
             if key == 'num_simplices':
@@ -282,7 +283,7 @@ class ChainBatch(Chain):
 
         self.batch = batch
         self.ptr = ptr
-        #self.__data_class__ = Data
+        self.__data_class__ = Chain
         self.__slices__ = None
         self.__cumsum__ = None
         self.__cat_dims__ = None
@@ -305,7 +306,7 @@ class ChainBatch(Chain):
         keys = list(set.union(*keys))
         assert 'batch' not in keys and 'ptr' not in keys
 
-        batch = cls()
+        batch = cls(data_list[0].dim)
         for key in data_list[0].__dict__.keys():
             if key[:2] != '__' and key[-2:] != '__':
                 batch[key] = None
@@ -429,22 +430,7 @@ class ChainBatch(Chain):
 
     # TODO: is the 'get_example' method needed for now?
 
-    def index_select(self, idx: Tensor) -> List[Chain]:
-        if isinstance(idx, slice):
-            idx = list(range(self.num_chains)[idx])
-        elif torch.is_tensor(idx):
-            if idx.dtype == torch.bool:
-                idx = idx.nonzero(as_tuple=False).view(-1)
-            idx = idx.tolist()
-        elif isinstance(idx, list) or isinstance(idx, tuple):
-            pass
-        else:
-            raise IndexError(
-                'Only integers, slices (`:`), list, tuples, and long or bool '
-                'tensors are valid indices (got {}).'.format(
-                    type(idx).__name__))
-
-        return [self.get_example(i) for i in idx]
+    # TODO: is the 'index_select' method needed for now?
 
     def __getitem__(self, idx):
         if isinstance(idx, str):
@@ -453,8 +439,10 @@ class ChainBatch(Chain):
             raise NotImplementedError
             #return self.get_example(idx)
         else:
-            return self.index_select(idx)
+            raise NotImplementedError
+            # return self.index_select(idx)
 
+    # TODO: is the 'to_chain_list' method needed for now?
     def to_chain_list(self) -> List[Chain]:
         r"""Reconstructs the list of :class:`torch_geometric.data.Data` objects
         from the batch object.
@@ -469,6 +457,41 @@ class ChainBatch(Chain):
         if self.__num_chains__ is not None:
             return self.__num_chains__
         return self.ptr.numel() + 1
+
+
+class ComplexBatch(Complex):
+    """
+        Class representing a batch of complexes.
+    """
+
+    def __init__(self, nodes: Chain, edges: Chain, triangles: Chain, y: torch.Tensor = None):
+        super(ChainBatch, self).__init__(nodes, edges, triangles, y=y)
+        self.num_complexes = num_complexes
+
+    @classmethod
+    def from_complex_list(cls, data_list, follow_batch=[]):
+
+        # TODO: this needs to be generalized in the case we work with higher-order simplices
+        node_list = list()
+        edge_list = list()
+        triangle_list = list()
+        label_list = list()
+        per_complex_labels = True
+        for comp in data_list:
+            node_list.append(comp.nodes)
+            edge_list.append(comp.edges)
+            triangle_list.append(comp.triangles)
+            per_complex_labels &= comp.y is not None
+            if per_complex_labels:
+                label_list.append(comp.y)
+
+        nodes = ChainBatch.from_chain_list(node_list, follow_batch=follow_batch)
+        edges = ChainBatch.from_chain_list(edge_list, follow_batch=follow_batch)
+        triangles = ChainBatch.from_chain_list(triangle_list, follow_batch=follow_batch)
+        y = None if not per_complex_labels else torch.cat(label_list, 0)
+        batch = cls(nodes, edges, triangles, y=y, num_complexes=len(data_list))
+
+        return batch
 
 
 class Complex(object):
