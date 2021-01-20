@@ -1,6 +1,6 @@
 import torch
 
-from data.data import Chain, Complex
+from data.complex import Chain, Complex
 
 
 def get_house_complex():
