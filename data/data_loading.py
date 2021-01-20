@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data.dataloader import default_collate
 
+from torch_geometric.data import Data, Batch
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
 from torch._six import container_abcs, string_classes, int_classes
 
@@ -15,6 +16,8 @@ class Collater(object):
             return ChainBatch.from_chain_list(batch, self.follow_batch)
         elif isinstance(elem, Complex):
             return ComplexBatch.from_complex_list(batch, self.follow_batch)
+        elif isinstance(elem, Data):
+            return Batch.from_data_list(batch, self.follow_batch)
         elif isinstance(elem, torch.Tensor):
             return default_collate(batch)
         elif isinstance(elem, float):
