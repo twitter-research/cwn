@@ -239,6 +239,10 @@ class Chain(object):
             k: v.clone() if torch.is_tensor(v) else copy.deepcopy(v)
             for k, v in self.__dict__.items()
         })
+    
+    @property
+    def mapping(self):
+        return self.__mapping
 
     def orient(self, arbitrary=None):
         """
