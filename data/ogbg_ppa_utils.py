@@ -6,6 +6,7 @@ from data.utils import get_nx_graph, compute_connectivity, get_adj_index, genera
 import itertools as it
 import torch
 
+
 def draw_ppa_ego(data, edge_feature_idx=0, with_labels=False, from_edge_list=False):
     if from_edge_list:
         G = nx.from_edgelist(data)

@@ -2,7 +2,14 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools as it
 import torch
+import gudhi as gd
+import itertools
+
 from data.complex import Chain, Complex
+from collections import OrderedDict
+from typing import List, Dict
+from torch import Tensor
+from torch_geometric.typing import Adj
 
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
@@ -273,3 +280,193 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
     except AttributeError:
         y = None
     return Complex(*chains, y=y)
+
+
+def pyg_to_simplex_tree(edge_index: Tensor, size: int):
+    """Constructs a simplex tree from a PyG graph.
+
+    Args:
+        edge_index: The edge_index of the graph (a tensor of shape [2, num_edges])
+        size: The number of nodes in the graph.
+    """
+    st = gd.SimplexTree()
+    # Add vertices to the simplex.
+    for v in range(size):
+        st.insert([v])
+
+    # Add the edges to the simplex.
+    edges = edge_index.numpy()
+    for e in range(edges.shape[1]):
+        edge = [edges[0][e], edges[1][e]]
+        st.insert(edge)
+
+    return st
+
+
+def build_tables(simplex_tree, size):
+    complex_dim = simplex_tree.dimension()
+    # Each of these data structures has a separate entry per dimension.
+    id_maps = [OrderedDict() for _ in range(complex_dim+1)] # simplex -> id
+    simplex_tables = [[] for _ in range(complex_dim+1)] # matrix of simplices
+
+    simplex_tables[0] = [[v] for v in range(size)]
+    id_maps[0] = OrderedDict([(tuple([v]), v) for v in range(size)])
+
+    for simplex, _ in simplex_tree.get_simplices():
+        if len(simplex) == 1:
+            continue
+
+        # Assign this simplex the next ID in the list.
+        id_maps[len(simplex)-1][tuple(simplex)] = len(simplex_tables[len(simplex)-1])
+        # Add the simplex to the table of simplices at the corresponding dimension.
+        simplex_tables[len(simplex) - 1].append(simplex)
+
+    return simplex_tables, id_maps
+
+
+def extract_faces_and_cofaces_from_simplex_tree(simplex_tree):
+    """Build two maps simplex -> its cofaces and simplex -> its faces"""
+    complex_dim = simplex_tree.dimension()
+
+    # The extra dimension is added just for convenience to avoid treating it as a special case.
+    faces = [OrderedDict() for _ in range(complex_dim+2)]  # simplex -> faces
+    cofaces = [OrderedDict() for _ in range(complex_dim+2)]  # simplex -> cofaces
+
+    for simplex, _ in simplex_tree.get_simplices():
+        # Extract the relevant face and coface maps
+        simplex_dim = len(simplex) - 1
+        level_cofaces = cofaces[simplex_dim]
+        level_faces = faces[simplex_dim + 1]
+
+        # This operation should be roughly be O(dim_complex), so that is very efficient for us.
+        # For details see pages 6-7 https://hal.inria.fr/hal-00707901v1/document
+        simplex_cofaces = simplex_tree.get_cofaces(simplex, codimension=1)
+        for coface, _ in simplex_cofaces:
+            assert len(coface) == len(simplex) + 1
+
+            if tuple(simplex) not in level_cofaces:
+                level_cofaces[tuple(simplex)] = set()
+            level_cofaces[tuple(simplex)].add(tuple(coface))
+
+            if tuple(coface) not in level_faces:
+                level_faces[tuple(coface)] = set()
+            level_faces[tuple(coface)].add(tuple(simplex))
+
+    return faces, cofaces
+
+
+def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps):
+    """Builds the upper and lower adjacency data structures of the complex
+
+    Args:
+        faces: A list of dictionaries of the form
+            faces[dim][simplex] -> List[simplex] (the faces)
+        cofaces: A list of dictionaries of the form
+            cofaces[dim][simplex] -> List[simplex] (the cofaces)
+        id_maps: A dictionary from simplex -> simplex_id
+    """
+    indexes, upper_indexes, lower_indexes = [[], [], []], [[], [], []], [[], [], []]
+    all_shared_faces, all_shared_cofaces = [[], [], []], [[], [], []]
+
+    # Go through all dimensions of the complex
+    for dim in range(3):
+        # Go through all the simplicies at that dimension
+        for simplex, id in id_maps[dim].items():
+            # Add the upper adjacent neighbours from the level below
+            if simplex in faces[dim]:
+                for face1, face2 in itertools.combinations(faces[dim][simplex], 2):
+                    id1, id2 = id_maps[dim - 1][face1], id_maps[dim - 1][face2]
+                    upper_indexes[dim - 1].extend([[id1, id2], [id2, id1]])
+                    all_shared_cofaces[dim - 1].extend([id, id])
+
+            # Add the lower adjacent neighbours from the level above
+            if simplex in cofaces[dim]:
+                for coface1, coface2 in itertools.combinations(cofaces[dim][simplex], 2):
+                    id1, id2 = id_maps[dim + 1][coface1], id_maps[dim + 1][coface2]
+                    lower_indexes[dim + 1].extend([[id1, id2], [id2, id1]])
+                    all_shared_faces[dim + 1].extend([id, id])
+
+    return all_shared_faces, all_shared_cofaces, lower_indexes, upper_indexes
+
+
+def construct_features(vx: Tensor, simplex_tables):
+    """Combines the features of the component vertices to initialise the simplex features"""
+    features = [vx]
+    for dim in range(1, len(simplex_tables)):
+        nodes = torch.tensor(simplex_tables[dim], dtype=torch.long).view(-1,)
+        # This has shape [simplicies * (dim+1), node_feature_dim]
+        node_features = torch.index_select(vx, 0, nodes)
+        # Reshape to [simplicies, (dim+1), node_feature_dim]
+        node_features = node_features.view(len(simplex_tables[dim]), dim+1, -1)
+        # Reduce along the simplex dimension containing the features of the vertices of the simplex
+        features.append(node_features.sum(dim=1))
+
+    return features
+
+
+def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
+                         all_shared_faces, all_shared_cofaces, simplex_tables):
+    """Builds a Chain given all the adjacency data extracted from the complex."""
+    if dim == 0:
+        assert len(all_lower_index[dim]) == 0
+        assert len(all_shared_faces[dim]) == 0
+
+    up_index = (torch.tensor(all_upper_index[dim], dtype=torch.long).t()
+                if len(all_upper_index[dim]) > 0 else None)
+    down_index = (torch.tensor(all_lower_index[dim], dtype=torch.long).t()
+                  if len(all_lower_index[dim]) > 0 else None)
+    shared_cofaces = (torch.tensor(all_shared_cofaces[dim], dtype=torch.long)
+                      if len(all_shared_cofaces[dim]) > 0 else None)
+    shared_faces = (torch.tensor(all_shared_faces[dim], dtype=torch.long)
+                    if len(all_shared_faces[dim]) > 0 else None)
+    simplicies = (torch.tensor(simplex_tables[dim], dtype=torch.long)
+                  if len(simplex_tables[dim]) > 0 else None)
+
+    return Chain(dim=dim, x=x, upper_index=up_index,
+                 lower_index=down_index, shared_cofaces=shared_cofaces, shared_faces=shared_faces,
+                 mapping=simplicies)
+
+
+def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
+                                      expansion_dim: int=2) -> Complex:
+    """Generates a clique complex of a pyG graph via gudhi.
+
+    Args:
+        x: The feature matrix for the nodes of the graph
+        edge_index: The edge_index of the graph (a tensor of shape [2, num_edges])
+        size: The number of nodes in the graph
+        expansion_dim: The dimension to expand the simplex to.
+    """
+    assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
+
+    # Creates the gudhi-based simplicial complex
+    simplex_tree = pyg_to_simplex_tree(edge_index, size)
+    simplex_tree.expansion(expansion_dim)  # Computes the clique complex up to the desired dim.
+
+    # Builds tables of the simplicial complexes at each level and their IDs
+    simplex_tables, id_maps = build_tables(simplex_tree, size)
+
+    # Extracts the faces and cofaces of each simplex in the complex
+    faces, co_faces = extract_faces_and_cofaces_from_simplex_tree(simplex_tree)
+
+    # Computes the adjacencies between all the simplexes in the complex
+    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps)
+
+    # Construct features for the higher dimensions
+    # TODO: Make this handle edge features as well and add alternative options to compute this.
+    xs = construct_features(x, simplex_tables)
+
+    # TODO: Once Complex supports this, we can use more levels. This stops at triangles for now.
+    v_chain = generate_chain_gudhi(0, xs[0], upper_idx, lower_idx, shared_faces, shared_cofaces,
+                                   simplex_tables)
+    e_chain = generate_chain_gudhi(1, xs[1], upper_idx, lower_idx, shared_faces, shared_cofaces,
+                                   simplex_tables)
+    t_chain = generate_chain_gudhi(2, xs[2], upper_idx, lower_idx, shared_faces, shared_cofaces,
+                                   simplex_tables)
+
+    return Complex(v_chain, e_chain, t_chain)
+
+
+
+
+

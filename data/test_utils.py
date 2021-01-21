@@ -1,6 +1,6 @@
 import torch
 from torch_geometric.data import Data
-from data.utils import compute_connectivity, get_adj_index
+from data.utils import compute_connectivity, get_adj_index, compute_clique_complex_with_gudhi
 from data.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 import numpy as np
@@ -196,3 +196,13 @@ def test_clique_complex(house_edge_index, house_node_upper_adjacency, house_edge
     validate_index(edges.lower_index, expected_edge_lower_index, edges.mapping, tuples_to_edges)  # <- edge lower index
     
     return
+
+
+def test_gudhi_clique_complex(house_edge_index):
+    house = Data(edge_index=house_edge_index, x=torch.ones(5, 1))
+    house.num_nodes = house_edge_index.max().item() + 1
+
+    house_complex = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes)
+
+
+

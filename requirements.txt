@@ -7,4 +7,5 @@
 
 # Other packages
 pytest==6.2.1
+gudhi==3.4.0
 
