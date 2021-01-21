@@ -7,15 +7,16 @@ from torch._six import container_abcs, string_classes, int_classes
 
 
 class Collater(object):
-    def __init__(self, follow_batch):
+    def __init__(self, follow_batch, max_dim=2):
         self.follow_batch = follow_batch
+        self.max_dim = max_dim
 
     def collate(self, batch):
         elem = batch[0]
         if isinstance(elem, Chain):
             return ChainBatch.from_chain_list(batch, self.follow_batch)
         elif isinstance(elem, Complex):
-            return ComplexBatch.from_complex_list(batch, self.follow_batch)
+            return ComplexBatch.from_complex_list(batch, self.follow_batch, max_dim=self.max_dim)
         elif isinstance(elem, Data):
             return Batch.from_data_list(batch, self.follow_batch)
         elif isinstance(elem, torch.Tensor):
@@ -52,7 +53,7 @@ class DataLoader(torch.utils.data.DataLoader):
             vectors for each key in the list. (default: :obj:`[]`)
     """
     def __init__(self, dataset, batch_size=1, shuffle=False, follow_batch=[],
-                 **kwargs):
+                 max_dim=2, **kwargs):
 
         if "collate_fn" in kwargs:
             del kwargs["collate_fn"]
@@ -62,4 +63,4 @@ class DataLoader(torch.utils.data.DataLoader):
 
         super(DataLoader,
               self).__init__(dataset, batch_size, shuffle,
-                             collate_fn=Collater(follow_batch), **kwargs)
+                             collate_fn=Collater(follow_batch, max_dim), **kwargs)
