@@ -324,10 +324,8 @@ def build_tables(simplex_tree, size):
     return simplex_tables, id_maps
 
 
-def extract_faces_and_cofaces_from_simplex_tree(simplex_tree):
+def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, complex_dim: int):
     """Build two maps simplex -> its cofaces and simplex -> its faces"""
-    complex_dim = simplex_tree.dimension()
-
     # The extra dimension is added just for convenience to avoid treating it as a special case.
     faces = [OrderedDict() for _ in range(complex_dim+2)]  # simplex -> faces
     cofaces = [OrderedDict() for _ in range(complex_dim+2)]  # simplex -> cofaces
@@ -355,7 +353,7 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree):
     return faces, cofaces
 
 
-def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps):
+def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], complex_dim: int):
     """Builds the upper and lower adjacency data structures of the complex
 
     Args:
@@ -365,22 +363,25 @@ def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps):
             cofaces[dim][simplex] -> List[simplex] (the cofaces)
         id_maps: A dictionary from simplex -> simplex_id
     """
-    indexes, upper_indexes, lower_indexes = [[], [], []], [[], [], []], [[], [], []]
-    all_shared_faces, all_shared_cofaces = [[], [], []], [[], [], []]
+    def initialise_structure():
+        return [[] for _ in range(complex_dim+1)]
+
+    upper_indexes, lower_indexes = initialise_structure(), initialise_structure()
+    all_shared_faces, all_shared_cofaces = initialise_structure(), initialise_structure()
 
     # Go through all dimensions of the complex
-    for dim in range(3):
+    for dim in range(complex_dim+1):
         # Go through all the simplicies at that dimension
         for simplex, id in id_maps[dim].items():
             # Add the upper adjacent neighbours from the level below
-            if simplex in faces[dim]:
+            if dim > 0:
                 for face1, face2 in itertools.combinations(faces[dim][simplex], 2):
                     id1, id2 = id_maps[dim - 1][face1], id_maps[dim - 1][face2]
                     upper_indexes[dim - 1].extend([[id1, id2], [id2, id1]])
                     all_shared_cofaces[dim - 1].extend([id, id])
 
             # Add the lower adjacent neighbours from the level above
-            if simplex in cofaces[dim]:
+            if dim < complex_dim and simplex in cofaces[dim]:
                 for coface1, coface2 in itertools.combinations(cofaces[dim][simplex], 2):
                     id1, id2 = id_maps[dim + 1][coface1], id_maps[dim + 1][coface2]
                     lower_indexes[dim + 1].extend([[id1, id2], [id2, id1]])
@@ -442,15 +443,17 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # Creates the gudhi-based simplicial complex
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
     simplex_tree.expansion(expansion_dim)  # Computes the clique complex up to the desired dim.
+    complex_dim = simplex_tree.dimension()  # See what is the dimension of the complex now.
 
     # Builds tables of the simplicial complexes at each level and their IDs
     simplex_tables, id_maps = build_tables(simplex_tree, size)
 
     # Extracts the faces and cofaces of each simplex in the complex
-    faces, co_faces = extract_faces_and_cofaces_from_simplex_tree(simplex_tree)
+    faces, co_faces = extract_faces_and_cofaces_from_simplex_tree(simplex_tree, complex_dim)
 
     # Computes the adjacencies between all the simplexes in the complex
-    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps)
+    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps,
+                                                                         complex_dim)
 
     # Construct features for the higher dimensions
     # TODO: Make this handle edge features as well and add alternative options to compute this.
@@ -465,8 +468,3 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
                                    simplex_tables)
 
     return Complex(v_chain, e_chain, t_chain)
-
-
-
-
-
