@@ -404,8 +404,6 @@ class ChainBatch(Chain):
                 inc = data.__inc__(key, item)
                 if isinstance(inc, (tuple, list)):
                     inc = torch.tensor(inc)
-                if inc is None:
-                    print(key, data.dim)
                 cumsum[key].append(inc + cumsum[key][-1])
 
             if hasattr(data, '__num_simplices__'):
