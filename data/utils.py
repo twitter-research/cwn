@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import itertools as it
 import torch
-from data.data import Chain, Complex
+from data.complex import Chain, Complex
 
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T

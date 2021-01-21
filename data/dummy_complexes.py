@@ -1,6 +1,6 @@
 import torch
 
-from data.data import Chain, Complex
+from data.complex import Chain, Complex
 
 
 def get_house_complex():
@@ -48,4 +48,39 @@ def get_house_complex():
     t_x = torch.tensor([[1]], dtype=torch.float)
     yt = torch.tensor([2], dtype=torch.long)
     t_chain = Chain(dim=2, x=t_x, y=yt)
+    return Complex(v_chain, e_chain, t_chain)
+
+
+def get_square_complex():
+    """
+    Returns the `square graph` below with dummy features.
+    The `square graph`:
+
+     3---2
+     |   |
+     0---1
+
+     . 2 .
+     3   1
+     . 0 .
+
+     .---.
+     |   |
+     .---.
+    """
+    v_up_index = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3],
+                               [1, 0, 3, 0, 2, 1, 3, 2]], dtype=torch.long)
+    v_shared_cofaces = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2], dtype=torch.long)
+    v_x = torch.tensor([[1], [2], [3], [4]], dtype=torch.float)
+    yv = torch.tensor([0, 0, 0, 0], dtype=torch.long)
+    v_chain = Chain(dim=0, x=v_x, upper_index=v_up_index, shared_cofaces=v_shared_cofaces, y=yv)
+
+    e_down_index = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3],
+                                 [1, 0, 3, 0, 2, 1, 3, 2]], dtype=torch.long)
+    e_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 3, 3], dtype=torch.long)
+    e_x = torch.tensor([[1], [2], [3], [4]], dtype=torch.float)
+    ye = torch.tensor([1, 1, 1, 1], dtype=torch.long)
+    e_chain = Chain(dim=1, x=e_x, lower_index=e_down_index, shared_faces=e_shared_faces, y=ye)
+
+    t_chain = Chain(dim=2)
     return Complex(v_chain, e_chain, t_chain)

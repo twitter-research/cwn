@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from data.data import Chain, Complex
+from data.complex import Chain, Complex
 from data.utils import get_nx_graph, compute_connectivity, get_adj_index, generate_complex
 import itertools as it
 import torch
