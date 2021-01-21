@@ -199,10 +199,51 @@ def test_clique_complex(house_edge_index, house_node_upper_adjacency, house_edge
 
 
 def test_gudhi_clique_complex(house_edge_index):
-    house = Data(edge_index=house_edge_index, x=torch.ones(5, 1))
+    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1))
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_complex = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes)
+    
+    v_params = house_complex.get_chain_params(dim=0)
+    assert torch.equal(v_params.x, house.x)
+    assert v_params.down_index is None
+
+    expected_v_up_index = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4],
+                                        [1, 0, 3, 0, 2, 1, 3, 2, 4, 2, 4, 3]], dtype=torch.long)
+    assert torch.equal(v_params.up_index, expected_v_up_index)
+
+    expected_v_up_attr = torch.tensor([[1], [1], [3], [3], [3], [3],
+                                       [5], [5], [6], [6], [7], [7]], dtype=torch.float)
+    assert torch.equal(v_params.kwargs['up_attr'], expected_v_up_attr)
+    assert v_params.kwargs['down_attr'] is None
+
+    e_params = house_complex.get_chain_params(dim=1)
+    expected_e_x = torch.tensor([[1], [3], [3], [5], [6], [7]], dtype=torch.float)
+    assert torch.equal(e_params.x, expected_e_x)
+
+    expected_e_up_index = torch.tensor([[3, 4, 3, 5, 4, 5],
+                                        [4, 3, 5, 3, 5, 4]], dtype=torch.long)
+    assert torch.equal(e_params.up_index, expected_e_up_index)
+
+    expected_e_up_attr = torch.tensor([[9], [9], [9], [9], [9], [9]], dtype=torch.float)
+    assert torch.equal(e_params.kwargs['up_attr'], expected_e_up_attr)
+
+    expected_e_down_index = torch.tensor([[0, 1, 0, 2, 2, 3, 2, 4, 3, 4, 1, 3, 1, 5, 3, 5, 4, 5],
+                                          [1, 0, 2, 0, 3, 2, 4, 2, 4, 3, 3, 1, 5, 1, 5, 3, 5, 4]],
+                                         dtype=torch.long)
+    assert torch.equal(e_params.down_index, expected_e_down_index)
+    expected_e_down_attr = torch.tensor([[0], [0], [1], [1], [2], [2], [2], [2], [2], [2],
+                                         [3], [3], [3], [3], [3], [3], [4], [4]],
+                                        dtype=torch.float)
+    assert torch.equal(e_params.kwargs['down_attr'], expected_e_down_attr)
+
+    t_params = house_complex.get_chain_params(dim=2)
+    expected_t_x = torch.tensor([[9]], dtype=torch.float)
+    assert torch.equal(t_params.x, expected_t_x)
+    assert t_params.down_index is None
+    assert t_params.up_index is None
+
+
 
 
 

@@ -345,12 +345,12 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree):
             assert len(coface) == len(simplex) + 1
 
             if tuple(simplex) not in level_cofaces:
-                level_cofaces[tuple(simplex)] = set()
-            level_cofaces[tuple(simplex)].add(tuple(coface))
+                level_cofaces[tuple(simplex)] = list()
+            level_cofaces[tuple(simplex)].append(tuple(coface))
 
             if tuple(coface) not in level_faces:
-                level_faces[tuple(coface)] = set()
-            level_faces[tuple(coface)].add(tuple(simplex))
+                level_faces[tuple(coface)] = list()
+            level_faces[tuple(coface)].append(tuple(simplex))
 
     return faces, cofaces
 
