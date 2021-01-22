@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from data.complex import ComplexBatch
-from data.dummy_complexes import get_house_complex, get_square_complex
+from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex
 from data.data_loading import DataLoader
 
 
@@ -328,8 +328,15 @@ def test_data_loader():
         get_house_complex(),
         get_house_complex()]
     
+    data_list_3 = [
+        get_house_complex(),
+        get_square_complex(),
+        get_pyramid_complex(),
+        get_pyramid_complex()]
+    
     data_loader_1 = DataLoader(data_list_1, batch_size=2)
     data_loader_2 = DataLoader(data_list_2, batch_size=3)
+    data_loader_3 = DataLoader(data_list_3, batch_size=3, max_dim=3)
     
     count = 0
     for batch in data_loader_1:
@@ -347,4 +354,9 @@ def test_data_loader():
             validate_house_square_house(batch)
         elif count == 2:
             validate_house_no_batching(batch)
+    assert count == 2
+    
+    count = 0
+    for batch in data_loader_3:
+        count += 1
     assert count == 2

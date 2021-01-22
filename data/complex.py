@@ -14,6 +14,8 @@ __num_warn_msg__ = (
     'the number of simplices for this data object by assigning it to '
     'chain.num_{0}.')
 
+__complex_max_dim_lower_bound__ = 2
+
 class Chain(object):
     """
         Class representing a chain of k-dim simplices.
@@ -95,12 +97,16 @@ class Chain(object):
             of the next attribute of :obj:`key` when creating batches.
         """
         if key in ['upper_index', 'lower_index']:
-            return self.num_simplices
-        if key == 'shared_faces':
-            return self.num_faces
-        if key == 'shared_cofaces':
-            return self.num_cofaces
-        return 0
+            inc = self.num_simplices
+        elif key == 'shared_faces':
+            inc = self.num_faces
+        elif key == 'shared_cofaces':
+            inc = self.num_cofaces
+        else:
+            inc = 0
+        if inc is None:
+            inc = 0
+        return inc
     
     def __call__(self, *keys):
         """
@@ -484,18 +490,23 @@ class Complex(object):
         Class representing an attributed simplicial complex.
     """
 
-    def __init__(self, nodes: Chain, edges: Chain, triangles: Chain, y: torch.Tensor = None):
+    def __init__(self, *chains: Chain, y: torch.Tensor = None, max_dim: int = None):
 
+        if max_dim is None:
+            max_dim = len(chains) - 1
+        if max_dim < __complex_max_dim_lower_bound__:
+            raise ValueError('Parameter `max_dim` must greater or equal than {} (received {}).'.format(__complex_max_dim_lower_bound__, max_dim))
+        if len(chains) < max_dim + 1:
+            raise ValueError('Not enough chains passed (expected {}, received {})'.format(max_dim + 1, len(chains)))
+        
         # TODO: This needs some data checking to check that these chains are consistent together
-        self.nodes = nodes
-        self.edges = edges
-        self.triangles = triangles
-        self.chains = {0: self.nodes, 1: self.edges, 2: self.triangles}
-        self.max_dim = 2
-        # ^^^ these will be abstracted later allowing for generic orders;
-        # in that case they will be provided as an array (or similar) and min and
-        # max orders will be set automatically, according to what passed
-        # NB: nodes, edges, triangles are objects of class `Chain` with orders 0, 1, 2
+        self.max_dim = max_dim
+        self.chains = {i: chains[i] for i in range(max_dim + 1)}
+        self.nodes = chains[0]
+        self.edges = chains[1] if max_dim >= 1 else None
+        self.triangles = chains[2] if max_dim >= 2 else None
+        # TODO:  ^^^ what happens if these are set to None?
+        
         self.y = y  # complex-wise label for complex-level tasks
         return
 
@@ -555,31 +566,28 @@ class ComplexBatch(Complex):
         Class representing a batch of complexes.
     """
 
-    def __init__(self, nodes: Chain, edges: Chain, triangles: Chain, y: torch.Tensor = None, num_complexes: int = None):
-        super(ComplexBatch, self).__init__(nodes, edges, triangles, y=y)
+    def __init__(self, *chains: Chain, y: torch.Tensor = None, num_complexes: int = None):
+        super(ComplexBatch, self).__init__(*chains, y=y)
         self.num_complexes = num_complexes
 
     @classmethod
-    def from_complex_list(cls, data_list, follow_batch=[]):
+    def from_complex_list(cls, data_list, follow_batch=[], max_dim=2):
 
-        # TODO: this needs to be generalized in the case we work with higher-order simplices
-        node_list = list()
-        edge_list = list()
-        triangle_list = list()
+        chains = [list() for _ in range(max_dim + 1)]
         label_list = list()
         per_complex_labels = True
         for comp in data_list:
-            node_list.append(comp.nodes)
-            edge_list.append(comp.edges)
-            triangle_list.append(comp.triangles)
+            for dim in range(max_dim + 1):
+                if dim not in comp.chains:
+                    chains[dim].append(Chain(dim=dim))
+                else:
+                    chains[dim].append(comp.chains[dim])
             per_complex_labels &= comp.y is not None
             if per_complex_labels:
                 label_list.append(comp.y)
 
-        nodes = ChainBatch.from_chain_list(node_list, follow_batch=follow_batch)
-        edges = ChainBatch.from_chain_list(edge_list, follow_batch=follow_batch)
-        triangles = ChainBatch.from_chain_list(triangle_list, follow_batch=follow_batch)
+        batched_chains = [ChainBatch.from_chain_list(chain_list, follow_batch=follow_batch) for chain_list in chains]
         y = None if not per_complex_labels else torch.cat(label_list, 0)
-        batch = cls(nodes, edges, triangles, y=y, num_complexes=len(data_list))
+        batch = cls(*batched_chains, y=y, num_complexes=len(data_list))
 
         return batch
