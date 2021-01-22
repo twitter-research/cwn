@@ -26,7 +26,7 @@ def test_dummy_simplicial_message_passing():
 
 
 def test_sin_conv_training():
-    msg_net = nn.Sequential(nn.Linear(2, 1), nn.ReLU())
+    msg_net = nn.Sequential(nn.Linear(2, 1))
     update_net = nn.Sequential(nn.Linear(1, 3))
 
     sin_conv = SINConv(msg_net, update_net, 0.05)
@@ -47,7 +47,7 @@ def test_sin_conv_training():
     yt = house_complex.get_labels(dim=2)
     y = torch.cat([yv, ye, yt])
 
-    optimizer = optim.SGD(sin_conv.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(sin_conv.parameters(), lr=0.001)
     optimizer.zero_grad()
 
     out_v, out_e, out_t = sin_conv.forward(v_params, e_params, t_params)
