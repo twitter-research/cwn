@@ -371,7 +371,7 @@ def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict],
 
     # Go through all dimensions of the complex
     for dim in range(complex_dim+1):
-        # Go through all the simplicies at that dimension
+        # Go through all the simplices at that dimension
         for simplex, id in id_maps[dim].items():
             # Add the upper adjacent neighbours from the level below
             if dim > 0:
@@ -395,9 +395,9 @@ def construct_features(vx: Tensor, simplex_tables):
     features = [vx]
     for dim in range(1, len(simplex_tables)):
         nodes = torch.tensor(simplex_tables[dim], dtype=torch.long).view(-1,)
-        # This has shape [simplicies * (dim+1), node_feature_dim]
+        # This has shape [simplices * (dim+1), node_feature_dim]
         node_features = torch.index_select(vx, 0, nodes)
-        # Reshape to [simplicies, (dim+1), node_feature_dim]
+        # Reshape to [simplices, (dim+1), node_feature_dim]
         node_features = node_features.view(len(simplex_tables[dim]), dim+1, -1)
         # Reduce along the simplex dimension containing the features of the vertices of the simplex
         features.append(node_features.sum(dim=1))
@@ -405,8 +405,28 @@ def construct_features(vx: Tensor, simplex_tables):
     return features
 
 
+def extract_labels(y, size):
+    v_y, complex_y = None, None
+    if y is None:
+        return v_y, complex_y
+
+    y_shape = list(y.size())
+    assert len(y_shape) == 1
+
+    if y_shape[0] == 1:
+        # This is a label for the whole graph (for graph classification).
+        # We will use it for the complex.
+        complex_y = y
+    else:
+        # This is a label for the vertices of the complex.
+        assert y_shape[0] == size
+        v_y = y
+
+    return v_y, complex_y
+
+
 def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
-                         all_shared_faces, all_shared_cofaces, simplex_tables):
+                         all_shared_faces, all_shared_cofaces, simplex_tables, y=None):
     """Builds a Chain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
@@ -420,16 +440,21 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                       if len(all_shared_cofaces[dim]) > 0 else None)
     shared_faces = (torch.tensor(all_shared_faces[dim], dtype=torch.long)
                     if len(all_shared_faces[dim]) > 0 else None)
-    simplicies = (torch.tensor(simplex_tables[dim], dtype=torch.long)
+    simplices = (torch.tensor(simplex_tables[dim], dtype=torch.long)
                   if len(simplex_tables[dim]) > 0 else None)
+
+    if up_index is not None:
+        assert up_index.size(1) == shared_cofaces.size(0)
+    if down_index is not None:
+        assert down_index.size(1) == shared_faces.size(0)
 
     return Chain(dim=dim, x=x, upper_index=up_index,
                  lower_index=down_index, shared_cofaces=shared_cofaces, shared_faces=shared_faces,
-                 mapping=simplicies)
+                 mapping=simplices, y=y)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
-                                      expansion_dim: int=2) -> Complex:
+                                      expansion_dim: int = 2, y: Tensor = None) -> Complex:
     """Generates a clique complex of a pyG graph via gudhi.
 
     Args:
@@ -437,6 +462,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
         edge_index: The edge_index of the graph (a tensor of shape [2, num_edges])
         size: The number of nodes in the graph
         expansion_dim: The dimension to expand the simplex to.
+        y: Labels for the graph nodes or a label for the whole graph.
     """
     assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
 
@@ -459,12 +485,15 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # TODO: Make this handle edge features as well and add alternative options to compute this.
     xs = construct_features(x, simplex_tables)
 
+    # Initialise the node / complex labels
+    v_y, complex_y = extract_labels(y, size)
+
     # TODO: Once Complex supports this, we can use more levels. This stops at triangles for now.
     v_chain = generate_chain_gudhi(0, xs[0], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                   simplex_tables)
+                                   simplex_tables, y=v_y)
     e_chain = generate_chain_gudhi(1, xs[1], upper_idx, lower_idx, shared_faces, shared_cofaces,
                                    simplex_tables)
     t_chain = generate_chain_gudhi(2, xs[2], upper_idx, lower_idx, shared_faces, shared_cofaces,
                                    simplex_tables)
 
-    return Complex(v_chain, e_chain, t_chain)
+    return Complex(v_chain, e_chain, t_chain, y=complex_y)

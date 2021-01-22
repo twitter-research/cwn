@@ -199,10 +199,11 @@ def test_clique_complex(house_edge_index, house_node_upper_adjacency, house_edge
 
 
 def test_gudhi_clique_complex(house_edge_index):
-    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1))
+    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
-    house_complex = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes)
+    house_complex = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes,
+                                                      y=house.y)
 
     v_params = house_complex.get_chain_params(dim=0)
     assert torch.equal(v_params.x, house.x)
@@ -242,3 +243,5 @@ def test_gudhi_clique_complex(house_edge_index):
     assert torch.equal(t_params.x, expected_t_x)
     assert t_params.down_index is None
     assert t_params.up_index is None
+
+    assert torch.equal(house_complex.y, house.y)
