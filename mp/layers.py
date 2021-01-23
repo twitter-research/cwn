@@ -57,6 +57,7 @@ class SINChainConv(ChainMessagePassing):
         out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
                              up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
         out += (1 + self.eps) * chain.x
+        print(out.size())
         return self.update_nn(out)
 
     def reset_parameters(self):
@@ -76,15 +77,19 @@ class SINChainConv(ChainMessagePassing):
 
 class SINConv(torch.nn.Module):
     def __init__(self, msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
-                 eps: float = 0., train_eps: bool = False):
+                 eps: float = 0., train_eps: bool = False, max_dim: int = 2):
         super(SINConv, self).__init__()
-        self.vertex_mp = SINChainConv(msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
-        self.edge_mp = SINChainConv(msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
-        self.triangle_mp = SINChainConv(msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
+        self.max_dim = max_dim
+        self.mp_levels = torch.nn.ModuleList()
+        for dim in range(max_dim+1):
+            mp = SINChainConv(msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
+            self.mp_levels.append(mp)
 
-    def forward(self, v_params, e_params, t_params):
-        x_out = self.vertex_mp.forward(v_params)
-        e_out = self.edge_mp.forward(e_params)
-        t_out = self.triangle_mp.forward(t_params)
-        return x_out, e_out, t_out
+    def forward(self, *chain_params: ChainMessagePassingParams):
+        assert len(chain_params) <= self.max_dim+1
+
+        out = []
+        for dim in range(len(chain_params)):
+            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+        return out
 

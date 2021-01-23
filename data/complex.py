@@ -2,6 +2,7 @@ import torch
 import logging
 import copy
 
+from collections import OrderedDict
 from torch import Tensor
 from torch_sparse import SparseTensor
 from mp.smp import ChainMessagePassingParams
@@ -37,7 +38,7 @@ class Chain(object):
         """
         self.dim = dim
         # TODO: check default for x
-        self.x = x
+        self.__x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
         self.y = y
@@ -52,6 +53,15 @@ class Chain(object):
                 self.__num_simplices__ = item
             else:
                 self[key] = item
+
+    @property
+    def x(self):
+        return self.__x
+
+    @x.setter
+    def x(self, new_x):
+        assert len(self.x) == len(new_x)
+        self.__x = new_x
 
     @property
     def keys(self):
@@ -314,15 +324,6 @@ class ChainBatch(Chain):
         self.__num_chains__ = None
 
     @classmethod
-    def from_features(cls, x: Tensor, old_batch):
-        """Returns a new chain batch like old_batch but with the features from x"""
-        assert len(x) == len(old_batch.x)
-
-        old_properties = vars(old_batch)
-        old_properties['x'] = x
-        return ChainBatch(**old_properties)
-
-    @classmethod
     def from_chain_list(cls, data_list, follow_batch=[]):
         """
             Constructs a batch object from a python list holding
@@ -498,23 +499,20 @@ class Complex(object):
         Class representing an attributed simplicial complex.
     """
 
-    def __init__(self, *chains: Chain, y: torch.Tensor = None, max_dim: int = None):
+    def __init__(self, *chains: Chain, y: torch.Tensor = None, dimension: int = None):
 
-        if max_dim is None:
-            max_dim = len(chains) - 1
-        if max_dim < __complex_max_dim_lower_bound__:
-            raise ValueError('Parameter `max_dim` must greater or equal than {} (received {}).'.format(__complex_max_dim_lower_bound__, max_dim))
-        if len(chains) < max_dim + 1:
-            raise ValueError('Not enough chains passed (expected {}, received {})'.format(max_dim + 1, len(chains)))
+        if dimension is None:
+            dimension = len(chains) - 1
+        if len(chains) < dimension + 1:
+            raise ValueError('Not enough chains passed (expected {}, received {})'.format(dimension + 1, len(chains)))
         
         # TODO: This needs some data checking to check that these chains are consistent together
-        self.max_dim = max_dim
-        self.chains = {i: chains[i] for i in range(max_dim + 1)}
+        self.dimension = dimension
+        self.chains = {i: chains[i] for i in range(dimension + 1)}
         self.nodes = chains[0]
-        self.edges = chains[1] if max_dim >= 1 else None
-        self.triangles = chains[2] if max_dim >= 2 else None
-        # TODO:  ^^^ what happens if these are set to None?
-        
+        self.edges = chains[1] if dimension >= 1 else None
+        self.triangles = chains[2] if dimension >= 2 else None
+
         self.y = y  # complex-wise label for complex-level tasks
         return
 
@@ -553,14 +551,14 @@ class Complex(object):
 
     def get_all_chain_params(self):
         all_params = []
-        for dim in range(self.max_dim+1):
+        for dim in range(self.dimension+1):
             all_params.append(self.get_chain_params(dim))
         return all_params
 
     def get_labels(self, dim=None):
         """
             Returns target labels.
-            If `dim`==k (integer in [0, self.max_dim]) then the labels over
+            If `dim`==k (integer in [0, self.dimension]) then the labels over
             k-simplices are returned.
             In the case `dim` is None the complex-wise label is returned.
         """
@@ -574,24 +572,31 @@ class Complex(object):
                     'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return y
 
+    def set_xs(self, xs: List[Tensor]):
+        """Sets the features of the chains to the values in the list"""
+        assert (self.dimension + 1) == len(xs)
+        for i, x in enumerate(xs):
+            self.chains[i].x = x
+
 
 class ComplexBatch(Complex):
     """
         Class representing a batch of complexes.
     """
 
-    def __init__(self, *chains: ChainBatch, y: torch.Tensor = None, num_complexes: int = None):
+    def __init__(self, *chains: ChainBatch, dimension: int, y: torch.Tensor = None, num_complexes: int = None):
         super(ComplexBatch, self).__init__(*chains, y=y)
         self.num_complexes = num_complexes
+        self.dimension = dimension
 
     @classmethod
-    def from_complex_list(cls, data_list, follow_batch=[], max_dim=2):
-
-        chains = [list() for _ in range(max_dim + 1)]
+    def from_complex_list(cls, data_list: List[Complex], follow_batch=[]):
+        dimension = max([complex.dimension for complex in data_list])
+        chains = [list() for _ in range(dimension + 1)]
         label_list = list()
         per_complex_labels = True
         for comp in data_list:
-            for dim in range(max_dim + 1):
+            for dim in range(dimension+1):
                 if dim not in comp.chains:
                     chains[dim].append(Chain(dim=dim))
                 else:
@@ -602,16 +607,7 @@ class ComplexBatch(Complex):
 
         batched_chains = [ChainBatch.from_chain_list(chain_list, follow_batch=follow_batch) for chain_list in chains]
         y = None if not per_complex_labels else torch.cat(label_list, 0)
-        batch = cls(*batched_chains, y=y, num_complexes=len(data_list))
+        batch = cls(*batched_chains, y=y, num_complexes=len(data_list), dimension=dimension)
 
         return batch
-
-    @classmethod
-    def from_features(cls, xs, old_batch):
-        """Creates a new batch like old_batch but with the features from xs"""
-        assert len(xs) == len(old_batch.chains)
-        chains = []
-        for i, chain in enumerate(old_batch.chains):
-            chains.append(ChainBatch.from_features(xs[i], chain))
-        return ComplexBatch(*chains)
 

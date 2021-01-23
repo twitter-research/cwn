@@ -29,7 +29,7 @@ def test_sin_conv_training():
     msg_net = nn.Sequential(nn.Linear(2, 1))
     update_net = nn.Sequential(nn.Linear(1, 3))
 
-    sin_conv = SINConv(msg_net, update_net, 0.05)
+    sin_conv = SINConv(msg_net, msg_net, update_net, 0.05)
 
     all_params_before = []
     for p in sin_conv.parameters():
