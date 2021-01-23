@@ -57,7 +57,6 @@ class SINChainConv(ChainMessagePassing):
         out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
                              up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
         out += (1 + self.eps) * chain.x
-        print(out.size())
         return self.update_nn(out)
 
     def reset_parameters(self):

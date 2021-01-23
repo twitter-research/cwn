@@ -590,8 +590,9 @@ class ComplexBatch(Complex):
         self.dimension = dimension
 
     @classmethod
-    def from_complex_list(cls, data_list: List[Complex], follow_batch=[]):
+    def from_complex_list(cls, data_list: List[Complex], follow_batch=[], max_dim: int = 2):
         dimension = max([complex.dimension for complex in data_list])
+        dimension = min(dimension, max_dim)
         chains = [list() for _ in range(dimension + 1)]
         label_list = list()
         per_complex_labels = True

@@ -82,8 +82,7 @@ def get_square_complex():
     ye = torch.tensor([1, 1, 1, 1], dtype=torch.long)
     e_chain = Chain(dim=1, x=e_x, lower_index=e_down_index, shared_faces=e_shared_faces, y=ye)
 
-    t_chain = Chain(dim=2)
-    return Complex(v_chain, e_chain, t_chain)
+    return Complex(v_chain, e_chain)
 
 
 def get_pyramid_complex():
