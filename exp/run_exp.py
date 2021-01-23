@@ -34,8 +34,8 @@ def main():
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--num_workers', type=int, default=0,
                         help='number of workers (default: 0)')
-    parser.add_argument('--dataset', type=str, default="synth-SR",
-                        help='dataset name (default: synth-SR)')
+    parser.add_argument('--dataset', type=str, default="sr251256",
+                        help='dataset name (default: sr251256)')
     parser.add_argument('--result_folder', type=str, default=None,
                         help='filename to output result (default: None, will use `scn/exp/results`)')
     parser.add_argument('--dump_curves', action='store_true',

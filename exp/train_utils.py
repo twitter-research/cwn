@@ -3,6 +3,7 @@ import torch
 from tqdm import tqdm
 from definitions import ROOT_DIR
 from sklearn import metrics as met
+from data.dataset import SRDataset
 
 cls_criterion = torch.nn.BCEWithLogitsLoss()
 reg_criterion = torch.nn.MSELoss()
@@ -17,7 +18,7 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     elif task_type == 'regression':
         loss_fn = reg_criterion
     else:
-        raise NotImplementedError('Task type {} not yet supported.'.format(task_type))
+        raise NotImplementedError('Training on task type {} not yet supported.'.format(task_type))
     
     curve = list()
     model.train()
@@ -91,27 +92,21 @@ def eval(model, device, loader, evaluator):
     input_dict = {"y_true": y_true, "y_pred": y_pred}
 
     return evaluator.eval(input_dict)
-
-def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
-    # TODO: shall we move this to data.data_loading ?
-    pass
-    raise NotImplementedError
-    
     
 class Evaluator(object):
     
     def __init__(self, metric):
         if metric == 'isomorphism':
-            self.eval_fn = self.__isomorphism
+            self.eval_fn = self._isomorphism
         elif metric == 'accuracy':
-            self.eval_fn = self.__accuracy
+            self.eval_fn = self._accuracy
         else:
             raise NotImplementedError('Metric {} is not yet supported.'.format(metric))
     
     def eval(self, input_dict):
         return self.eval_fn(input_dict)
         
-    def __isomorphism(self, input_dict):
+    def _isomorphism(self, input_dict):
         p = input_dict.get('p', 2)
         eps = input_dict.get('eps', 0.01)
         preds = input_dict['y_pred']
@@ -121,8 +116,17 @@ class Evaluator(object):
         metric = correct / (n*(n-1))
         return metric
     
-    def __accuracy(self, input_dict):
+    def _accuracy(self, input_dict):
         y_true = input_dict['y_true']
         y_pred = input_dict['y_pred']
         metric = met.accuracy_score(y_true, y_pred)
         return metric
+    
+def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
+    # TODO: shall we move this to data.data_loading ?
+    if name.startswith('sr'):
+        dataset = SRDataset(root, name, 'isomorphism', 'isomorphism', num_classes=1, exp_dim=4)
+    else:
+        raise NotImplementedError
+    return dataset
+            
