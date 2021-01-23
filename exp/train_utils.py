@@ -125,8 +125,7 @@ class Evaluator(object):
 def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
     # TODO: shall we move this to data.data_loading ?
     if name.startswith('sr'):
-        dataset = SRDataset(root, name, 'isomorphism', 'isomorphism', num_classes=1, exp_dim=4)
+        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, 'isomorphism', 'isomorphism', exp_dim=5)
     else:
         raise NotImplementedError
     return dataset
-            

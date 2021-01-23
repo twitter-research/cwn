@@ -11,20 +11,33 @@ __other_metrics__ = ['isomorphism']
 __task_types__ = ['regression', 'classification', 'isomorphism']
     
 class ComplexDataset(object):
-    
+    """
+        Base class for simplicial complex datasets that can be held in main memory.
+        Args:
+            root (str): root folder where raw data files are found.     
+            name (str): dataset name.
+            eval_metric (str): the predefined evaluation metric for the dataset.
+            task_type (str): the task solved, either 'regression', 'classification' or 'isomorphism'.
+            num_classes (:obj:`int`, optional): number of output classes/tasks.
+        Attributes:
+            root (str): root folder where raw data files are found.     
+            name (str): dataset name.
+            eval_metric (str): the predefined evaluation metric for the dataset.
+            task_type (str): the task solved, either 'regression', 'classification' or 'isomorphism'.
+            num_classes (:obj:`int`, optional): number of output classes/tasks.
+            maximize (:obj: `bool`): whether the `eval_metric` is to be maximized, automatically inferred.
+    """
     def __init__(self, root, name, eval_metric, task_type, num_classes=2, **kwargs):
-        
         self.root = root
         self.name = name
         self._set_metric(eval_metric)
-        self._set_task(task_type, num_classes)
         self._data = []
         self._load_data()
+        self._set_task(task_type, num_classes)
         self._train_ids = None
         self._val_ids = None
         self._test_ids = None
         for k in kwargs.keys():
-            # TODO: is there a better way to do this? This is thought to contain e.g. split idxs
             if k == 'train_ids':
                 self._train_ids = kwargs[k]
             elif k == 'val_ids':
@@ -35,6 +48,9 @@ class ComplexDataset(object):
                 self.__setattr__(k, kwargs[k])
 
     def _set_metric(self, eval_metric):
+        """
+            Internal. Sets the `eval_metric` and `maximize` attributes.
+        """
         if eval_metric in __max_metrics__:
             self.maximize = True
         elif eval_metric in __min_metrics__:
@@ -46,32 +62,44 @@ class ComplexDataset(object):
         self.eval_metric = eval_metric
         
     def _set_task(self, task_type, num_classes):
+        """
+            Internal. Sets the `task_type` and `num_classes` attributes.
+        """
         if task_type not in __task_types__:
             raise ValueError('Task type can only be {}, {} or {}, found {}.'.format(*__task_types__+[task_type]))
         self.task_type = task_type
         if self.task_type == 'classification':
             if num_classes <= 1:
                 raise ValueError('The number of classes must be greater or equal than 2, found {}.'.format(num_classes))
-            self.num_classes = num_classes
-        else:
-            self.num_classes = 1
+        self.num_classes = num_classes
     
     def _load_data(self):
+        """
+            Internal. Loads raw data from disk and prepares the complex samples, if needed.
+            The implementation of this method is required in concrete subclasses.
+        """
         raise NotImplementedError()
         
     def get_idx_split(self):
+        """
+            Returns the split dictionary.
+            The implementation of this method is required in concrete subclasses.
+        """
         raise NotImplementedError()
         
     def __len__(self):
-        r"""The number of examples in the dataset."""
+        """
+            Returns the number of examples in the dataset.
+        """
         return self.len()
         
     def __getitem__(self, idx):
-        r"""Gets the data object at index :obj:`idx` and transforms it (in case
-        a :obj:`self.transform` is given).
-        In case :obj:`idx` is a slicing object, *e.g.*, :obj:`[2:5]`, a list, a
-        tuple, a  LongTensor or a BoolTensor, will return a subset of the
-        dataset at the specified indices."""
+        """
+            Gets the data object at index :obj:`idx`.
+            In case :obj:`idx` is a slicing object, *e.g.*, :obj:`[2:5]`, a list, a
+            tuple, a  LongTensor or a BoolTensor, will return a subset of the
+            dataset at the specified indices.
+        """
         if isinstance(idx, int):
             data = self.get(idx)
             return data
@@ -118,9 +146,7 @@ class SRDataset(ComplexDataset):
         super(SRDataset, self).__init__(root, name, eval_metric, task_type, num_classes=num_classes, **kwargs)
         
     def get_idx_split(self):
-        """
-            In this dataset, if not explicit split is provided, we don't distinguish between train, val, test sets.
-        """
+        # In this dataset, if not explicit split is provided, we don't distinguish between train, val, test sets.
         train_ids = list(range(self.len())) if self._train_ids is None else self._train_ids
         val_ids = list(range(self.len())) if self._val_ids is None else self._val_ids
         test_ids = list(range(self.len())) if self._test_ids is None else self._test_ids
@@ -140,3 +166,7 @@ class SRDataset(ComplexDataset):
             complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes, expansion_dim=self.exp_dim, y=y)
             complexes.append(complex)
         self._data = complexes
+
+    def _set_task(self, task_type, num_classes):
+        super(SRDataset, self)._set_task(task_type, num_classes)
+        self.num_classes = len(self)

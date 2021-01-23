@@ -13,7 +13,7 @@ import numpy as np
 
 def main():
     
-    # Training settings
+    # training settings
     parser = argparse.ArgumentParser(description='SCN experiment.')
     
     parser.add_argument('--device', type=int, default=0,
@@ -56,12 +56,10 @@ def main():
     filename = os.path.join(result_folder, 'results.txt')
     
     # data loading
-    dataset = load_dataset(name=args.dataset)
-    # TODO: shall we just load the dataset into the three different splits or keep the following?
+    dataset = load_dataset(args.dataset)
     split_idx = dataset.get_idx_split()
 
-    ### automatic evaluator. takes dataset name as input
-    # TODO: here we could just instantiate a std one, say one that computes PR-AUC
+    # automatic evaluator. takes dataset name as input
     evaluator = Evaluator(dataset.eval_metric)
 
     # instantiate data loaders
@@ -70,13 +68,13 @@ def main():
     test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
     # instantiate model
-    if args.gnn == 'sin':
+    if args.model == 'sin':
         model = SIN(num_classes=dataset.num_classes,
                     num_layers=args.num_layers,
                     emb_dim=args.emb_dim,
                     drop_rate=args.drop_rate).to(device)
     else:
-        raise ValueError('Invalid model type')
+        raise ValueError('Invalid model type {}.'.format(args.model))
         
     # instantiate optimiser
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -87,6 +85,7 @@ def main():
     train_curve = []
     train_loss_curve = []
     if not args.untrained:
+        assert dataset.maximize is not None
         for epoch in range(1, args.epochs + 1):
 
             print("=====Epoch {}".format(epoch))
