@@ -1,5 +1,6 @@
 import torch
 import logging
+import copy
 
 from torch import Tensor
 from torch_sparse import SparseTensor
@@ -15,6 +16,7 @@ __num_warn_msg__ = (
     'chain.num_{0}.')
 
 __complex_max_dim_lower_bound__ = 2
+
 
 class Chain(object):
     """
@@ -220,7 +222,6 @@ class Chain(object):
             self[key] = self.__apply__(item, func)
         return self
 
-
     def contiguous(self, *keys):
         """
             Ensures a contiguous memory layout for all attributes :obj:`*keys`.
@@ -228,7 +229,6 @@ class Chain(object):
             have a contiguous memory layout.
         """
         return self.apply(lambda x: x.contiguous(), *keys)
-
 
     def to(self, device, *keys, **kwargs):
         """
@@ -238,7 +238,6 @@ class Chain(object):
             attributes.
         """
         return self.apply(lambda x: x.to(device, **kwargs), *keys)
-
 
     def clone(self):
         return self.__class__.from_dict({
@@ -313,6 +312,15 @@ class ChainBatch(Chain):
         self.__num_faces_list__ = None
         self.__num_cofaces_list__ = None
         self.__num_chains__ = None
+
+    @classmethod
+    def from_features(cls, x: Tensor, old_batch):
+        """Returns a new chain batch like old_batch but with the features from x"""
+        assert len(x) == len(old_batch.x)
+
+        old_properties = vars(old_batch)
+        old_properties['x'] = x
+        return ChainBatch(**old_properties)
 
     @classmethod
     def from_chain_list(cls, data_list, follow_batch=[]):
@@ -448,7 +456,7 @@ class ChainBatch(Chain):
             if isinstance(item, Tensor):
                 batch[key] = torch.cat(items, ref_data.__cat_dim__(key, item))
             elif isinstance(item, SparseTensor):
-                batch[key] = cat(items, ref_data.__cat_dim__(key, item))
+                batch[key] = torch.cat(items, ref_data.__cat_dim__(key, item))
             elif isinstance(item, (int, float)):
                 batch[key] = torch.tensor(items)
 
@@ -543,6 +551,12 @@ class Complex(object):
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return inputs
 
+    def get_all_chain_params(self):
+        all_params = []
+        for dim in range(self.max_dim+1):
+            all_params.append(self.get_chain_params(dim))
+        return all_params
+
     def get_labels(self, dim=None):
         """
             Returns target labels.
@@ -559,14 +573,14 @@ class Complex(object):
                 raise NotImplementedError(
                     'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return y
-    
+
 
 class ComplexBatch(Complex):
     """
         Class representing a batch of complexes.
     """
 
-    def __init__(self, *chains: Chain, y: torch.Tensor = None, num_complexes: int = None):
+    def __init__(self, *chains: ChainBatch, y: torch.Tensor = None, num_complexes: int = None):
         super(ComplexBatch, self).__init__(*chains, y=y)
         self.num_complexes = num_complexes
 
@@ -591,3 +605,13 @@ class ComplexBatch(Complex):
         batch = cls(*batched_chains, y=y, num_complexes=len(data_list))
 
         return batch
+
+    @classmethod
+    def from_features(cls, xs, old_batch):
+        """Creates a new batch like old_batch but with the features from xs"""
+        assert len(xs) == len(old_batch.chains)
+        chains = []
+        for i, chain in enumerate(old_batch.chains):
+            chains.append(ChainBatch.from_features(xs[i], chain))
+        return ComplexBatch(*chains)
+

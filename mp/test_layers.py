@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 
-from mp.models import DummySimplicialMessagePassing, SINConv
+from mp.layers import DummySimplicialMessagePassing, SINConv
 from data.dummy_complexes import get_house_complex
 from torch import nn
 

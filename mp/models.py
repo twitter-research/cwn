@@ -1,90 +1,80 @@
 import torch
+import torch.nn.functional as F
 
-from typing import Callable
-from torch import Tensor
-from mp.smp import ChainMessagePassing, ChainMessagePassingParams
-from torch_geometric.nn.inits import reset
-
-
-class DummyChainMessagePassing(ChainMessagePassing):
-    """This is a dummy parameter-free message passing model used for testing."""
-
-    def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        # (num_up_adj, x_feature_dim) + (num_up_adj, up_feat_dim)
-        # We assume the feature dim is the same across al levels
-        return up_x_j + up_attr
-
-    def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
-        # (num_down_adj, x_feature_dim) + (num_down_adj, down_feat_dim)
-        # We assume the feature dim is the same across al levels
-        return down_x_j + down_attr
-
-    def forward(self, chain: ChainMessagePassingParams):
-        return self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                              up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
+from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN
+from torch_geometric.nn import global_mean_pool
+from mp.layers import SINConv
+from data.complex import Complex, ComplexBatch
 
 
-class DummySimplicialMessagePassing(torch.nn.Module):
-    def __init__(self, ):
-        super(DummySimplicialMessagePassing, self).__init__()
-        self.vertex_mp = DummyChainMessagePassing()
-        self.edge_mp = DummyChainMessagePassing()
-        self.triangle_mp = DummyChainMessagePassing()
+class SIN(torch.nn.Module):
+    """
+    A simplicial version of GIN.
 
-    def forward(self, v_params, e_params, t_params):
-        x_out = self.vertex_mp.forward(v_params)
-        e_out = self.edge_mp.forward(e_params)
-        t_out = self.triangle_mp.forward(t_params)
-        return x_out, e_out, t_out
+    This model is based on
+    https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
+    """
+    def __init__(self, num_input_features, num_classes, num_layers, hidden):
+        super(SIN, self).__init__()
 
-
-class SINChainConv(ChainMessagePassing):
-    """This is a dummy parameter-free message passing model used for testing."""
-    def __init__(self, msg_nn: Callable, update_nn: Callable,
-                 eps: float = 0., train_eps: bool = False):
-        super(SINChainConv, self).__init__()
-        self.msg_nn = msg_nn
-        self.update_nn = update_nn
-        self.initial_eps = eps
-        if train_eps:
-            self.eps = torch.nn.Parameter(torch.Tensor([eps]))
-        else:
-            self.register_buffer('eps', torch.Tensor([eps]))
-        self.reset_parameters()
-
-    def forward(self, chain: ChainMessagePassingParams):
-        out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                             up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
-        out += (1 + self.eps) * chain.x
-        return self.update_nn(out)
+        self.convs = torch.nn.ModuleList()
+        for i in range(num_layers):
+            input_dim = num_input_features if i == 0 else hidden
+            conv_update = Sequential(
+                Linear(input_dim, hidden),
+                ReLU(),
+                Linear(hidden, hidden),
+                ReLU(),
+                BN(hidden))
+            conv_up = Sequential(
+                Linear(input_dim * 2, hidden),
+                ReLU(),
+                BN(hidden))
+            conv_down = Sequential(
+                Linear(input_dim * 2, hidden),
+                ReLU(),
+                BN(hidden))
+            self.convs.append(
+                SINConv(conv_up, conv_down, conv_update, train_eps=False))
+        self.lin1 = Linear(hidden, hidden)
+        self.lin2 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
-        reset(self.msg_nn)
-        reset(self.update_nn)
-        self.eps.data.fill_(self.initial_eps)
+        self.conv1.reset_parameters()
+        for conv in self.convs:
+            conv.reset_parameters()
+        self.lin1.reset_parameters()
+        self.lin2.reset_parameters()
 
-    def __message__(self, x_j, attr):
-        x = torch.cat([x_j, attr], dim=-1)
-        return self.msg_nn(x)
+    def forward(self, input_data: ComplexBatch):
+        data = input_data
+        xs = None
 
-    def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        return self.__message__(up_x_j, up_attr)
+        for i, conv in enumerate(self.convs):
+            params = data.get_all_chain_params()
+            xs = conv(*params)
+            # Create a new batch with the new features from the previous layer.
+            if i < len(self.convs) - 1:
+                data = ComplexBatch.from_features(xs, data)
 
-    def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
-        return self.__message__(down_x_j, down_attr)
+        # All complexes have nodes so we can extract the batch size from chains[0]
+        batch_size = data.chains[0].batch.max() + 1
+        # The MP output is of shape [complex_dim, batch_size, feature_dim]
+        # We assume that all layers have the same feature size.
+        pooled_xs = torch.empty(data.max_dim, batch_size, xs[0].size(-1))
+        for i in range(len(xs)):
+            # It's very important that size is supplied.
+            # Otherwise, if we have complexes with no simplices at certain levels, the wrong
+            # shape could be inferred automatically from data.chains[i].batch.
+            # This makes sure the output tensor will have the right dimensions.
+            pooled_xs[i, :, :] = global_mean_pool(xs[i], data.chains[i].batch, size=batch_size)
+        # Reduce across the levels of the complexes
+        x = pooled_xs.sum(dim=0)
 
+        x = F.relu(self.lin1(x))
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.lin2(x)
+        return F.log_softmax(x, dim=-1)
 
-class SINConv(torch.nn.Module):
-    def __init__(self, msg_nn: Callable, update_nn: Callable, eps: float = 0.,
-                 train_eps: bool = False):
-        super(SINConv, self).__init__()
-        self.vertex_mp = SINChainConv(msg_nn, update_nn, eps, train_eps)
-        self.edge_mp = SINChainConv(msg_nn, update_nn, eps, train_eps)
-        self.triangle_mp = SINChainConv(msg_nn, update_nn, eps, train_eps)
-
-    def forward(self, v_params, e_params, t_params):
-        x_out = self.vertex_mp.forward(v_params)
-        e_out = self.edge_mp.forward(e_params)
-        t_out = self.triangle_mp.forward(t_params)
-        return x_out, e_out, t_out
-
+    def __repr__(self):
+        return self.__class__.__name__
