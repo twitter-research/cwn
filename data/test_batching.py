@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from torch import Tensor
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex
 from data.data_loading import DataLoader
@@ -360,3 +361,22 @@ def test_data_loader():
     for batch in data_loader_3:
         count += 1
     assert count == 2
+
+
+def test_set_for_features_in_batch():
+    house_1 = get_house_complex()
+    house_2 = get_house_complex()
+    square = get_square_complex()
+    complex_list = [house_1, square, house_2]
+
+    vx = torch.range(21, 34).view(14, 1)
+    ex = torch.range(21, 36).view(16, 1)
+    tx = torch.range(21, 22).view(2, 1)
+    xs = [vx, ex, tx]
+
+    batch = ComplexBatch.from_complex_list(complex_list)
+    batch.set_xs(xs)
+
+    assert torch.equal(batch.chains[0].x, vx)
+    assert torch.equal(batch.chains[1].x, ex)
+    assert torch.equal(batch.chains[2].x, tx)

@@ -488,11 +488,11 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
 
-    chains = list()
-    for dim in range(complex_dim+1):
-        chain_y = v_y if dim == 0 else None
-        chain =  generate_chain_gudhi(dim, xs[dim], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                   simplex_tables, y=chain_y)
+    chains = []
+    for i in range(complex_dim+1):
+        y = v_y if i == 0 else None
+        chain = generate_chain_gudhi(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
+                                     simplex_tables, y=y)
         chains.append(chain)
 
-    return Complex(*chains, y=complex_y)
+    return Complex(*chains, y=complex_y, dimension=complex_dim)

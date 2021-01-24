@@ -1,68 +1,67 @@
 import torch
-import torch.optim as optim
 
-from mp.models import DummySimplicialMessagePassing, SINConv
-from data.dummy_complexes import get_house_complex
-from torch import nn
-
-
-def test_dummy_simplicial_message_passing():
-    house_complex = get_house_complex()
-    v_params = house_complex.get_chain_params(dim=0)
-    e_params = house_complex.get_chain_params(dim=1)
-    t_params = house_complex.get_chain_params(dim=2)
-
-    dsmp = DummySimplicialMessagePassing()
-    v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
-
-    expected_v_x = torch.tensor([[11], [7], [22], [21], [18]], dtype=torch.float)
-    assert torch.equal(v_x, expected_v_x)
-
-    expected_e_x = torch.tensor([[9], [18], [44], [18], [37], [31]], dtype=torch.float)
-    assert torch.equal(e_x, expected_e_x)
-
-    expected_t_x = torch.tensor([[1]], dtype=torch.float)
-    assert torch.equal(t_x, expected_t_x)
+from data.complex import ComplexBatch
+from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex
+from data.data_loading import DataLoader
+from mp.models import SIN0
 
 
-def test_sin_conv_training():
-    msg_net = nn.Sequential(nn.Linear(2, 1))
-    update_net = nn.Sequential(nn.Linear(1, 3))
+def test_sin_model_with_batching():
+    """Check this runs without errors and that batching and no batching produce the same output."""
+    data_list = [get_house_complex(), get_square_complex(),
+                 get_square_complex(), get_house_complex()]
 
-    sin_conv = SINConv(msg_net, update_net, 0.05)
+    data_loader = DataLoader(data_list, batch_size=2)
 
-    all_params_before = []
-    for p in sin_conv.parameters():
-        all_params_before.append(p.clone().data)
-    assert len(all_params_before) > 0
+    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5)
+    # We use the model in eval mode to avoid problems with batch norm.
+    model.eval()
 
-    house_complex = get_house_complex()
+    batched_preds = []
+    for batch in data_loader:
+        batched_pred = model.forward(batch)
+        batched_preds.append(batched_pred)
+    batched_preds = torch.cat(batched_preds, dim=0)
 
-    v_params = house_complex.get_chain_params(dim=0)
-    e_params = house_complex.get_chain_params(dim=1)
-    t_params = house_complex.get_chain_params(dim=2)
+    preds = []
+    for complex in data_list:
+        pred = model.forward(ComplexBatch.from_complex_list([complex]))
+        preds.append(pred)
+    preds = torch.cat(preds, dim=0)
 
-    yv = house_complex.get_labels(dim=0)
-    ye = house_complex.get_labels(dim=1)
-    yt = house_complex.get_labels(dim=2)
-    y = torch.cat([yv, ye, yt])
+    assert torch.equal(preds, batched_preds)
 
-    optimizer = optim.SGD(sin_conv.parameters(), lr=0.001)
-    optimizer.zero_grad()
 
-    out_v, out_e, out_t = sin_conv.forward(v_params, e_params, t_params)
-    out = torch.cat([out_v, out_e, out_t], dim=0)
+def test_sin_model_with_batching_over_complexes_missing_triangles():
+    """Check this runs without errors"""
+    data_list = [get_square_complex(), get_square_complex(),
+                 get_square_complex(), get_square_complex()]
+    data_loader = DataLoader(data_list, batch_size=2)
 
-    criterion = nn.CrossEntropyLoss()
-    loss = criterion(out, y)
-    loss.backward()
-    optimizer.step()
+    # Run using a model that works up to triangles.
+    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=2)
+    # We use the model in eval mode to avoid problems with batch norm. 
+    model.eval()
 
-    all_params_after = []
-    for p in sin_conv.parameters():
-        all_params_after.append(p.clone().data)
-    assert len(all_params_after) == len(all_params_before)
+    preds1 = []
+    for batch in data_loader:
+        out = model.forward(batch)
+        preds1.append(out)
+    preds1 = torch.cat(preds1, dim=0)
 
-    # Check that parameters have been updated.
-    for i, _ in enumerate(all_params_before):
-        assert not torch.equal(all_params_before[i], all_params_after[i])
+    # Run using a model that works up to edges.
+    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=1)
+    model.eval()
+
+    preds2 = []
+    for batch in data_loader:
+        out = model.forward(batch)
+        preds2.append(out)
+    preds2 = torch.cat(preds2, dim=0)
+
+    # Make sure the two outputs are different. The model using triangles set the triangle outputs
+    # to zero, so the output of the readout should also be different.
+    assert not torch.equal(preds1, preds2)
+
+
+
