@@ -13,7 +13,7 @@ __num_warn_msg__ = (
     'The number of {0} in your chain object can only be inferred by its {1}, '
     'and hence may result in unexpected batch-wise behavior, e.g., '
     'in case there exists isolated simplices. Please consider explicitly setting '
-    'the number of simplices for this data object by assigning it to '
+    'the number of {0} for this data object by assigning it to '
     'chain.num_{0}.')
 
 __complex_max_dim_lower_bound__ = 2
@@ -204,6 +204,15 @@ class Chain(object):
     @num_faces.setter
     def num_faces(self, num_faces):
         self.__num_faces__ = num_faces
+        
+    @property
+    def num_features(self):
+        """
+            Returns the number of features per simplex in the chain.
+        """
+        if self.x is None:
+            return 0
+        return 1 if self.x.dim() == 1 else self.x.size(1)
 
     def __apply__(self, item, func):
         if torch.is_tensor(item):
