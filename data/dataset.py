@@ -55,7 +55,7 @@ class ComplexDataset(torch.utils.data.Dataset):
         self.name = name
         self.max_dim = max_dim
         self._set_metric(eval_metric)
-        self.num_features = {dim: None for dim in range(max_dim+1)}
+        self._num_features = {dim: None for dim in range(max_dim+1)}
         self.process_args = process_args
         if 'process' in self.__class__.__dict__.keys():
             self._process()
@@ -139,6 +139,11 @@ class ComplexDataset(torch.utils.data.Dataset):
             pickle.dump(self.process_args, handle)
 
         print('Done!')
+        
+    def num_features(self, dim):
+        if dim > self.max_dim:
+            raise ValueError('`dim` {} larger than max allowed dimension {}.'.format(dim, self.max_dim))
+        return self._num_features[dim]
         
     def process(self):
         raise NotImplementedError()
@@ -286,14 +291,13 @@ class SRDataset(InMemoryComplexDataset):
             x = torch.ones(num_nodes, 1, dtype=torch.float32)
             y = torch.ones(1, dtype=torch.long)
             complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes, expansion_dim=exp_dim, y=y)
-            # TODO: change complex.max_dim into dim after merge
-            if complex.max_dim > max_dim:
-                max_dim = complex.max_dim
-            for dim in range(complex.max_dim + 1):
-                if self.num_features[dim] is None:
-                    self.num_features[dim] = complex.chains[dim].num_features
+            if complex.dimension > max_dim:
+                max_dim = complex.dimension
+            for dim in range(complex.dimension + 1):
+                if self._num_features[dim] is None:
+                    self._num_features[dim] = complex.chains[dim].num_features
                 else:
-                    assert self.num_features[dim] == complex.chains[dim].num_features
+                    assert self._num_features[dim] == complex.chains[dim].num_features
             complexes.append(complex)
         self.max_dim = max_dim
         path = self.processed_paths[0]
