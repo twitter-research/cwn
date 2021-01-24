@@ -134,4 +134,5 @@ dmypy.json
 
 *.gz
 data/dataset/
+exp/results/
 *.pt

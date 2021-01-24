@@ -192,6 +192,15 @@ class Chain(object):
     @num_faces.setter
     def num_faces(self, num_faces):
         self.__num_faces__ = num_faces
+        
+    @property
+    def num_features(self):
+        """
+            Returns the number of features per simplex in the chain.
+        """
+        if self.x is None:
+            return 0
+        return 1 if self.x.dim() == 1 else self.x.size(1)
 
     def __apply__(self, item, func):
         if torch.is_tensor(item):

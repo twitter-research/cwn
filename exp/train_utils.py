@@ -1,9 +1,7 @@
 import os
 import torch
 from tqdm import tqdm
-from definitions import ROOT_DIR
 from sklearn import metrics as met
-from data.dataset import SRDataset
 
 cls_criterion = torch.nn.BCEWithLogitsLoss()
 reg_criterion = torch.nn.MSELoss()
@@ -25,9 +23,7 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     for step, batch in enumerate(tqdm(loader, desc="Training iteration")):
         batch = batch.to(device)
         if batch.x.shape[0] == 1 or batch.batch[-1] == 0:
-            # TODO: figure out why this exactly (it seems like it drops batches with only one sample)
-            # NB: this routine is heavily inspired by:
-            #     https://github.com/snap-stanford/ogb/blob/master/examples/graphproppred/mol/main_pyg.py
+            # Skip batch if it only comprises one sample (could cause problems with BN)
             pass
         else:
             pred = model(batch)
@@ -52,11 +48,8 @@ def infer(model, device, loader):
     for step, batch in enumerate(tqdm(loader, desc="Inference iteration")):
         batch = batch.to(device)
         if batch.x.shape[0] == 1:
+            # Skip batch if it only comprises one sample (could cause problems with BN)
             pass
-            # TODO: figure out why this exactly (it seems like it drops batches with only one sample)
-            # NB: this routine is heavily inspired by:
-            #     https://github.com/snap-stanford/ogb/blob/master/examples/graphproppred/mol/main_pyg.py
-            # why don't we have the check on batch.batch as above?
         else:
             with torch.no_grad():
                 pred = model(batch)
@@ -76,11 +69,8 @@ def eval(model, device, loader, evaluator):
         batch = batch.to(device)
 
         if batch.x.shape[0] == 1:
+            # Skip batch if it only comprises one sample (could cause problems with BN)
             pass
-            # TODO: figure out why this exactly (it seems like it drops batches with only one sample)
-            # NB: this routine is heavily inspired by:
-            #     https://github.com/snap-stanford/ogb/blob/master/examples/graphproppred/mol/main_pyg.py
-            # why don't we have the check on batch.batch as above?
         else:
             with torch.no_grad():
                 pred = model(batch)
@@ -121,11 +111,3 @@ class Evaluator(object):
         y_pred = input_dict['y_pred']
         metric = met.accuracy_score(y_true, y_pred)
         return metric
-    
-def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
-    # TODO: shall we move this to data.data_loading ?
-    if name.startswith('sr'):
-        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, 'isomorphism', 'isomorphism', exp_dim=5)
-    else:
-        raise NotImplementedError
-    return dataset

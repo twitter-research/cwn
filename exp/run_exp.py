@@ -2,7 +2,7 @@ import torch
 import torch.optim as optim
 
 from mp.models import SIN
-from data.data_loading import DataLoader
+from data.data_loading import DataLoader, load_data
 from exp.train_utils import load_data, train, eval, Evaluator
 
 from definitions import ROOT_DIR

@@ -1,10 +1,13 @@
+import os
 import torch
 from torch.utils.data.dataloader import default_collate
 
 from torch_geometric.data import Data, Batch
-from data.complex import Chain, ChainBatch, Complex, ComplexBatch
 from torch._six import container_abcs, string_classes, int_classes
 
+from definitions import ROOT_DIR
+from data.complex import Chain, ChainBatch, Complex, ComplexBatch
+from data.dataset import SRDataset
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -64,3 +67,10 @@ class DataLoader(torch.utils.data.DataLoader):
         super(DataLoader,
               self).__init__(dataset, batch_size, shuffle,
                              collate_fn=Collater(follow_batch, max_dim), **kwargs)
+
+def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
+    if name.startswith('sr'):
+        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, 'isomorphism', 'isomorphism', max_dim=5)
+    else:
+        raise NotImplementedError
+    return dataset
