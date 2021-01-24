@@ -501,6 +501,8 @@ class Complex(object):
 
     def __init__(self, *chains: Chain, y: torch.Tensor = None, dimension: int = None):
 
+        if len(chains) == 0:
+            raise ValueError('At least one chain is required.')
         if dimension is None:
             dimension = len(chains) - 1
         if len(chains) < dimension + 1:
@@ -611,4 +613,3 @@ class ComplexBatch(Complex):
         batch = cls(*batched_chains, y=y, num_complexes=len(data_list), dimension=dimension)
 
         return batch
-
