@@ -488,12 +488,11 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
 
-    # TODO: Once Complex supports this, we can use more levels. This stops at triangles for now.
-    v_chain = generate_chain_gudhi(0, xs[0], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                   simplex_tables, y=v_y)
-    e_chain = generate_chain_gudhi(1, xs[1], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                   simplex_tables)
-    t_chain = generate_chain_gudhi(2, xs[2], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                   simplex_tables)
+    chains = []
+    for i in range(complex_dim+1):
+        y = v_y if i == 0 else None
+        chain = generate_chain_gudhi(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
+                                     simplex_tables, y=y)
+        chains.append(chain)
 
-    return Complex(v_chain, e_chain, t_chain, y=complex_y)
+    return Complex(*chains, y=complex_y, dimension=complex_dim)
