@@ -68,9 +68,9 @@ def main():
     evaluator = Evaluator(dataset.eval_metric)
 
     # instantiate data loaders
-    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
+    valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
+    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
@@ -129,15 +129,15 @@ def main():
 
     # save results
     msg = (
-        'Dataset:        {0}\n',
-        'Validation:     {1}\n',
-        'Test:           {2}\n',
-        'Train:          {3}\n',
-        'Best epoch:     {4}\n',
+        'Dataset:        {0}\n'
+        'Validation:     {1}\n'
+        'Test:           {2}\n'
+        'Train:          {3}\n'
+        'Best epoch:     {4}\n'
         '-------------------------------\n')
-    msg.format(valid_curve[best_val_epoch], test_curve[best_val_epoch], train_curve[best_val_epoch], best_val_epoch)
+    msg = msg.format(args.dataset, valid_curve[best_val_epoch], test_curve[best_val_epoch], train_curve[best_val_epoch], best_val_epoch)
     msg += str(args)
-    with open(filename, 'wb') as handle:
+    with open(filename, 'w') as handle:
         handle.write(msg)
     if args.dump_curves:
         with open(result_path+'curves.pkl', 'wb') as handle:

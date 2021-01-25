@@ -113,10 +113,10 @@ class Evaluator(object):
         p = input_dict.get('p', 2)
         eps = input_dict.get('eps', 0.01)
         preds = input_dict['y_pred']
-        mm = torch.pdist(preds, p=p)
-        correct = (mm < eps).sum().item()
+        mm = torch.pdist(torch.tensor(preds, dtype=torch.float32), p=p)
+        wrong = (mm < eps).sum().item()
         n = preds.shape[0]
-        metric = correct / (n*(n-1))
+        metric = 1.0 - (wrong / (n*(n-1)))
         return metric
     
     def _accuracy(self, input_dict):
