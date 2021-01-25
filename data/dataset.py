@@ -143,7 +143,17 @@ class ComplexDataset(torch.utils.data.Dataset):
     def num_features(self, dim):
         if dim > self.max_dim:
             raise ValueError('`dim` {} larger than max allowed dimension {}.'.format(dim, self.max_dim))
+        if self._num_features[dim] is None:
+            self._look_up_num_features()
         return self._num_features[dim]
+    
+    def _look_up_num_features(self):
+        for complex in self:
+            for dim in range(complex.dimension + 1):
+                if self._num_features[dim] is None:
+                    self._num_features[dim] = complex.chains[dim].num_features
+                else:
+                    assert self._num_features[dim] == complex.chains[dim].num_features
         
     def process(self):
         raise NotImplementedError()
@@ -246,6 +256,9 @@ class InMemoryComplexDataset(ComplexDataset):
     def _process(self):
         super(InMemoryComplexDataset, self)._process()
         self._load_data()
+        if self.num_features(0) is None:  # we have loaded form disk
+            self._look_up_num_features()
+            # TODO: ^^^ find a better way to do this, it could also be dumping them
         
     def _load_data(self):
         self._data = list()
