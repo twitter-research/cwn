@@ -1,15 +1,20 @@
+import os
+
 import torch
 import torch.optim as optim
 
-from mp.models import SIN
-from data.data_loading import DataLoader, load_data
-from exp.train_utils import load_data, train, eval, Evaluator
+from data.data_loading import DataLoader, load_dataset
+from exp.train_utils import train, eval, Evaluator
+from mp.models import SIN0
 
 from definitions import ROOT_DIR
 
 import argparse
 import time
 import numpy as np
+
+# run isomorphism test on sr251256:
+# python3 -m exp.run_exp --model sin --num_layers 1 --emb_dim 32 --dataset sr251256 --untrained
 
 def main():
     
@@ -49,8 +54,8 @@ def main():
     
     # get timestamp for results and set result directory
     ts = time.time()
-    result_folder = args.result_folder if result_folder is non None else os.path.join(ROOT_DIR, 'exp', 'results')
-    result_folder = os.path.join(result_folder, '{}-{}'.format(dataset_name, ts))
+    result_folder = args.result_folder if args.result_folder is not None else os.path.join(ROOT_DIR, 'exp', 'results')
+    result_folder = os.path.join(result_folder, '{}-{}'.format(args.dataset, ts))
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
     filename = os.path.join(result_folder, 'results.txt')
@@ -59,7 +64,7 @@ def main():
     dataset = load_dataset(args.dataset)
     split_idx = dataset.get_idx_split()
 
-    # automatic evaluator. takes dataset name as input
+    # automatic evaluator, takes dataset name as input
     evaluator = Evaluator(dataset.eval_metric)
 
     # instantiate data loaders
@@ -68,11 +73,14 @@ def main():
     test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
     # instantiate model
+    # NB: here we assume to have the same number of features per dim
     if args.model == 'sin':
-        model = SIN(num_classes=dataset.num_classes,
-                    num_layers=args.num_layers,
-                    emb_dim=args.emb_dim,
-                    drop_rate=args.drop_rate).to(device)
+        model = SIN0(dataset.num_features(0),  # num_input_features
+                     dataset.num_classes,      # num_classes
+                     args.num_layers,          # num_layers
+                     args.emb_dim,             # hidden
+                     max_dim=dataset.max_dim   # max_dim
+                    ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
         
@@ -132,7 +140,7 @@ def main():
     with open(filename, 'wb') as handle:
         handle.write(msg)
     if args.dump_curves:
-        with open(result_path+'curves.pkl', 'wb') ad handle:
+        with open(result_path+'curves.pkl', 'wb') as handle:
             pickle.dump(
                 {
                     'train_loss': train_loss_curve,
