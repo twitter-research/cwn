@@ -302,8 +302,7 @@ class SRDataset(InMemoryComplexDataset):
         for datum in data:
             edge_index, num_nodes = datum
             x = torch.ones(num_nodes, 1, dtype=torch.float32)
-            y = torch.ones(1, dtype=torch.long)
-            complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes, expansion_dim=exp_dim, y=y)
+            complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes, expansion_dim=exp_dim)
             if complex.dimension > max_dim:
                 max_dim = complex.dimension
             for dim in range(complex.dimension + 1):
@@ -313,6 +312,9 @@ class SRDataset(InMemoryComplexDataset):
                     assert self._num_features[dim] == complex.chains[dim].num_features
             complexes.append(complex)
         self.max_dim = max_dim
+        y = torch.ones(len(complexes), dtype=torch.long)
+        for complex in complexes:
+            complex.y = y
         path = self.processed_paths[0]
         with open(path, 'wb') as handle:
             pickle.dump(complexes, handle)

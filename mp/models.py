@@ -36,7 +36,7 @@ class SIN0(torch.nn.Module):
                 ReLU(),
                 BN(layer_dim))
             self.convs.append(
-                SINConv(conv_up, conv_down, conv_update, train_eps=False))
+                SINConv(conv_up, conv_down, conv_update, train_eps=False, max_dim=self.max_dim))
         self.lin1 = Linear(hidden, hidden)
         self.lin2 = Linear(hidden, num_classes)
 
@@ -58,7 +58,9 @@ class SIN0(torch.nn.Module):
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
         # We assume that all layers have the same feature size.
         # Note that levels where we do MP at but where there was no data are set to 0.
-        pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1))
+        # TODO: shall we retain the device as an attribute of self? then `device=batch_size.device`
+        # would become `device=self.device`
+        pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1), device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
             # Otherwise, if we have complexes with no simplices at certain levels, the wrong

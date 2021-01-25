@@ -527,6 +527,18 @@ class Complex(object):
         self.y = y  # complex-wise label for complex-level tasks
         return
 
+    def to(self, device, **kwargs):
+        """
+            Performs tensor dtype and/or device conversion to chains and label y,
+            if set.
+        """
+        # TODO: handle device conversion for specific attributes via `*keys` parameter
+        for dim in range(self.dimension + 1):
+            self.chains[dim] = self.chains[dim].to(device, **kwargs)
+        if self.y is not None:
+            self.y = self.y.to(device, **kwargs)
+        return self
+
     def get_chain_params(self, dim) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim

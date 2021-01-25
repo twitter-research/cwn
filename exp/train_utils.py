@@ -22,7 +22,12 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     model.train()
     for step, batch in enumerate(tqdm(loader, desc="Training iteration")):
         batch = batch.to(device)
-        if batch.x.shape[0] == 1 or batch.batch[-1] == 0:
+        try:
+            num_samples = batch.num_complexes
+        except AttributeError:
+            num_samples = batch.x.shape[0] == 1
+        if num_samples <= 1:
+            # TODO : what about condition batch.batch[-1] == 0 ? 
             # Skip batch if it only comprises one sample (could cause problems with BN)
             pass
         else:
@@ -47,7 +52,11 @@ def infer(model, device, loader):
     y_pred = list()
     for step, batch in enumerate(tqdm(loader, desc="Inference iteration")):
         batch = batch.to(device)
-        if batch.x.shape[0] == 1:
+        try:
+            num_samples = batch.num_complexes
+        except AttributeError:
+            num_samples = batch.x.shape[0] == 1
+        if num_samples <= 1:
             # Skip batch if it only comprises one sample (could cause problems with BN)
             pass
         else:
@@ -67,8 +76,12 @@ def eval(model, device, loader, evaluator):
     y_pred = []
     for step, batch in enumerate(tqdm(loader, desc="Eval iteration")):
         batch = batch.to(device)
-
-        if batch.x.shape[0] == 1:
+        print(model.lin1.weight.device)
+        try:
+            num_samples = batch.num_complexes
+        except AttributeError:
+            num_samples = batch.x.shape[0] == 1
+        if num_samples <= 1:
             # Skip batch if it only comprises one sample (could cause problems with BN)
             pass
         else:
