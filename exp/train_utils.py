@@ -76,7 +76,6 @@ def eval(model, device, loader, evaluator):
     y_pred = []
     for step, batch in enumerate(tqdm(loader, desc="Eval iteration")):
         batch = batch.to(device)
-        print(model.lin1.weight.device)
         try:
             num_samples = batch.num_complexes
         except AttributeError:
@@ -110,13 +109,13 @@ class Evaluator(object):
         return self.eval_fn(input_dict)
         
     def _isomorphism(self, input_dict):
+        # NB: here we return the failure percentage... the smaller the better!
         p = input_dict.get('p', 2)
         eps = input_dict.get('eps', 0.01)
         preds = input_dict['y_pred']
         mm = torch.pdist(torch.tensor(preds, dtype=torch.float32), p=p)
         wrong = (mm < eps).sum().item()
-        n = preds.shape[0]
-        metric = 1.0 - (wrong / (n*(n-1)))
+        metric = wrong / mm.shape[0]
         return metric
     
     def _accuracy(self, input_dict):

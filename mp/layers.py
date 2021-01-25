@@ -22,21 +22,23 @@ class DummyChainMessagePassing(ChainMessagePassing):
     def forward(self, chain: ChainMessagePassingParams):
         return self.propagate(chain.up_index, chain.down_index, x=chain.x,
                               up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
-
-
+    
 class DummySimplicialMessagePassing(torch.nn.Module):
-    def __init__(self, ):
+    def __init__(self, max_dim: int = 2):
         super(DummySimplicialMessagePassing, self).__init__()
-        self.vertex_mp = DummyChainMessagePassing()
-        self.edge_mp = DummyChainMessagePassing()
-        self.triangle_mp = DummyChainMessagePassing()
+        self.max_dim = max_dim
+        self.mp_levels = torch.nn.ModuleList()
+        for dim in range(max_dim+1):
+            mp = DummyChainMessagePassing()
+            self.mp_levels.append(mp)
+    
+    def forward(self, *chain_params: ChainMessagePassingParams):
+        assert len(chain_params) <= self.max_dim+1
 
-    def forward(self, v_params, e_params, t_params):
-        x_out = self.vertex_mp.forward(v_params)
-        e_out = self.edge_mp.forward(e_params)
-        t_out = self.triangle_mp.forward(t_params)
-        return x_out, e_out, t_out
-
+        out = []
+        for dim in range(len(chain_params)):
+            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+        return out
 
 class SINChainConv(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""

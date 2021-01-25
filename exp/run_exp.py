@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from data.data_loading import DataLoader, load_dataset
 from exp.train_utils import train, eval, Evaluator
-from mp.models import SIN0
+from mp.models import SIN0, Dummy
 
 from definitions import ROOT_DIR
 
@@ -14,7 +14,7 @@ import time
 import numpy as np
 
 # run isomorphism test on sr251256:
-# python3 -m exp.run_exp --model sin --num_layers 1 --emb_dim 32 --dataset sr251256 --untrained
+# python3 -m exp.run_exp --model dummy --num_layers 1 --dataset sr251256 --untrained
 
 def main():
     
@@ -74,13 +74,23 @@ def main():
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
+    linear_output = (not dataset.task_type=='classification')
     if args.model == 'sin':
-        model = SIN0(dataset.num_features(0),  # num_input_features
-                     dataset.num_classes,      # num_classes
-                     args.num_layers,          # num_layers
-                     args.emb_dim,             # hidden
-                     max_dim=dataset.max_dim   # max_dim
+        model = SIN0(dataset.num_features(0),                 # num_input_features
+                     dataset.num_classes,                     # num_classes
+                     args.num_layers,                         # num_layers
+                     args.emb_dim,                            # hidden
+                     dropout_rate=args.drop_rate,             # dropout rate
+                     max_dim=dataset.max_dim,                 # max_dim
+                     linear_output=linear_output
                     ).to(device)
+    elif args.model == 'dummy':
+        model = Dummy(dataset.num_features(0),
+                      dataset.num_classes,
+                      args.num_layers,
+                      max_dim=dataset.max_dim,
+                      linear_output=linear_output
+                     ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
         
