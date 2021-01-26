@@ -57,9 +57,9 @@ class ComplexDataset(torch.utils.data.Dataset):
         self._set_metric(eval_metric)
         self._num_features = {dim: None for dim in range(max_dim+1)}
         self.process_args = process_args
+        self._set_task(task_type, num_classes)
         if 'process' in self.__class__.__dict__.keys():
             self._process()
-        self._set_task(task_type, num_classes)
         self._train_ids = None
         self._val_ids = None
         self._test_ids = None
@@ -276,8 +276,9 @@ class InMemoryComplexDataset(ComplexDataset):
 class SRDataset(InMemoryComplexDataset):
     
     def __init__(self, root, name, eval_metric, task_type, max_dim=2, num_classes=2, process_args={}, **kwargs):
+        self._sr_name = name
         process_args['exp_dim'] = max_dim
-        super(SRDataset, self).__init__(root, name, eval_metric, task_type, max_dim=max_dim, num_classes=num_classes, process_args=process_args, **kwargs)
+        super(SRDataset, self).__init__(root, name+'_{}'.format(max_dim), eval_metric, task_type, max_dim=max_dim, num_classes=num_classes, process_args=process_args, **kwargs)
         
     def get_idx_split(self):
         # In this dataset, if not explicit split is provided, we don't distinguish between train, val, test sets.
@@ -295,30 +296,41 @@ class SRDataset(InMemoryComplexDataset):
         return ['{}_complex_list.pkl'.format(self.name)]
         
     def process(self):
-        data = load_sr_dataset(os.path.join(self.raw_dir, self.name+'.g6'))
+        # load raw data
+        data = load_sr_dataset(os.path.join(self.raw_dir, self._sr_name+'.g6'))
+        # get exp dim
         exp_dim = self.process_args['exp_dim']
+        # iterate over the graphs and transform them into clique-complexes
         complexes = list()
         max_dim = -1
         for datum in data:
             edge_index, num_nodes = datum
             x = torch.ones(num_nodes, 1, dtype=torch.float32)
             complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes, expansion_dim=exp_dim)
+            # update the max actual dimension found
             if complex.dimension > max_dim:
                 max_dim = complex.dimension
+            # update num_features
             for dim in range(complex.dimension + 1):
+                # if it is the first time we find one particular dimention
+                # then set its num_features to that found in the respective
+                # chain for the current complex
                 if self._num_features[dim] is None:
                     self._num_features[dim] = complex.chains[dim].num_features
+                # otherwise, make sure the num_features for the chian in the
+                # current complex exactly match what already found previously
                 else:
                     assert self._num_features[dim] == complex.chains[dim].num_features
             complexes.append(complex)
+        # set the max_dim for the dataset to that actually found in complexes
         self.max_dim = max_dim
-        y = torch.ones(len(complexes), dtype=torch.long)
+        # prepare dummy complex labels (they won't be used)
+        y = torch.ones(self.num_classes, dtype=torch.long)
         for complex in complexes:
             complex.y = y
+        if self.num_classes is None:
+            self._set_task(self.task_type, len(self))
+        # dump processed data to disk
         path = self.processed_paths[0]
         with open(path, 'wb') as handle:
             pickle.dump(complexes, handle)
-
-    def _set_task(self, task_type, num_classes):
-        super(SRDataset, self)._set_task(task_type, num_classes)
-        self.num_classes = len(self)

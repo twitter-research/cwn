@@ -41,6 +41,8 @@ def main():
                         help='number of workers (default: 0)')
     parser.add_argument('--dataset', type=str, default="sr251256",
                         help='dataset name (default: sr251256)')
+    parser.add_argument('--max_dim', type=int, default="2",
+                        help='maximum simplicial dimension (default: 2, i.e. triangles)')
     parser.add_argument('--result_folder', type=str, default=None,
                         help='filename to output result (default: None, will use `scn/exp/results`)')
     parser.add_argument('--dump_curves', action='store_true',
@@ -61,7 +63,7 @@ def main():
     filename = os.path.join(result_folder, 'results.txt')
     
     # data loading
-    dataset = load_dataset(args.dataset)
+    dataset = load_dataset(args.dataset, max_dim=args.max_dim)
     split_idx = dataset.get_idx_split()
 
     # automatic evaluator, takes dataset name as input
