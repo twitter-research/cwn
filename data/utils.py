@@ -5,6 +5,7 @@ import torch
 import gudhi as gd
 import itertools
 
+from tqdm import tqdm
 from data.complex import Chain, Complex
 from collections import OrderedDict
 from typing import List, Dict
@@ -502,9 +503,9 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
 def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int):
     dimension = -1
     complexes = []
-    num_features = [None for _ in range(expansion_dim)]
+    num_features = [None for _ in range(expansion_dim+1)]
 
-    for data in dataset:
+    for data in tqdm(dataset):
         complex = compute_clique_complex_with_gudhi(data.x, data.edge_index, data.num_nodes,
                                                     expansion_dim=expansion_dim, y=data.y)
         if complex.dimension > dimension:

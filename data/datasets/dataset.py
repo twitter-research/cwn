@@ -1,36 +1,24 @@
 import copy
 import os
+import re
+from abc import ABC
+
 import torch
 import pickle
 import errno
 import logging
+import os.path as osp
 
-from data.sr_utils import load_sr_dataset
-from data.utils import compute_clique_complex_with_gudhi, convert_graph_dataset_with_gudhi
-from torch_geometric.datasets import GNNBenchmarkDataset
-    
-__max_metrics__ = ['accuracy', 'roc_auc', 'average_precision']
-__min_metrics__ = ['mae', 'mse']
-__other_metrics__ = ['isomorphism']
-__task_types__ = ['regression', 'classification', 'isomorphism']
-
-def files_exist(files):
-    return len(files) != 0 and all(os.path.exists(f) for f in files)
-
-def to_list(x):
-    if not isinstance(x, (tuple, list)):
-        x = [x]
-    return x
-
-def makedirs(path):
-    try:
-        os.makedirs(os.path.expanduser(os.path.normpath(path)))
-    except OSError as e:
-        if e.errno != errno.EEXIST and osp.isdir(path):
-            raise e
+from torch_geometric.data import Dataset
 
 
-class ComplexDataset(torch.utils.data.Dataset):
+def __repr__(obj):
+    if obj is None:
+        return 'None'
+    return re.sub('(<.*?)\\s.*(>)', r'\1\2', obj.__repr__())
+
+
+class ComplexDataset(Dataset, ABC):
     """
         Base class for simplicial complex datasets.
         Args:
@@ -52,178 +40,22 @@ class ComplexDataset(torch.utils.data.Dataset):
             maximize (:obj: `bool`): whether the `eval_metric` is to be maximized, automatically inferred.
             process_args (:obj:`dict`): args for data processing.
     """
-    def __init__(self, root, name, eval_metric, task_type, max_dim=2, num_classes=2, process_args={}, **kwargs):
-        self.root = root
-        self.name = name
-        self.max_dim = max_dim
-        self._set_metric(eval_metric)
-        self._num_features = {dim: None for dim in range(max_dim+1)}
-        self.process_args = process_args
-        if 'process' in self.__class__.__dict__.keys():
-            self._process()
-        self._set_task(task_type, num_classes)
-        self._train_ids = None
-        self._val_ids = None
-        self._test_ids = None
-        for k in kwargs.keys():
-            if k == 'train_ids':
-                self._train_ids = kwargs[k]
-            elif k == 'val_ids':
-                self._val_ids = kwargs[k]
-            elif k == 'test_ids':
-                self._test_ids = kwargs[k]
-            else:
-                self.__setattr__(k, kwargs[k])
-                
-    @property
-    def processed_file_names(self):
-        """
-            The name of the files to find in the :obj:`self.processed_dir`
-            folder in order to skip the processing.
-        """
-        raise NotImplementedError()
-        
-    @property
-    def raw_dir(self):
-        return os.path.join(self.root, 'raw')
+
+    def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None):
+        super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
 
     @property
     def processed_dir(self):
-        return os.path.join(self.root, 'processed')
+        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        return osp.join(self.root, 'complex')
 
-    @property
-    def processed_paths(self):
-        """
-            The filepaths to find in the :obj:`self.processed_dir`
-            folder in order to skip the processing.
-        """
-        files = to_list(self.processed_file_names)
-        return [os.path.join(self.processed_dir, f) for f in files]
-    
-    def _same_process_args(self, other):
-        current = self.process_args
-        current_keys = set(current.keys())
-        other_keys = set(other.keys())
-        if current_keys != other_keys:
-            return False
-        for key in current_keys:
-            if current[key] != other[key]:
-                return False
-        return True
-    
-    def _process(self):
-        """
-            Internal. Loads raw data from disk and prepares the complex samples, if needed.
-        """
-        f = os.path.join(self.processed_dir, '{}_process_args.pkl'.format(self.name))
-        if os.path.exists(f):
-            with open(f, 'rb') as handle:
-                other = pickle.load(handle)
-                if not self._same_process_args(other):
-                    logging.warning(
-                        'The `process` arguments differs from the one used in '
-                        'a previously processed version of this dataset. If you really '
-                        'want to make use of another processing technique, make '
-                        'sure to delete the `{}` files first.'.format(
-                            os.path.join(self.processed_dir, '{}*'.format(self.name))))
-
-        if files_exist(self.processed_paths):  # pragma: no cover
-            print('Processed dataset found at {}'.format(self.processed_paths))
-            return
-
-        print('Processing...')
-
-        makedirs(self.processed_dir)
-        self.process()
-
-        path = os.path.join(self.processed_dir, '{}_process_args.pkl'.format(self.name))
-        with open(path, 'wb') as handle:
-            pickle.dump(self.process_args, handle)
-
-        print('Done!')
-        
-    def num_features(self, dim):
+    def num_features_in_dim(self, dim):
         if dim > self.max_dim:
             raise ValueError('`dim` {} larger than max allowed dimension {}.'.format(dim, self.max_dim))
-        if self._num_features[dim] is None:
-            self._look_up_num_features()
-        return self._num_features[dim]
-    
-    def _look_up_num_features(self):
-        for complex in self:
-            for dim in range(complex.dimension + 1):
-                if self._num_features[dim] is None:
-                    self._num_features[dim] = complex.chains[dim].num_features
-                else:
-                    assert self._num_features[dim] == complex.chains[dim].num_features
-        
-    def process(self):
-        raise NotImplementedError()
-    
-    def len(self):
-        """
-            Returns the number of samples in the dataset.
-        """
-        raise NotImplementedError()
-    
-    def get(self, idx):
-        """
-            Gets the data object at index :obj:`idx`.
-        """
-        raise NotImplementedError()
-        
-    def get_idx_split(self):
-        """
-            Returns the split dictionary.
-        """
-        raise NotImplementedError()
-        
-    def _set_metric(self, eval_metric):
-        """
-            Internal. Sets the `eval_metric` and `maximize` attributes.
-        """
-        if eval_metric in __max_metrics__:
-            self.maximize = True
-        elif eval_metric in __min_metrics__:
-            self.maximize = False
-        elif eval_metric in __other_metrics__:
-            self.maximize = None
-        else:
-            raise NotImplementedError('Metric {} not yet supported.'.format(eval_metric))
-        self.eval_metric = eval_metric
-        
-    def _set_task(self, task_type, num_classes):
-        """
-            Internal. Sets the `task_type` and `num_classes` attributes.
-        """
-        if task_type not in __task_types__:
-            raise ValueError('Task type can only be {}, {} or {}, found {}.'.format(*__task_types__+[task_type]))
-        self.task_type = task_type
-        if self.task_type == 'classification':
-            if num_classes <= 1:
-                raise ValueError('The number of classes must be greater or equal than 2, found {}.'.format(num_classes))
-        self.num_classes = num_classes
-        
-    def __len__(self):
-        """
-            Returns the number of examples in the dataset.
-        """
-        return self.len()
-        
-    def __getitem__(self, idx):
-        """
-            Gets the data object at index :obj:`idx`.
-            In case :obj:`idx` is a slicing object, *e.g.*, :obj:`[2:5]`, a list, a
-            tuple, a  LongTensor or a BoolTensor, will return a subset of the
-            dataset at the specified indices.
-        """
-        if isinstance(idx, int):
-            data = self.get(idx)
-            return data
-        else:
-            return self.index_select(idx)
+        return self[0].chains[dim].num_features
         
     def index_select(self, idx):
+        """We override this because we store data in a list for now."""
         indices = list(range(self.len()))
         if isinstance(idx, slice):
             indices = indices[idx]
@@ -242,19 +74,14 @@ class ComplexDataset(torch.utils.data.Dataset):
                 'Only integers, slices (`:`), list, tuples, and long or bool '
                 'tensors are valid indices (got {}).'.format(
                     type(idx).__name__))
+
         # TODO: PyG abstracts this by having an additional __indices__ property and by returning another
         # dataset rather than a list, as a copy of self but with only the selected __indices__
-        data = [self.get(i) for i in indices]
+        data = copy.copy([self.get(i) for i in indices])
         return data
-
-    def __repr__(self):  # pragma: no cover
-        return f'{self.__class__.__name__}({len(self)})'
 
 
 class InMemoryComplexDataset(ComplexDataset):
-    
-    def __init__(self, root, name, eval_metric, task_type, max_dim=2, num_classes=2, process_args={}, **kwargs):
-        super(InMemoryComplexDataset, self).__init__(root, name, eval_metric, task_type, max_dim=max_dim, num_classes=num_classes, process_args=process_args, **kwargs)
 
     @property
     def raw_file_names(self):
@@ -275,15 +102,23 @@ class InMemoryComplexDataset(ComplexDataset):
     def process(self):
         r"""Processes the dataset to the :obj:`self.processed_dir` folder."""
         raise NotImplementedError
-        
-    def load(self):
-        self._data = list()
-        for path in self.processed_paths:
-            with open(path, 'rb') as handle:
-                self._data += pickle.load(handle)
+    
+    def __init__(self, root=None, transform=None, pre_transform=None,
+                 pre_filter=None):
+        super(InMemoryComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
+        self.__data_list__ = None
                 
     def len(self):
-        return len(self._data)
+        return len(self.__data_list__)
     
     def get(self, idx):
-        return copy.copy(self._data[idx])
+        return copy.copy(self.__data_list__[idx])
+
+    def copy(self, idx=None):
+        if idx is None:
+            data_list = [self.get(i) for i in range(len(self))]
+        else:
+            data_list = [self.get(i) for i in idx]
+        dataset = copy.copy(self)
+        dataset.__data_list__ = data_list
+        return dataset

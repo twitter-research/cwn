@@ -73,8 +73,9 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
         dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, 'isomorphism',
                             'isomorphism', max_dim=5)
     elif name == 'CLUSTER':
-        dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), name,
-                                 'classification', 'classification', max_dim=2)
+        train = ClusterDataset(os.path.join(root, 'CLUSTER'), 'train')
+        val = ClusterDataset(os.path.join(root, 'CLUSTER'), 'train')
+        test = ClusterDataset(os.path.join(root, 'CLUSTER'), 'train')
     else:
         raise NotImplementedError
-    return dataset
+    return train, val, test
