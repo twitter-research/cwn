@@ -11,29 +11,23 @@ class ClusterDataset(InMemoryComplexDataset):
     The dataset contains multiple graphs and we have to do node classification on all these graphs.
     """
 
-    def __init__(self, root, split='train', transform=None,
+    def __init__(self, root, transform=None,
                  pre_transform=None, pre_filter=None, max_dim=2):
         self.name = 'CLUSTER'
+        super(ClusterDataset, self).__init__(root, transform, pre_transform, pre_filter,
+                                             max_dim=max_dim)
+
         self.max_dim = max_dim
 
-        super(ClusterDataset, self).__init__(root, transform, pre_transform, pre_filter)
-
-        if split == 'train':
-            path = self.processed_paths[0]
-        elif split == 'val':
-            path = self.processed_paths[1]
-        elif split == 'test':
-            path = self.processed_paths[2]
-        else:
-            raise ValueError((f'Split {split} found, but expected either '
-                              'train, val, trainval or test'))
-
-        self.__data_list__ = self.load_from_path(path)
+        self.__data_list__, idx = self.load_dataset()
+        self.train_ids = idx[0]
+        self.val_ids = idx[1]
+        self.test_ids = idx[2]
 
     @property
     def raw_file_names(self):
         name = self.name
-        # The processed graph filers are our raw files.
+        # The processed graph files are our raw files.
         # I've obtained this from inside the GNNBenchmarkDataset class
         return [f'{name}_train.pt', f'{name}_val.pt', f'{name}_test.pt']
 
@@ -45,10 +39,16 @@ class ClusterDataset(InMemoryComplexDataset):
         # Instantiating this will download and process the graph dataset.
         GNNBenchmarkDataset('./datasets/', 'CLUSTER')
 
-    def load_from_path(self, path):
+    def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
-        with open(path, 'rb') as handle:
-            return pickle.load(handle)
+        data_list, idx = [], []
+        start = 0
+        for path in self.processed_paths:
+            with open(path, 'rb') as handle:
+                data_list.extend(pickle.load(handle))
+                idx.append(list(range(start, len(data_list))))
+                start = len(data_list)
+        return data_list, idx
 
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed

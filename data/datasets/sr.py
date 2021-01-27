@@ -9,23 +9,17 @@ from data.datasets import InMemoryComplexDataset
 
 class SRDataset(InMemoryComplexDataset):
 
-    def __init__(self, root, name, eval_metric, task_type, max_dim=2, num_classes=2,
-                 process_args={}, **kwargs):
-        process_args['exp_dim'] = max_dim
-        super(SRDataset, self).__init__(root, name, eval_metric, task_type, max_dim=max_dim,
-                                        num_classes=num_classes, process_args=process_args,
-                                        **kwargs)
+    def __init__(self, root, name, max_dim=2, num_classes=2,
+                 train_ids=None, val_ids=None, test_ids=None):
+        self.name = name
+        super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes)
 
-    def get_idx_split(self):
-        # In this dataset, if not explicit split is provided, we don't distinguish between train, val, test sets.
-        train_ids = list(range(self.len())) if self._train_ids is None else self._train_ids
-        val_ids = list(range(self.len())) if self._val_ids is None else self._val_ids
-        test_ids = list(range(self.len())) if self._test_ids is None else self._test_ids
-        idx_split = {
-            'train': train_ids,
-            'valid': val_ids,
-            'test': test_ids}
-        return idx_split
+        self.train_ids = train_ids
+        self.val_ids = val_ids
+        self.test_ids = test_ids
+
+        with open(self.processed_file_names[0], 'rb') as handle:
+            self.__data_list__ = pickle.load(handle)
 
     @property
     def processed_file_names(self):
@@ -33,7 +27,7 @@ class SRDataset(InMemoryComplexDataset):
 
     def process(self):
         data = load_sr_dataset(os.path.join(self.raw_dir, self.name + '.g6'))
-        exp_dim = self.process_args['exp_dim']
+        exp_dim = self.max_dim
         complexes = list()
         max_dim = -1
         for datum in data:
@@ -56,7 +50,3 @@ class SRDataset(InMemoryComplexDataset):
         path = self.processed_paths[0]
         with open(path, 'wb') as handle:
             pickle.dump(complexes, handle)
-
-    def _set_task(self, task_type, num_classes):
-        super(SRDataset, self)._set_task(task_type, num_classes)
-        self.num_classes = len(self)

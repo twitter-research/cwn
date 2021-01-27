@@ -21,28 +21,26 @@ def __repr__(obj):
 class ComplexDataset(Dataset, ABC):
     """
         Base class for simplicial complex datasets.
-        Args:
-            root (str): root folder where raw data files are found.     
-            name (str): dataset name.
-            eval_metric (str): the predefined evaluation metric for the dataset.
-            task_type (str): the task solved, either 'regression', 'classification' or 'isomorphism'.
-            max_dim (:obj: int, optional): max allowed dimension for chains in the dataset.
-            num_classes (:obj:`int`, optional): number of output classes/tasks.
-            process_args (:obj:`dict`, optional): args for data processing.
-    
-        Attributes:
-            root (str): root folder where raw data files are found.     
-            name (str): dataset name.
-            eval_metric (str): the predefined evaluation metric for the dataset.
-            task_type (str): the task solved, either 'regression', 'classification' or 'isomorphism'.
-            max_dim (:obj: int): max allowed dimension for chains in the dataset.
-            num_classes (:obj:`int`): number of output classes/tasks.
-            maximize (:obj: `bool`): whether the `eval_metric` is to be maximized, automatically inferred.
-            process_args (:obj:`dict`): args for data processing.
     """
 
-    def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None,
+                 max_dim: int = None, num_classes: int = None):
         super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
+        self._num_features = [None in range(max_dim+1)]
+        self._max_dim = max_dim
+        self._num_classes = num_classes
+
+    @property
+    def max_dim(self):
+        return self._max_dim
+
+    @max_dim.setter
+    def max_dim(self, value):
+        self._max_dim = value
+
+    @property
+    def num_classes(self):
+        return self._num_classes
 
     @property
     def processed_dir(self):
@@ -52,7 +50,17 @@ class ComplexDataset(Dataset, ABC):
     def num_features_in_dim(self, dim):
         if dim > self.max_dim:
             raise ValueError('`dim` {} larger than max allowed dimension {}.'.format(dim, self.max_dim))
-        return self[0].chains[dim].num_features
+        if self._num_features[dim] is None:
+            self._look_up_num_features()
+        return self._num_features[dim]
+
+    def _look_up_num_features(self):
+        for complex in self:
+            for dim in range(complex.dimension + 1):
+                if self._num_features[dim] is None:
+                    self._num_features[dim] = complex.chains[dim].num_features
+                else:
+                    assert self._num_features[dim] == complex.chains[dim].num_features
         
     def index_select(self, idx):
         """We override this because we store data in a list for now."""
@@ -80,6 +88,20 @@ class ComplexDataset(Dataset, ABC):
         data = copy.copy([self.get(i) for i in indices])
         return data
 
+    def get_idx_split(self):
+        """
+        In this dataset, if not explicit split is provided,
+        we don't distinguish between train, val, test sets.
+        """
+        train_ids = list(range(self.len())) if self._train_ids is None else self.train_ids
+        val_ids = list(range(self.len())) if self._val_ids is None else self.val_ids
+        test_ids = list(range(self.len())) if self._test_ids is None else self.test_ids
+        idx_split = {
+            'train': train_ids,
+            'valid': val_ids,
+            'test': test_ids}
+        return idx_split
+
 
 class InMemoryComplexDataset(ComplexDataset):
 
@@ -104,15 +126,16 @@ class InMemoryComplexDataset(ComplexDataset):
         raise NotImplementedError
     
     def __init__(self, root=None, transform=None, pre_transform=None,
-                 pre_filter=None):
-        super(InMemoryComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
-        self.__data_list__ = None
+                 pre_filter=None, max_dim: int = None, num_classes: int = None):
+        super(InMemoryComplexDataset, self).__init__(root, transform, pre_transform, pre_filter,
+                                                     max_dim, num_classes)
+        self._data_list = None
                 
     def len(self):
-        return len(self.__data_list__)
+        return len(self._data_list)
     
     def get(self, idx):
-        return copy.copy(self.__data_list__[idx])
+        return copy.copy(self._data_list[idx])
 
     def copy(self, idx=None):
         if idx is None:
@@ -120,5 +143,5 @@ class InMemoryComplexDataset(ComplexDataset):
         else:
             data_list = [self.get(i) for i in idx]
         dataset = copy.copy(self)
-        dataset.__data_list__ = data_list
+        dataset._data_list = data_list
         return dataset

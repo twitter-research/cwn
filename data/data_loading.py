@@ -70,12 +70,9 @@ class DataLoader(torch.utils.data.DataLoader):
 
 def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
     if name.startswith('sr'):
-        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, 'isomorphism',
-                            'isomorphism', max_dim=5)
+        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=5)
     elif name == 'CLUSTER':
-        train = ClusterDataset(os.path.join(root, 'CLUSTER'), 'train')
-        val = ClusterDataset(os.path.join(root, 'CLUSTER'), 'train')
-        test = ClusterDataset(os.path.join(root, 'CLUSTER'), 'train')
+        dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim=2)
     else:
         raise NotImplementedError
-    return train, val, test
+    return dataset
