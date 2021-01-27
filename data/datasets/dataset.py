@@ -85,7 +85,7 @@ class ComplexDataset(Dataset, ABC):
 
         # TODO: PyG abstracts this by having an additional __indices__ property and by returning another
         # dataset rather than a list, as a copy of self but with only the selected __indices__
-        data = copy.copy([self.get(i) for i in indices])
+        data = [self.get(i) for i in indices]
         return data
 
     def get_idx_split(self):
