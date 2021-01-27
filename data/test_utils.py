@@ -259,3 +259,8 @@ def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
     for i in range(len(num_features)):
         assert num_features[i] == 1
     assert len(complexes) == 3
+    for i in range(len(complexes)):
+        # Do some basic checks for each complex.
+        assert complexes[i].dimension == 2
+        assert torch.equal(complexes[i].nodes.x, house1.x)
+        assert torch.equal(complexes[i].y, house1.y)
