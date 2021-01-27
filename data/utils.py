@@ -11,6 +11,7 @@ from typing import List, Dict
 from torch import Tensor
 from torch_geometric.typing import Adj
 
+
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
     G = nx.Graph()
@@ -496,3 +497,23 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=complex_dim)
+
+
+def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int):
+    dimension = -1
+    complexes = []
+    num_features = [None for _ in range(expansion_dim)]
+
+    for data in dataset:
+        complex = compute_clique_complex_with_gudhi(data.x, data.edge_index, data.num_nodes,
+                                                    expansion_dim=expansion_dim, y=data.y)
+        if complex.dimension > dimension:
+            dimension = complex.dimension
+        for dim in range(complex.dimension + 1):
+            if num_features[dim] is None:
+                num_features[dim] = complex.chains[dim].num_features
+            else:
+                assert num_features[dim] == complex.chains[dim].num_features
+        complexes.append(complex)
+
+    return complexes, dimension, num_features[:dimension+1]
