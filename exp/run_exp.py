@@ -1,5 +1,6 @@
 import os
 
+import pickle
 import torch
 import torch.optim as optim
 
@@ -16,8 +17,8 @@ import numpy as np
 # run isomorphism test on sr251256:
 # python3 -m exp.run_exp --model dummy --num_layers 1 --dataset sr251256 --untrained
 
+
 def main():
-    
     # training settings
     parser = argparse.ArgumentParser(description='SCN experiment.')
     
