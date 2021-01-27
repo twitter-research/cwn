@@ -91,9 +91,9 @@ class ComplexDataset(Dataset, ABC):
         In this dataset, if not explicit split is provided,
         we don't distinguish between train, val, test sets.
         """
-        train_ids = list(range(self.len())) if self._train_ids is None else self.train_ids
-        val_ids = list(range(self.len())) if self._val_ids is None else self.val_ids
-        test_ids = list(range(self.len())) if self._test_ids is None else self.test_ids
+        train_ids = list(range(self.len())) if self.train_ids is None else self.train_ids
+        val_ids = list(range(self.len())) if self.val_ids is None else self.val_ids
+        test_ids = list(range(self.len())) if self.test_ids is None else self.test_ids
         idx_split = {
             'train': train_ids,
             'valid': val_ids,
