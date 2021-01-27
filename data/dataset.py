@@ -334,3 +334,8 @@ class SRDataset(InMemoryComplexDataset):
         path = self.processed_paths[0]
         with open(path, 'wb') as handle:
             pickle.dump(complexes, handle)
+            
+class TUDataset(InMemoryComplexDataset):
+    #datasets.TUDataset(root, name, use_node_attr=True, pre_transform=Constant)
+    pass
+    
