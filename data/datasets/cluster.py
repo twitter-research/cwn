@@ -57,6 +57,11 @@ class ClusterDataset(InMemoryComplexDataset):
         val_data = GNNBenchmarkDataset('./datasets/', 'CLUSTER', split='val')
         test_data = GNNBenchmarkDataset('./datasets/', 'CLUSTER', split='test')
 
+        # For testing
+        # train_data = list(train_data)[:3]
+        # val_data = list(val_data)[:3]
+        # test_data = list(test_data)[:3]
+
         print("Converting the train dataset with gudhi...")
         train_complexes, _, _ = convert_graph_dataset_with_gudhi(train_data,
                                                                  expansion_dim=self.max_dim)

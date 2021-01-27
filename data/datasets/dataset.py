@@ -1,12 +1,8 @@
 import copy
-import os
 import re
 from abc import ABC
 
 import torch
-import pickle
-import errno
-import logging
 import os.path as osp
 
 from torch_geometric.data import Dataset
@@ -25,9 +21,11 @@ class ComplexDataset(Dataset, ABC):
 
     def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None,
                  max_dim: int = None, num_classes: int = None):
-        super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
-        self._num_features = [None in range(max_dim+1)]
+        # These have to be initialised before calling the super class.
         self._max_dim = max_dim
+        self._num_features = [None in range(max_dim+1)]
+
+        super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
         self._num_classes = num_classes
 
     @property
@@ -45,7 +43,7 @@ class ComplexDataset(Dataset, ABC):
     @property
     def processed_dir(self):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
-        return osp.join(self.root, 'complex')
+        return osp.join(self.root, f'complex_dim{self.max_dim}')
 
     def num_features_in_dim(self, dim):
         if dim > self.max_dim:

@@ -18,7 +18,7 @@ class SRDataset(InMemoryComplexDataset):
         self.val_ids = val_ids
         self.test_ids = test_ids
 
-        with open(self.processed_file_names[0], 'rb') as handle:
+        with open(self.processed_paths[0], 'rb') as handle:
             self.__data_list__ = pickle.load(handle)
 
     @property
@@ -28,6 +28,8 @@ class SRDataset(InMemoryComplexDataset):
     def process(self):
         data = load_sr_dataset(os.path.join(self.raw_dir, self.name + '.g6'))
         exp_dim = self.max_dim
+
+        num_features = [None for _ in range(exp_dim+1)]
         complexes = list()
         max_dim = -1
         for datum in data:
@@ -38,10 +40,10 @@ class SRDataset(InMemoryComplexDataset):
             if complex.dimension > max_dim:
                 max_dim = complex.dimension
             for dim in range(complex.dimension + 1):
-                if self._num_features[dim] is None:
-                    self._num_features[dim] = complex.chains[dim].num_features
+                if num_features[dim] is None:
+                    num_features[dim] = complex.chains[dim].num_features
                 else:
-                    assert self._num_features[dim] == complex.chains[dim].num_features
+                    assert num_features[dim] == complex.chains[dim].num_features
             complexes.append(complex)
         self.max_dim = max_dim
         y = torch.ones(len(complexes), dtype=torch.long)

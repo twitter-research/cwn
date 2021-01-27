@@ -134,6 +134,10 @@ dmypy.json
 
 *.gz
 data/dataset/
+datasets/
 datasets/**/processed/
+datasets/**/complex*
 exp/results/
 *.pt
+
+!datasets/SR_graphs/raw

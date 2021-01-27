@@ -68,11 +68,12 @@ class DataLoader(torch.utils.data.DataLoader):
               self).__init__(dataset, batch_size, shuffle,
                              collate_fn=Collater(follow_batch, max_dim), **kwargs)
 
-def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
+
+def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2):
     if name.startswith('sr'):
-        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=5)
+        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim)
     elif name == 'CLUSTER':
-        dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim=2)
+        dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     else:
         raise NotImplementedError
     return dataset
