@@ -1,6 +1,6 @@
 import torch
 from torch_geometric.data import Data
-from data.utils import compute_connectivity, get_adj_index, compute_clique_complex_with_gudhi
+from data.utils import compute_connectivity, get_adj_index, compute_clique_complex_with_gudhi, convert_graph_dataset_with_gudhi
 from data.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 import numpy as np
@@ -245,3 +245,22 @@ def test_gudhi_clique_complex(house_edge_index):
     assert t_params.up_index is None
 
     assert torch.equal(house_complex.y, house.y)
+
+
+def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
+    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    dataset = [house1, house2, house3]
+
+    complexes, dim, num_features = convert_graph_dataset_with_gudhi(dataset, expansion_dim=3)
+    assert dim == 2
+    assert len(num_features) == 3
+    for i in range(len(num_features)):
+        assert num_features[i] == 1
+    assert len(complexes) == 3
+    for i in range(len(complexes)):
+        # Do some basic checks for each complex.
+        assert complexes[i].dimension == 2
+        assert torch.equal(complexes[i].nodes.x, house1.x)
+        assert torch.equal(complexes[i].y, house1.y)

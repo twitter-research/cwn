@@ -7,7 +7,7 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
-from data.dataset import SRDataset
+from data.datasets import SRDataset, ClusterDataset
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -68,9 +68,12 @@ class DataLoader(torch.utils.data.DataLoader):
               self).__init__(dataset, batch_size, shuffle,
                              collate_fn=Collater(follow_batch, max_dim), **kwargs)
 
+
 def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2):
     if name.startswith('sr'):
-        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, 'isomorphism', 'isomorphism', max_dim=max_dim, num_classes=16)
+        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim)
+    elif name == 'CLUSTER':
+        dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     else:
         raise NotImplementedError
     return dataset
