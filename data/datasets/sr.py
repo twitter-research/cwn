@@ -19,7 +19,7 @@ class SRDataset(InMemoryComplexDataset):
         self.test_ids = test_ids
 
         with open(self.processed_paths[0], 'rb') as handle:
-            self.__data_list__ = pickle.load(handle)
+            self._data_list = pickle.load(handle)
 
     @property
     def processed_file_names(self):

@@ -23,7 +23,7 @@ class ComplexDataset(Dataset, ABC):
                  max_dim: int = None, num_classes: int = None):
         # These have to be initialised before calling the super class.
         self._max_dim = max_dim
-        self._num_features = [None in range(max_dim+1)]
+        self._num_features = [None for _ in range(max_dim+1)]
 
         super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
         self._num_classes = num_classes

@@ -35,7 +35,7 @@ def main(args):
     split_idx = dataset.get_idx_split()
 
     # automatic evaluator, takes dataset name as input
-    evaluator = Evaluator(dataset.eval_metric)
+    evaluator = Evaluator(args.eval_metric)
 
     # instantiate data loaders
     train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
@@ -48,9 +48,9 @@ def main(args):
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
-    linear_output = (not dataset.task_type=='classification')
+    linear_output = (not args.task_type=='classification')
     if args.model == 'sin':
-        model = SIN0(dataset.num_features(0),                 # num_input_features
+        model = SIN0(dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -59,7 +59,8 @@ def main(args):
                      linear_output=linear_output
                     ).to(device)
     elif args.model == 'dummy':
-        model = Dummy(dataset.num_features(0),
+        import pdb; pdb.set_trace()
+        model = Dummy(dataset.num_features_in_dim(0),
                       dataset.num_classes,
                       args.num_layers,
                       max_dim=dataset.max_dim,
@@ -87,26 +88,24 @@ def main(args):
     train_curve = []
     train_loss_curve = []
     if not args.untrained:
-        assert dataset.maximize is not None
         for epoch in range(1, args.epochs + 1):
 
             # perform one epoch
             print("=====Epoch {}".format(epoch))
             print('Training...')
-            train_loss_curve += train(model, device, train_loader, optimizer, dataset.task_type)
+            train_loss_curve += train(model, device, train_loader, optimizer, args.task_type)
             
             # evaluate model
             print('Evaluating...')
             train_perf = eval(model, device, train_loader, evaluator)
-            train_curve.append(train_perf[dataset.eval_metric])
+            train_curve.append(train_perf)
             valid_perf = eval(model, device, valid_loader, evaluator)
-            valid_curve.append(valid_perf[dataset.eval_metric])
+            valid_curve.append(valid_perf)
             if test_loader is not None:
                 test_perf = eval(model, device, test_loader, evaluator)
-                test_curve.append(test_perf[dataset.eval_metric])
             else:
                 test_perf = np.nan
-                test_curve.append(test_perf)
+            test_curve.append(test_perf)
             print({'Train': train_perf, 'Validation': valid_perf, 'Test': test_perf})
             
             # decay learning rate
@@ -116,7 +115,7 @@ def main(args):
                 else:
                     scheduler.step()
 
-        if dataset.maximize:
+        if not args.minimize:
             best_val_epoch = np.argmax(np.array(valid_curve))
         else:
             best_val_epoch = np.argmin(np.array(valid_curve))

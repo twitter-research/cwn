@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 import random
 import torch
-import torch_geometric.data import Data
+from torch_geometric.data import Data
 from sklearn.model_selection import StratifiedKFold
 
 class S2VGraph(object):

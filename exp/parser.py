@@ -28,8 +28,14 @@ def get_parser():
                         help='number of epochs to train (default: 100)')
     parser.add_argument('--num_workers', type=int, default=0,
                         help='number of workers (default: 0)')
-    parser.add_argument('--dataset', type=str, default="sr251256",
-                        help='dataset name (default: sr251256)')
+    parser.add_argument('--dataset', type=str, default="IMDBBINARY",
+                        help='dataset name (default: IMDBBINARY)')
+    parser.add_argument('--task_type', type=str, default='classification',
+                        help='task type, either classification, regression or isomorphism (default: classification)')    
+    parser.add_argument('--eval_metric', type=str, default='accuracy',
+                        help='evaluation metric (default: accuracy)')
+    parser.add_argument('--minimize', action='store_true',
+                        help='whether to minimize evaluation metric or not')
     parser.add_argument('--max_dim', type=int, default="2",
                         help='maximum simplicial dimension (default: 2, i.e. triangles)')
     parser.add_argument('--result_folder', type=str, default=None,
