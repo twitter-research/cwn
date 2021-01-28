@@ -5,7 +5,7 @@ def get_parser():
     parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sin',
-                        help='model, possible choices: sin, ... (default: sin)')
+                        help='model, possible choices: sin, dummy, ... (default: sin)')
     parser.add_argument('--drop_rate', type=float, default=0.5,
                         help='dropout rate (default: 0.5)')
     parser.add_argument('--lr', type=float, default=0.001,

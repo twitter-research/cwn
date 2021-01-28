@@ -52,6 +52,7 @@ class TUDataset(InMemoryComplexDataset):
             graph_list = pickle.load(handle)        
         
         print("Converting the dataset with gudhi...")
+        import pdb; pdb.set_trace()
         complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim)
         
         with open(self.processed_paths[0], 'wb') as handle:

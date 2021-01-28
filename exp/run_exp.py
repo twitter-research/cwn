@@ -80,13 +80,12 @@ def main(args):
     if args.lr_scheduler == 'ReduceLROnPlateau':
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=args.lr_scheduler_decay_rate, patience=args.lr_scheduler_patience, verbose=True)
     elif args.lr_scheduler == 'StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.args.lr_scheduler_decay_steps, gamma=args.lr_scheduler_decay_rate)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_scheduler_decay_steps, gamma=args.lr_scheduler_decay_rate)
     elif args.lr_scheduler == 'None':
         scheduler = None
     else:
         raise NotImplementedError('Scheduler {} is not currently supported.'.format(args.lr_scheduler))
 
-    import pdb; pdb.set_trace()
     # (!) start training/evaluation
     valid_curve = []
     test_curve = []
@@ -159,7 +158,7 @@ def main(args):
     with open(filename, 'w') as handle:
         handle.write(msg)
     if args.dump_curves:
-        with open(result_path+'curves.pkl', 'wb') as handle:
+        with open(os.path.join(result_folder,'curves.pkl'), 'wb') as handle:
             pickle.dump(curves, handle)
             
     return curves

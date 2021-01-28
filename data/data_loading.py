@@ -75,7 +75,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'CLUSTER':
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     elif name == 'IMDBBINARY':
-        dataset = TUDataset(os.path.join(root, 'IMDBBINARY'), name, max_dim=max_dim, num_classes=2, fold=fold)
+        dataset = TUDataset(os.path.join(root, 'IMDBBINARY'), name, max_dim=max_dim, num_classes=2, fold=fold, degree_as_tag=True)
     else:
         raise NotImplementedError
     return dataset

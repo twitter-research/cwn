@@ -1,9 +1,11 @@
 import os
 import torch
+import numpy as np
 from tqdm import tqdm
 from sklearn import metrics as met
 
-cls_criterion = torch.nn.BCEWithLogitsLoss()
+# cls_criterion = torch.nn.BCEWithLogitsLoss()
+cls_criterion = torch.nn.CrossEntropyLoss()
 reg_criterion = torch.nn.MSELoss()
 
 def train(model, device, loader, optimizer, task_type='classification', ignore_unlabeled=False):
@@ -31,16 +33,18 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
             # Skip batch if it only comprises one sample (could cause problems with BN)
             pass
         else:
+            # import pdb; pdb.set_trace()
             pred = model(batch)
             optimizer.zero_grad()
+            # TODO: shall we do some dtype checking here on the y?
             if ignore_unlabeled:
                 is_labeled = batch.y == batch.y
-                loss = loss_fn(pred.to(torch.float32)[is_labeled], batch.y.to(torch.float32)[is_labeled])
+                loss = loss_fn(pred[is_labeled], batch.y[is_labeled])
             else:
-                loss = loss_fn(pred.to(torch.float32), batch.y.to(torch.float32))
+                loss = loss_fn(pred, batch.y)
             loss.backward()
             optimizer.step()
-            curve.append(loss.detach().numpy())
+            curve.append(loss.detach().cpu().item())
             
     return curve
 
@@ -86,7 +90,7 @@ def eval(model, device, loader, evaluator):
         else:
             with torch.no_grad():
                 pred = model(batch)
-            y_true.append(batch.y.view(pred.shape).detach().cpu())
+            y_true.append(batch.y.detach().cpu())
             y_pred.append(pred.detach().cpu())
 
     y_true = torch.cat(y_true, dim=0).numpy()
@@ -119,7 +123,8 @@ class Evaluator(object):
         return metric
     
     def _accuracy(self, input_dict):
+        # import pdb; pdb.set_trace()
         y_true = input_dict['y_true']
-        y_pred = input_dict['y_pred']
+        y_pred = np.argmax(input_dict['y_pred'], axis=1)
         metric = met.accuracy_score(y_true, y_pred)
         return metric

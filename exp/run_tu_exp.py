@@ -1,8 +1,11 @@
 import sys
 import copy
 import time
+import numpy as np
 from exp.parser import get_parser
 from exp.run_exp import main
+
+# python3 -m exp.run_tu_exp --dataset IMDBBINARY --model sin --drop_rate 0.0 --lr 0.0001 --max_dim 2 --emb_dim 32 --dump_curves --epochs 30 --num_layers 1 --lr_scheduler StepLR --lr_scheduler_decay_steps 5
 
 __num_folds__ = 10
 
@@ -12,7 +15,7 @@ if __name__ == "__main__":
     parser = get_parser()
     passed_args = sys.argv[1:]
     assert 'fold' not in passed_args
-    passed_args + ['--exp_name', str(time.time())]
+    passed_args += ['--exp_name', str(time.time())]
     
     # run each experiment separately and gather results
     results = list()
