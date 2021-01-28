@@ -176,6 +176,7 @@ class Chain(object):
             return 0
         if self.shared_cofaces is not None:
             logging.warning(__num_warn_msg__.format('cofaces', 'shared_cofaces'))
+            # TODO: how can this be different than the actual number of cofaces?
             return int(self.shared_cofaces.max()) + 1
         return None
 
@@ -525,8 +526,20 @@ class Complex(object):
         self.triangles = chains[2] if dimension >= 2 else None
 
         self.y = y  # complex-wise label for complex-level tasks
+        
+        self._consolidate()
         return
-
+    
+    def _consolidate(self):
+        for dim in range(self.dimension+1):
+            chain = self.chains[dim]
+            if dim < self.dimension:
+                upper_chain = self.chains[dim + 1]
+                chain.num_cofaces = upper_chain.num_simplices
+            if dim > 0:
+                lower_chain = self.chains[dim - 1]
+                chain.num_faces = lower_chain.num_simplices
+                    
     def to(self, device, **kwargs):
         """
             Performs tensor dtype and/or device conversion to chains and label y,
