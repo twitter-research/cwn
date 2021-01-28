@@ -40,6 +40,9 @@ def get_parser():
                         help='maximum simplicial dimension (default: 2, i.e. triangles)')
     parser.add_argument('--result_folder', type=str, default=None,
                         help='filename to output result (default: None, will use `scn/exp/results`)')
+    parser.add_argument('--exp_name', type=str, default=None,
+                        help='name for specific experiment; if not provided, a name based on unix timestamp will be '+\
+                        'used. (default: None)')
     parser.add_argument('--dump_curves', action='store_true',
                         help='whether to dump the training curves to disk')
     parser.add_argument('--untrained', action='store_true',

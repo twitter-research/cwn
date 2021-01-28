@@ -22,10 +22,15 @@ def main(args):
     # set device
     device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
     
-    # get timestamp for results and set result directory
-    ts = time.time()
     result_folder = args.result_folder if args.result_folder is not None else os.path.join(ROOT_DIR, 'exp', 'results')
-    result_folder = os.path.join(result_folder, '{}-{}'.format(args.dataset, ts))
+    if args.exp_name is None:
+        # get timestamp for results and set result directory
+        exp_name = time.time()
+    else:
+        exp_name = args.exp_name
+    result_folder = os.path.join(result_folder, '{}-{}'.format(args.dataset, exp_name))
+    if args.fold is not None:
+        result_folder = os.path.join(result_folder, 'fold-{}'.format(args.fold))
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
     filename = os.path.join(result_folder, 'results.txt')
@@ -59,7 +64,6 @@ def main(args):
                      linear_output=linear_output
                     ).to(device)
     elif args.model == 'dummy':
-        import pdb; pdb.set_trace()
         model = Dummy(dataset.num_features_in_dim(0),
                       dataset.num_classes,
                       args.num_layers,
@@ -82,6 +86,7 @@ def main(args):
     else:
         raise NotImplementedError('Scheduler {} is not currently supported.'.format(args.lr_scheduler))
 
+    import pdb; pdb.set_trace()
     # (!) start training/evaluation
     valid_curve = []
     test_curve = []

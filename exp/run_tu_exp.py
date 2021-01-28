@@ -1,5 +1,6 @@
 import sys
 import copy
+import time
 from exp.parser import get_parser
 from exp.run_exp import main
 
@@ -11,6 +12,7 @@ if __name__ == "__main__":
     parser = get_parser()
     passed_args = sys.argv[1:]
     assert 'fold' not in passed_args
+    passed_args + ['--exp_name', str(time.time())]
     
     # run each experiment separately and gather results
     results = list()

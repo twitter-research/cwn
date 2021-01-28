@@ -22,8 +22,10 @@ class TUDataset(InMemoryComplexDataset):
         train_filename = os.path.join(self.raw_dir, '10fold_idx', 'train_idx-{}.txt'.format(fold + 1))
         self.train_ids = np.loadtxt(train_filename, dtype=int).tolist()
         test_filename = os.path.join(self.raw_dir, '10fold_idx', 'test_idx-{}.txt'.format(fold + 1))
-        self.test_ids = np.loadtxt(test_filename, dtype=int).tolist()
-        self.val_ids = None
+        # NB: we consider the loaded test indices as val_ids ones and set test_ids to None
+        #     to make it more convenient to work with the training pipeline
+        self.val_ids = np.loadtxt(test_filename, dtype=int).tolist()
+        self.test_ids = None
             
     @property
     def processed_file_names(self):

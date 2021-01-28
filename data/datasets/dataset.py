@@ -27,6 +27,9 @@ class ComplexDataset(Dataset, ABC):
 
         super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
         self._num_classes = num_classes
+        self.train_ids = None
+        self.val_ids = None
+        self.test_ids = None
 
     @property
     def max_dim(self):
@@ -87,17 +90,10 @@ class ComplexDataset(Dataset, ABC):
         return data
 
     def get_idx_split(self):
-        """
-        In this dataset, if not explicit split is provided,
-        we don't distinguish between train, val, test sets.
-        """
-        train_ids = list(range(self.len())) if self.train_ids is None else self.train_ids
-        val_ids = list(range(self.len())) if self.val_ids is None else self.val_ids
-        test_ids = list(range(self.len())) if self.test_ids is None else self.test_ids
         idx_split = {
-            'train': train_ids,
-            'valid': val_ids,
-            'test': test_ids}
+            'train': self.train_ids,
+            'valid': self.val_ids,
+            'test': self.test_ids}
         return idx_split
 
 
