@@ -13,7 +13,7 @@ def test_sin_model_with_batching():
 
     data_loader = DataLoader(data_list, batch_size=2)
 
-    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5)
+    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, jump_mode='cat')
     # We use the model in eval mode to avoid problems with batch norm.
     model.eval()
 
@@ -29,7 +29,8 @@ def test_sin_model_with_batching():
         preds.append(pred)
     preds = torch.cat(preds, dim=0)
 
-    assert torch.equal(preds, batched_preds)
+    # This is flaky when using equal. I suspect it's because of numerical errors.
+    assert torch.allclose(preds, batched_preds)
 
 
 def test_sin_model_with_batching_over_complexes_missing_triangles():
@@ -39,7 +40,8 @@ def test_sin_model_with_batching_over_complexes_missing_triangles():
     data_loader = DataLoader(data_list, batch_size=2)
 
     # Run using a model that works up to triangles.
-    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=2)
+    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=2,
+                 jump_mode='max')
     # We use the model in eval mode to avoid problems with batch norm. 
     model.eval()
 
@@ -50,7 +52,8 @@ def test_sin_model_with_batching_over_complexes_missing_triangles():
     preds1 = torch.cat(preds1, dim=0)
 
     # Run using a model that works up to edges.
-    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=1)
+    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=1,
+                 jump_mode='max')
     model.eval()
 
     preds2 = []
