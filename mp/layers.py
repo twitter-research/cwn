@@ -22,7 +22,8 @@ class DummyChainMessagePassing(ChainMessagePassing):
     def forward(self, chain: ChainMessagePassingParams):
         return self.propagate(chain.up_index, chain.down_index, x=chain.x,
                               up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
-    
+
+
 class DummySimplicialMessagePassing(torch.nn.Module):
     def __init__(self, max_dim: int = 2):
         super(DummySimplicialMessagePassing, self).__init__()
@@ -39,6 +40,7 @@ class DummySimplicialMessagePassing(torch.nn.Module):
         for dim in range(len(chain_params)):
             out.append(self.mp_levels[dim].forward(chain_params[dim]))
         return out
+
 
 class SINChainConv(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
