@@ -535,10 +535,14 @@ class Complex(object):
             chain = self.chains[dim]
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
-                chain.num_cofaces = upper_chain.num_simplices
+                num_cofaces = upper_chain.num_simplices
+                assert num_cofaces is not None
+                chain.num_cofaces = num_cofaces
             if dim > 0:
                 lower_chain = self.chains[dim - 1]
-                chain.num_faces = lower_chain.num_simplices
+                num_faces = lower_chain.num_simplices
+                assert num_faces is not None
+                chain.num_faces = num_faces
                     
     def to(self, device, **kwargs):
         """
@@ -635,6 +639,10 @@ class ComplexBatch(Complex):
         for comp in data_list:
             for dim in range(dimension+1):
                 if dim not in comp.chains:
+                    # if a dim-chain is not present for the current complex
+                    # then instantiate an empty one; given its None attributes
+                    # num_faces, num_cofaces will return 0 and num_simplices 
+                    # will return None, ensuring a neutral behavior in batching
                     chains[dim].append(Chain(dim=dim))
                 else:
                     chains[dim].append(comp.chains[dim])
