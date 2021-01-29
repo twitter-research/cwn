@@ -77,9 +77,11 @@ class SINChainConv(ChainMessagePassing):
         self.eps.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        print(up_attr)
-        x = torch.cat([up_x_j, up_attr], dim=-1)
-        return self.msg_up_nn(x)
+        if up_attr is not None:
+            x = torch.cat([up_x_j, up_attr], dim=-1)
+            return self.msg_up_nn(x)
+        else:
+            return self.msg_up_nn(up_x_j)
 
     def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
         x = torch.cat([down_x_j, down_attr], dim=-1)
@@ -97,6 +99,26 @@ class SINConv(torch.nn.Module):
             mp = SINChainConv(up_msg_size, down_msg_size,
                               msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
             self.mp_levels.append(mp)
+
+    def forward(self, *chain_params: ChainMessagePassingParams):
+        assert len(chain_params) <= self.max_dim+1
+
+        out = []
+        for dim in range(len(chain_params)):
+            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+        return out
+
+
+class EdgeSINConv(torch.nn.Module):
+    def __init__(self, v_msg_up_nn: Callable, e_msg_down_nn: Callable, e_msg_up_nn: Callable,
+                 v_update_nn: Callable, e_update_nn: Callable, eps: float = 0., train_eps=False):
+        super(EdgeSINConv, self).__init__()
+        self.max_dim = 1
+        self.mp_levels = torch.nn.ModuleList()
+
+        v_mp = SINChainConv(v_msg_up_nn, lambda *args: None, v_update_nn, eps, train_eps)
+        e_mp = SINChainConv(e_msg_up_nn, e_msg_down_nn, e_update_nn, eps, train_eps)
+        self.mp_levels.extend([v_mp, e_mp])
 
     def forward(self, *chain_params: ChainMessagePassingParams):
         assert len(chain_params) <= self.max_dim+1

@@ -4,7 +4,7 @@ import itertools
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
 from data.data_loading import DataLoader
-from mp.models import SIN0
+from mp.models import SIN0, EdgeSIN0
 
 
 def test_sin_model_with_batching():
@@ -40,6 +40,68 @@ def test_sin_model_with_batching():
         # This is flaky when using equal. I suspect it's because of numerical errors.
         assert (preds.size() == batched_preds.size())
         assert torch.allclose(preds, batched_preds)
+
+
+def test_edge_sin0_model_with_batching_while_excluding_top_features_and_max_din_one():
+    """Check this runs without errors and that batching and no batching produce the same output."""
+    data_list = [get_house_complex(), get_square_complex(),
+                 get_square_complex(), get_house_complex()]
+
+    data_loader = DataLoader(data_list, batch_size=2)
+
+    model = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+                     jump_mode='cat', include_top_features=False)
+    # We use the model in eval mode to avoid problems with batch norm.
+    model.eval()
+
+    batched_preds = []
+    for batch in data_loader:
+        batched_pred = model.forward(batch)
+        batched_preds.append(batched_pred)
+    batched_preds = torch.cat(batched_preds, dim=0)
+
+    preds = []
+    for complex in data_list:
+        pred = model.forward(ComplexBatch.from_complex_list([complex]))
+        preds.append(pred)
+    preds = torch.cat(preds, dim=0)
+
+    # This is flaky when using equal. I suspect it's because of numerical errors.
+    assert torch.allclose(preds, batched_preds)
+
+
+def test_edge_sin0_model_with_batching_while_including_top_features_and_max_din_one():
+    """Check this runs without errors and that batching and no batching produce the same output."""
+    data_list = [get_house_complex(), get_square_complex(),
+                 get_square_complex(), get_house_complex()]
+
+    data_loader = DataLoader(data_list, batch_size=2)
+
+    model1 = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+                      jump_mode='cat', include_top_features=True)
+    # We use the model in eval mode to avoid problems with batch norm.
+    model1.eval()
+
+    batched_preds = []
+    for batch in data_loader:
+        batched_pred = model1.forward(batch)
+        batched_preds.append(batched_pred)
+    batched_preds1 = torch.cat(batched_preds, dim=0)
+
+    model2 = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+                      jump_mode='cat', include_top_features=False)
+    # We use the model in eval mode to avoid problems with batch norm.
+    model2.eval()
+
+    batched_preds = []
+    for batch in data_loader:
+        batched_pred = model2.forward(batch)
+        batched_preds.append(batched_pred)
+    batched_preds2 = torch.cat(batched_preds, dim=0)
+
+    # Check excluding the top features providea a different
+    # output compared to the model that includes them.
+    assert not torch.equal(batched_preds1, batched_preds2)
 
 
 def test_sin_model_with_batching_over_complexes_missing_triangles():

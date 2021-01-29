@@ -640,7 +640,6 @@ class Complex(object):
 
     def set_xs(self, xs: List[Tensor]):
         """Sets the features of the chains to the values in the list"""
-        assert (self.dimension + 1) == len(xs)
         for i, x in enumerate(xs):
             self.chains[i].x = x
 
