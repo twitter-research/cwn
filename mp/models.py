@@ -15,10 +15,12 @@ class SIN0(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
-                 max_dim: int = 2, linear_output: bool = False, jump_mode=None):
+                 max_dim: int = 2, linear_output: bool = False, jump_mode=None,
+                 include_top_features=True):
         super(SIN0, self).__init__()
 
         self.max_dim = max_dim
+        self.include_top_features = include_top_features
         self.dropout_rate = dropout_rate
         self.linear_output = linear_output
         self.jump_mode = jump_mode
@@ -78,7 +80,8 @@ class SIN0(torch.nn.Module):
     def forward(self, data: ComplexBatch):
         xs, jump_xs = None, None
         for i, conv in enumerate(self.convs):
-            params = data.get_all_chain_params()
+            params = data.get_all_chain_params(max_dim=self.max_dim,
+                                               include_top_features=self.include_top_features)
             xs = conv(*params)
             data.set_xs(xs)
 

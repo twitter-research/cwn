@@ -589,17 +589,15 @@ class Complex(object):
             # might not exist anymore even though simplices.upper_index is present.
             if simplices.upper_index is not None and (dim+1) in self.chains:
                 upper_index = simplices.upper_index
-                upper_features = self.chains[dim + 1].x
-                if upper_features is not None and (dim < max_dim or include_top_features):
-                    upper_features = torch.index_select(upper_features, 0,
+                if self.chains[dim + 1].x is not None and (dim < max_dim or include_top_features):
+                    upper_features = torch.index_select(self.chains[dim + 1].x, 0,
                                                         self.chains[dim].shared_cofaces)
 
             lower_index, lower_features = None, None
             if simplices.lower_index is not None:
                 lower_index = simplices.lower_index
-                lower_features = self.chains[dim - 1].x
-                if lower_features is not None:
-                    lower_features = torch.index_select(lower_features, 0,
+                if self.chains[dim - 1].x is not None:
+                    lower_features = torch.index_select(self.chains[dim - 1].x, 0,
                                                         self.chains[dim].shared_faces)
 
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,

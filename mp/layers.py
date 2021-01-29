@@ -77,6 +77,7 @@ class SINChainConv(ChainMessagePassing):
         self.eps.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
+        print(up_attr)
         x = torch.cat([up_x_j, up_attr], dim=-1)
         return self.msg_up_nn(x)
 
