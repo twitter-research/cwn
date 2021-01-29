@@ -136,7 +136,9 @@ def extract_complex(ego, threshold_for_edges, threshold_for_cliques, max_size, k
             x = [edge_to_feats[tuple(index_to_simplex[index].numpy())] for index in range(len(index_to_simplex))]
             x = torch.stack(x)
         else:
-            x = None
+            # TODO: can we do this in a different way? once we figure out what to do with missing features at lower levels
+            # then we can update the generate_complex method to handle these cases and fill the missing feats automatically
+            x = torch.zeros((len(all_simplices_by_size[k]), ego.edge_attr.shape[1]), dtype=torch.float32)
         
         attributes[k-1] = x
         labels[k-1] = None

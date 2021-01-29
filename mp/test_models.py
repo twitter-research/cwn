@@ -29,7 +29,7 @@ def test_sin_model_with_batching():
         preds.append(pred)
     preds = torch.cat(preds, dim=0)
 
-    assert torch.equal(preds, batched_preds)
+    assert torch.allclose(preds, batched_preds)
 
 
 def test_sin_model_with_batching_over_complexes_missing_triangles():
