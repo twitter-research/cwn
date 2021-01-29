@@ -19,7 +19,7 @@ class ClusterDataset(InMemoryComplexDataset):
 
         self.max_dim = max_dim
 
-        self.__data_list__, idx = self.load_dataset()
+        self._data_list, idx = self.load_dataset()
         self.train_ids = idx[0]
         self.val_ids = idx[1]
         self.test_ids = idx[2]

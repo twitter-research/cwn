@@ -13,17 +13,17 @@ class SRDataset(InMemoryComplexDataset):
                  train_ids=None, val_ids=None, test_ids=None):
         self.name = name
         super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes)
-
-        self.train_ids = train_ids
-        self.val_ids = val_ids
-        self.test_ids = test_ids
+        
+        self.train_ids = list(range(self.len())) if train_ids is None else train_ids
+        self.val_ids = list(range(self.len())) if val_ids is None else val_ids
+        self.test_ids = list(range(self.len())) if test_ids is None else test_ids
 
         with open(self.processed_paths[0], 'rb') as handle:
-            self.__data_list__ = pickle.load(handle)
+            self._data_list = pickle.load(handle)
 
     @property
     def processed_file_names(self):
-        return ['{}_complex_list.pkl'.format(self.name)]
+        return ['{}_complex_list.pkl'.format(self.name)]       
 
     def process(self):
         data = load_sr_dataset(os.path.join(self.raw_dir, self.name + '.g6'))
