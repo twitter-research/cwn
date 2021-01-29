@@ -173,7 +173,7 @@ class Chain(object):
     @property
     def num_simplices_up(self):
         """
-            Returns or sets the number of overall cofaces in the chain.
+            Returns or sets the number of simplices in the upper chain. In fact, this correspond to the overall number of cofaces in the current chain.
         """
         if hasattr(self, '__num_simplices_up__'):
             return self.__num_simplices_up__
