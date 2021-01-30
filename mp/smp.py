@@ -43,12 +43,15 @@ class ChainMessagePassing(torch.nn.Module):
     }
 
     def __init__(self,
+                 up_msg_size, down_msg_size,
                  aggr_up: Optional[str] = "add",
                  aggr_down: Optional[str] = "add",
                  flow: str = "source_to_target", node_dim: int = -2):
 
         super(ChainMessagePassing, self).__init__()
 
+        self.up_msg_size = up_msg_size
+        self.down_msg_size = down_msg_size
         self.aggr_up = aggr_up
         self.aggr_down = aggr_down
         assert self.aggr_up in ['add', 'mean', 'max', None]
@@ -360,21 +363,23 @@ class ChainMessagePassing(torch.nn.Module):
         raise NotImplementedError
 
     def update(self, up_inputs: Optional[Tensor], down_inputs: Optional[Tensor],
-               x: Tensor) -> Tensor:
+               x: Tensor) -> (Tensor, Tensor):
         r"""Updates node embeddings in analogy to
         :math:`\gamma_{\mathbf{\Theta}}` for each node
         :math:`i \in \mathcal{V}`.
         Takes in the output of aggregation as first argument and any argument
         which was initially passed to :meth:`propagate`.
         """
-
-        if up_inputs is None and down_inputs is None:
-            return x
         if up_inputs is None:
-            return down_inputs
+            up_inputs = torch.zeros(x.size(0), self.up_msg_size).to(device=x.device)
+        else:
+            assert up_inputs.size(1) == self.up_msg_size
         if down_inputs is None:
-            return up_inputs
-        return up_inputs + down_inputs
+            down_inputs = torch.zeros(x.size(0), self.down_msg_size).to(device=x.device)
+        else:
+            assert down_inputs.size(1) == self.down_msg_size
+
+        return up_inputs, down_inputs
 
 
 class ChainMessagePassingParams:

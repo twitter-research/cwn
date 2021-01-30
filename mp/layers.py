@@ -20,17 +20,19 @@ class DummyChainMessagePassing(ChainMessagePassing):
         return down_x_j + down_attr
 
     def forward(self, chain: ChainMessagePassingParams):
-        return self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                              up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
+        up_out, down_out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+                                          up_attr=chain.kwargs['up_attr'],
+                                          down_attr=chain.kwargs['down_attr'])
+        return chain.x + up_out + down_out
 
 
 class DummySimplicialMessagePassing(torch.nn.Module):
-    def __init__(self, max_dim: int = 2):
+    def __init__(self, input_dim=1, max_dim: int = 2):
         super(DummySimplicialMessagePassing, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = DummyChainMessagePassing()
+            mp = DummyChainMessagePassing(input_dim, input_dim)
             self.mp_levels.append(mp)
     
     def forward(self, *chain_params: ChainMessagePassingParams):
@@ -44,9 +46,10 @@ class DummySimplicialMessagePassing(torch.nn.Module):
 
 class SINChainConv(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
-    def __init__(self, msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
+    def __init__(self, up_msg_size: int, down_msg_size: int,
+                 msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
                  eps: float = 0., train_eps: bool = False):
-        super(SINChainConv, self).__init__()
+        super(SINChainConv, self).__init__(up_msg_size, down_msg_size)
         self.msg_up_nn = msg_up_nn
         self.msg_down_nn = msg_down_nn
         self.update_nn = update_nn
@@ -58,10 +61,14 @@ class SINChainConv(ChainMessagePassing):
         self.reset_parameters()
 
     def forward(self, chain: ChainMessagePassingParams):
-        out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                             up_attr=chain.kwargs['up_attr'], down_attr=chain.kwargs['down_attr'])
-        out += (1 + self.eps) * chain.x
-        return self.update_nn(out)
+        out_up, out_down = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+                                          up_attr=chain.kwargs['up_attr'],
+                                          down_attr=chain.kwargs['down_attr'])
+        out_up += (1 + self.eps) * chain.x
+        out_down += (1 + self.eps) * chain.x
+        # TODO: (Importnat) How should we combine out_up and out_down to make this injective?
+        # Do we need another MLP here to merge them.
+        return self.update_nn(out_up + out_down)
 
     def reset_parameters(self):
         reset(self.msg_up_nn)
@@ -79,13 +86,15 @@ class SINChainConv(ChainMessagePassing):
 
 
 class SINConv(torch.nn.Module):
-    def __init__(self, msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
+    def __init__(self, up_msg_size: int, down_msg_size: int,
+                 msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
                  eps: float = 0., train_eps: bool = False, max_dim: int = 2):
         super(SINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = SINChainConv(msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
+            mp = SINChainConv(up_msg_size, down_msg_size,
+                              msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
             self.mp_levels.append(mp)
 
     def forward(self, *chain_params: ChainMessagePassingParams):
