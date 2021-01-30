@@ -1,15 +1,18 @@
 import torch
 
 from data.complex import ComplexBatch
-from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex
+from data.dummy_complexes import (get_house_complex, get_square_complex, get_pyramid_complex,
+                                  get_kite_complex, get_square_dot_complex)
 from data.data_loading import DataLoader
 from mp.models import SIN0
 
 
 def test_sin_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
-    data_list = [get_house_complex(), get_square_complex(),
-                 get_square_complex(), get_house_complex()]
+    data_list = [get_house_complex(), get_kite_complex(), get_square_complex(),
+                 get_square_dot_complex(), get_square_complex(),
+                 get_house_complex(), get_pyramid_complex(),
+                 get_kite_complex(), get_square_dot_complex()]
 
     data_loader = DataLoader(data_list, batch_size=2)
 
@@ -35,8 +38,10 @@ def test_sin_model_with_batching():
 
 def test_sin_model_with_batching_over_complexes_missing_triangles():
     """Check this runs without errors"""
-    data_list = [get_square_complex(), get_square_complex(),
-                 get_square_complex(), get_square_complex()]
+    data_list = [get_house_complex(), get_kite_complex(), get_square_complex(),
+                 get_square_dot_complex(), get_square_complex(),
+                 get_house_complex(), get_pyramid_complex(),
+                 get_kite_complex(), get_square_dot_complex()]
     data_loader = DataLoader(data_list, batch_size=2)
 
     # Run using a model that works up to triangles.
