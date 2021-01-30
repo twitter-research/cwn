@@ -435,7 +435,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
         assert len(all_shared_faces[dim]) == 0
 
     num_simplices_down = len(simplex_tables[dim-1]) if dim > 0 else None
-    num_simplices_up = len(simplex_tables[dim+1]) if dim < complex_dim else None
+    num_simplices_up = len(simplex_tables[dim+1]) if dim < complex_dim else 0
 
     up_index = (torch.tensor(all_upper_index[dim], dtype=torch.long).t()
                 if len(all_upper_index[dim]) > 0 else None)
@@ -450,7 +450,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
 
     if num_simplices_down is None:
         assert shared_faces is None
-    if num_simplices_up is None:
+    if num_simplices_up is 0:
         assert shared_cofaces is None
 
     if up_index is not None:
