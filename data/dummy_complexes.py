@@ -2,6 +2,7 @@ import torch
 
 from data.complex import Chain, Complex
 
+# TODO: make the features for these dummy complexes disjoint to stress tests even more
 
 def get_testing_complex_list():
     return [get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
