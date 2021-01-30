@@ -90,6 +90,7 @@ class SIN0(torch.nn.Module):
 
         if self.jump_mode is not None:
             xs = self.jump_complex(jump_xs)
+        import pdb; pdb.set_trace()
         pooled_xs = self.pool_complex(xs, data)
         x = pooled_xs.sum(dim=0)
 

@@ -481,9 +481,18 @@ def test_data_loader():
         get_pyramid_complex(),
         get_pyramid_complex()]
     
+    data_list_4 = [
+        get_square_dot_complex(),
+        get_square_complex(),
+        get_kite_complex(),
+        get_house_complex(),
+        get_house_complex()]
+    
     data_loader_1 = DataLoader(data_list_1, batch_size=2)
     data_loader_2 = DataLoader(data_list_2, batch_size=3)
     data_loader_3 = DataLoader(data_list_3, batch_size=3, max_dim=3)
+    data_loader_4 = DataLoader(data_list_4, batch_size=2)
+    
     
     count = 0
     for batch in data_loader_1:
@@ -507,6 +516,17 @@ def test_data_loader():
     for batch in data_loader_3:
         count += 1
     assert count == 2
+    
+    count = 0
+    for batch in data_loader_4:
+        count += 1
+        if count == 1:
+            validate_square_dot_and_square(batch)
+        elif count == 2:
+            validate_kite_and_house(batch)
+        else:
+            validate_house_no_batching(batch)
+    assert count == 3
 
 
 def test_set_for_features_in_batch():

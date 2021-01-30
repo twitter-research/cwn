@@ -520,6 +520,7 @@ class Complex(object):
             raise ValueError('Not enough chains passed (expected {}, received {})'.format(dimension + 1, len(chains)))
         
         # TODO: This needs some data checking to check that these chains are consistent together
+        # ^^^ see `_consolidate`
         self.dimension = dimension
         self.chains = {i: chains[i] for i in range(dimension + 1)}
         self.nodes = chains[0]
@@ -532,18 +533,26 @@ class Complex(object):
         return
     
     def _consolidate(self):
+        # TODO: change the attribute names `num_cofaces`, `num_faces` after merging
+        # into main and rebasing
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
                 num_cofaces = upper_chain.num_simplices
                 assert num_cofaces is not None
-                chain.num_cofaces = num_cofaces
+                if 'num_cofaces' in chain:
+                    assert chain.num_cofaces == num_cofaces
+                else:
+                    chain.num_cofaces = num_cofaces
             if dim > 0:
                 lower_chain = self.chains[dim - 1]
                 num_faces = lower_chain.num_simplices
                 assert num_faces is not None
-                chain.num_faces = num_faces
+                if 'num_faces' in chain:
+                    assert chain.num_faces == num_faces
+                else:
+                    chain.num_faces = num_faces
                     
     def to(self, device, **kwargs):
         """
