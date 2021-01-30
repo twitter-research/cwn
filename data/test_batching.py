@@ -618,8 +618,8 @@ def test_batching_returns_the_same_down_attr():
     data_list = get_testing_complex_list()
 
     # Try multiple parameters
-    dims = [2]
-    bs = list(range(2, 3))
+    dims = [1, 2, 3]
+    bs = list(range(2, 11))
     params = itertools.product(bs, dims)
     for batch_size, batch_max_dim, in params:
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
