@@ -6,6 +6,11 @@ from data.complex import ComplexBatch
 from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex, get_square_dot_complex, get_kite_complex
 from data.data_loading import DataLoader
 
+from data.complex import ComplexBatch
+from data.dummy_complexes import get_testing_complex_list
+from data.data_loading import DataLoader
+from mp.models import SIN0
+
 
 def validate_double_house(batch):
     
@@ -521,3 +526,133 @@ def test_set_for_features_in_batch():
     assert torch.equal(batch.chains[0].x, vx)
     assert torch.equal(batch.chains[1].x, ex)
     assert torch.equal(batch.chains[2].x, tx)
+
+import itertools
+
+
+def test_batching_returns_the_same_features():
+    data_list = get_testing_complex_list()
+
+    # Try multiple parameters
+    dims = [1, 2, 3]
+    bs = list(range(2, 11))
+    params = itertools.product(bs, dims)
+    for batch_size, batch_max_dim, in params:
+        data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
+
+        batched_x = [[] for _ in range(batch_max_dim+1)]
+        for batch in data_loader:
+            params = batch.get_all_chain_params()
+            assert len(params) <= batch_max_dim+1
+            for dim in range(len(params)):
+                batched_x[dim].append(params[dim].x)
+        batched_xs = [None for _ in range(batch_max_dim+1)]
+        for i in range(batch_max_dim+1):
+            if len(batched_x[i]) > 0:
+                batched_xs[i] = torch.cat(batched_x[i], dim=0)
+
+        x = [[] for _ in range(batch_max_dim+1)]
+        for complex in data_list:
+            params = complex.get_all_chain_params()
+            for dim in range(min(len(params), batch_max_dim+1)):
+                x[dim].append(params[dim].x)
+        xs = [None for _ in range(batch_max_dim+1)]
+        for i in range(batch_max_dim+1):
+            if len(x[i]) > 0:
+                xs[i] = torch.cat(x[i], dim=0)
+
+        for i in range(batch_max_dim+1):
+            if xs[i] is None or batched_xs[i] is None:
+                assert xs[i] == batched_xs[i]
+            else:
+                assert torch.equal(batched_xs[i], xs[i])
+
+
+def test_batching_returns_the_same_up_attr():
+    data_list = get_testing_complex_list()
+
+    # Try multiple parameters
+    dims = [1, 2, 3]
+    bs = list(range(2, 11))
+    params = itertools.product(bs, dims)
+    for batch_size, batch_max_dim, in params:
+        data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
+
+        # Batched
+        batched_x = [[] for _ in range(batch_max_dim+1)]
+        for batch in data_loader:
+            params = batch.get_all_chain_params()
+            assert len(params) <= batch_max_dim+1
+            for dim in range(len(params)):
+                if params[dim].kwargs['up_attr'] is not None:
+                    batched_x[dim].append(params[dim].kwargs['up_attr'])
+
+        batched_xs = [None for _ in range(batch_max_dim+1)]
+        for i in range(batch_max_dim+1):
+            if len(batched_x[i]) > 0:
+                batched_xs[i] = torch.cat(batched_x[i], dim=0)
+
+        # Un-batched
+        x = [[] for _ in range(batch_max_dim+1)]
+        for complex in data_list:
+            params = complex.get_all_chain_params()
+            for dim in range(min(len(params), batch_max_dim+1)):
+                # TODO: Modify test after merging the top_feature branch
+                # Right now, the last level cannot have top features
+                if params[dim].kwargs['up_attr'] is not None and dim < batch_max_dim:
+                    x[dim].append(params[dim].kwargs['up_attr'])
+
+        xs = [None for _ in range(batch_max_dim+1)]
+        for i in range(batch_max_dim+1):
+            if len(x[i]) > 0:
+                xs[i] = torch.cat(x[i], dim=0)
+
+        for i in range(batch_max_dim+1):
+            if xs[i] is None or batched_xs[i] is None:
+                assert xs[i] == batched_xs[i]
+            else:
+                assert torch.equal(xs[i], batched_xs[i])
+
+
+def test_batching_returns_the_same_down_attr():
+    data_list = get_testing_complex_list()
+
+    # Try multiple parameters
+    dims = [1, 2, 3]
+    bs = list(range(2, 11))
+    params = itertools.product(bs, dims)
+    for batch_size, batch_max_dim, in params:
+        data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
+
+        batched_x = [[] for _ in range(batch_max_dim+1)]
+        for batch in data_loader:
+            params = batch.get_all_chain_params()
+            assert len(params) <= batch_max_dim+1
+            for dim in range(len(params)):
+                if params[dim].kwargs['down_attr'] is not None:
+                    batched_x[dim].append(params[dim].kwargs['down_attr'])
+
+        batched_xs = [None for _ in range(batch_max_dim+1)]
+        for i in range(batch_max_dim+1):
+            if len(batched_x[i]) > 0:
+                batched_xs[i] = torch.cat(batched_x[i], dim=0)
+
+        # Un-batched
+        x = [[] for _ in range(batch_max_dim+1)]
+        for complex in data_list:
+            params = complex.get_all_chain_params()
+            for dim in range(min(len(params), batch_max_dim+1)):
+                if params[dim].kwargs['down_attr'] is not None:
+                    x[dim].append(params[dim].kwargs['down_attr'])
+
+        xs = [None for _ in range(batch_max_dim+1)]
+        for i in range(batch_max_dim+1):
+            if len(x[i]) > 0:
+                xs[i] = torch.cat(x[i], dim=0)
+
+        for i in range(batch_max_dim+1):
+            if xs[i] is None or batched_xs[i] is None:
+                assert xs[i] == batched_xs[i]
+            else:
+                assert len(xs[i]) == len(batched_xs[i])
+                assert torch.equal(xs[i], batched_xs[i])

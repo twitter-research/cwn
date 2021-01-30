@@ -118,6 +118,7 @@ class Chain(object):
             inc = 0
         if inc is None:
             inc = 0
+
         return inc
     
     def __call__(self, *keys):
@@ -564,7 +565,10 @@ class Complex(object):
         if dim in self.chains:
             simplices = self.chains[dim]
             x = simplices.x
-            if simplices.upper_index is not None:
+            # We also check that dim+1 does exist in the current complex. This chain might have been
+            # extracted from a higher dimensional complex by a batching operation, and dim+1
+            # might not exist anymore even though simplices.upper_index is present.
+            if simplices.upper_index is not None and (dim+1) in self.chains:
                 upper_index = simplices.upper_index
                 upper_features = self.chains[dim + 1].x
                 if upper_features is not None:
@@ -639,11 +643,12 @@ class ComplexBatch(Complex):
         for comp in data_list:
             for dim in range(dimension+1):
                 if dim not in comp.chains:
-                    # if a dim-chain is not present for the current complex
-                    # then instantiate an empty one; given its None attributes
-                    # num_faces, num_cofaces will return 0 and num_simplices 
-                    # will return None, ensuring a neutral behavior in batching
+                    # If a dim-chain is not present for the current complex, we instantiate one.
                     chains[dim].append(Chain(dim=dim))
+                    if dim-1 in comp.chains:
+                        # If the chain below exists in the complex, we need to add the number of
+                        # faces to the newly initialised complex, otherwise batching will not work.
+                        chains[dim][-1].num_faces = comp.chains[dim-1].num_simplices
                 else:
                     chains[dim].append(comp.chains[dim])
             per_complex_labels &= comp.y is not None
