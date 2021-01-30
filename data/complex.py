@@ -537,8 +537,6 @@ class Complex(object):
         return
     
     def _consolidate(self):
-        # TODO: change the attribute names `num_simplices_up`, `num_simplices_down` after merging
-        # into main and rebasing
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
             if dim < self.dimension:
