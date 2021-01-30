@@ -538,8 +538,6 @@ def test_batching_returns_the_same_features():
     bs = list(range(2, 11))
     params = itertools.product(bs, dims)
     for batch_size, batch_max_dim, in params:
-        print(batch_max_dim, batch_size)
-
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
 
         batched_x = [[] for _ in range(batch_max_dim+1)]
@@ -578,8 +576,6 @@ def test_batching_returns_the_same_up_attr():
     bs = list(range(2, 11))
     params = itertools.product(bs, dims)
     for batch_size, batch_max_dim, in params:
-        print(batch_max_dim, batch_size)
-
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
 
         # Batched
@@ -626,8 +622,6 @@ def test_batching_returns_the_same_down_attr():
     bs = list(range(2, 3))
     params = itertools.product(bs, dims)
     for batch_size, batch_max_dim, in params:
-        print(batch_max_dim, batch_size)
-
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
 
         batched_x = [[] for _ in range(batch_max_dim+1)]
@@ -661,4 +655,4 @@ def test_batching_returns_the_same_down_attr():
                 assert xs[i] == batched_xs[i]
             else:
                 assert len(xs[i]) == len(batched_xs[i])
-                assert torch.equal(xs[i], batched_xs[i]), print("diff", xs[i], batched_xs[i])
+                assert torch.equal(xs[i], batched_xs[i])
