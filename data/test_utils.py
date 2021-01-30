@@ -206,7 +206,7 @@ def test_gudhi_clique_complex(house_edge_index):
                                                       y=house.y)
 
     # Check the number of simplices
-    assert house_complex.nodes.num_simplices_down == None
+    assert house_complex.nodes.num_simplices_down is None
     assert house_complex.nodes.num_simplices_up == 6
     assert house_complex.edges.num_simplices_down == 5
     assert house_complex.edges.num_simplices_up == 1
