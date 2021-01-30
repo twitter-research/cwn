@@ -118,6 +118,8 @@ class Chain(object):
             inc = 0
         if inc is None:
             inc = 0
+        print(f"inc is {inc} at dim {self.dim} and key {key}. Simplicies {self.num_simplices}")
+
         return inc
     
     def __call__(self, *keys):
@@ -190,10 +192,13 @@ class Chain(object):
             Returns or sets the number of overall faces in the chain.
         """
         if hasattr(self, '__num_faces__'):
+            print("Already have it at dim", self.dim, "Faces:", self.__num_faces__)
             return self.__num_faces__
         if self.lower_index is None:
+            print("Lower index is None at dim", self.dim, "Returning 0")
             return 0
         if self.shared_faces is not None:
+            print("Extracting from shared_faces", int(self.shared_faces.max()) + 1, "dim", self.dim)
             logging.warning(__num_warn_msg__.format('faces', 'shared_faces'))
             return int(self.shared_faces.max()) + 1
         # TODO: better to swap these two?
@@ -365,7 +370,9 @@ class ChainBatch(Chain):
         num_simplices_list = []
         num_cofaces_list = []
         num_faces_list = []
+        print("Starting chain batching")
         for i, data in enumerate(data_list):
+            print("i..")
             for key in keys:
                 item = data[key]
                 
@@ -644,6 +651,8 @@ class ComplexBatch(Complex):
                     # num_faces, num_cofaces will return 0 and num_simplices 
                     # will return None, ensuring a neutral behavior in batching
                     chains[dim].append(Chain(dim=dim))
+                    if dim-1 in comp.chains:
+                        chains[dim][-1].num_faces = comp.chains[dim-1].num_simplices
                 else:
                     chains[dim].append(comp.chains[dim])
             per_complex_labels &= comp.y is not None
