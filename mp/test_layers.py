@@ -1,8 +1,8 @@
 import torch
 import torch.optim as optim
 
-from mp.layers import DummySimplicialMessagePassing, SINConv
-from data.dummy_complexes import get_house_complex
+from mp.layers import DummySimplicialMessagePassing, SINConv, SINChainConv
+from data.dummy_complexes import get_house_complex, get_square_dot_complex
 from torch import nn
 
 
@@ -15,10 +15,10 @@ def test_dummy_simplicial_message_passing():
     dsmp = DummySimplicialMessagePassing()
     v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
 
-    expected_v_x = torch.tensor([[11], [7], [22], [21], [18]], dtype=torch.float)
+    expected_v_x = torch.tensor([[12], [9], [25], [25], [23]], dtype=torch.float)
     assert torch.equal(v_x, expected_v_x)
 
-    expected_e_x = torch.tensor([[9], [18], [44], [18], [37], [31]], dtype=torch.float)
+    expected_e_x = torch.tensor([[10], [20], [47], [22], [42], [37]], dtype=torch.float)
     assert torch.equal(e_x, expected_e_x)
 
     expected_t_x = torch.tensor([[1]], dtype=torch.float)
@@ -29,7 +29,7 @@ def test_sin_conv_training():
     msg_net = nn.Sequential(nn.Linear(2, 1))
     update_net = nn.Sequential(nn.Linear(1, 3))
 
-    sin_conv = SINConv(msg_net, msg_net, update_net, 0.05)
+    sin_conv = SINConv(1, 1, msg_net, msg_net, update_net, 0.05)
 
     all_params_before = []
     for p in sin_conv.parameters():

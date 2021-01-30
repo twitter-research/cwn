@@ -118,6 +118,7 @@ class Chain(object):
             inc = 0
         if inc is None:
             inc = 0
+
         return inc
     
     def __call__(self, *keys):
@@ -519,6 +520,7 @@ class Complex(object):
             raise ValueError('Not enough chains passed (expected {}, received {})'.format(dimension + 1, len(chains)))
         
         # TODO: This needs some data checking to check that these chains are consistent together
+        # ^^^ see `_consolidate`
         self.dimension = dimension
         self.chains = {i: chains[i] for i in range(dimension + 1)}
         self.nodes = chains[0]
@@ -531,14 +533,26 @@ class Complex(object):
         return
     
     def _consolidate(self):
+        # TODO: change the attribute names `num_cofaces`, `num_faces` after merging
+        # into main and rebasing
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
-                chain.num_cofaces = upper_chain.num_simplices
+                num_cofaces = upper_chain.num_simplices
+                assert num_cofaces is not None
+                if 'num_cofaces' in chain:
+                    assert chain.num_cofaces == num_cofaces
+                else:
+                    chain.num_cofaces = num_cofaces
             if dim > 0:
                 lower_chain = self.chains[dim - 1]
-                chain.num_faces = lower_chain.num_simplices
+                num_faces = lower_chain.num_simplices
+                assert num_faces is not None
+                if 'num_faces' in chain:
+                    assert chain.num_faces == num_faces
+                else:
+                    chain.num_faces = num_faces
                     
     def to(self, device, **kwargs):
         """
@@ -560,7 +574,10 @@ class Complex(object):
         if dim in self.chains:
             simplices = self.chains[dim]
             x = simplices.x
-            if simplices.upper_index is not None:
+            # We also check that dim+1 does exist in the current complex. This chain might have been
+            # extracted from a higher dimensional complex by a batching operation, and dim+1
+            # might not exist anymore even though simplices.upper_index is present.
+            if simplices.upper_index is not None and (dim+1) in self.chains:
                 upper_index = simplices.upper_index
                 upper_features = self.chains[dim + 1].x
                 if upper_features is not None:
@@ -635,7 +652,12 @@ class ComplexBatch(Complex):
         for comp in data_list:
             for dim in range(dimension+1):
                 if dim not in comp.chains:
+                    # If a dim-chain is not present for the current complex, we instantiate one.
                     chains[dim].append(Chain(dim=dim))
+                    if dim-1 in comp.chains:
+                        # If the chain below exists in the complex, we need to add the number of
+                        # faces to the newly initialised complex, otherwise batching will not work.
+                        chains[dim][-1].num_faces = comp.chains[dim-1].num_simplices
                 else:
                     chains[dim].append(comp.chains[dim])
             per_complex_labels &= comp.y is not None

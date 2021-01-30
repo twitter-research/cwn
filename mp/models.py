@@ -40,7 +40,8 @@ class SIN0(torch.nn.Module):
                 ReLU(),
                 BN(layer_dim))
             self.convs.append(
-                SINConv(conv_up, conv_down, conv_update, train_eps=False, max_dim=self.max_dim))
+                SINConv(layer_dim, layer_dim,
+                        conv_up, conv_down, conv_update, train_eps=False, max_dim=self.max_dim))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         if jump_mode == 'cat':
             self.lin1 = Linear(num_layers * hidden, hidden)
@@ -89,6 +90,7 @@ class SIN0(torch.nn.Module):
 
         if self.jump_mode is not None:
             xs = self.jump_complex(jump_xs)
+
         pooled_xs = self.pool_complex(xs, data)
         x = pooled_xs.sum(dim=0)
 
