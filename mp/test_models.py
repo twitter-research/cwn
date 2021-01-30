@@ -14,14 +14,17 @@ def test_sin_model_with_batching():
                  get_house_complex(), get_pyramid_complex(),
                  get_kite_complex(), get_square_dot_complex()]
 
-    data_loader = DataLoader(data_list, batch_size=2)
+    data_loader = DataLoader(data_list, batch_size=3)
 
     model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, jump_mode='cat')
     # We use the model in eval mode to avoid problems with batch norm.
     model.eval()
 
     batched_preds = []
+    i = 1
     for batch in data_loader:
+        print(i)
+        i += 1
         batched_pred = model.forward(batch)
         batched_preds.append(batched_pred)
     batched_preds = torch.cat(batched_preds, dim=0)
@@ -61,6 +64,7 @@ def test_sin_model_with_batching_over_complexes_missing_triangles():
                  jump_mode='max')
     model.eval()
 
+    data_loader = DataLoader(data_list, batch_size=2, max_dim=1)
     preds2 = []
     for batch in data_loader:
         out = model.forward(batch)

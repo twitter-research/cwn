@@ -564,7 +564,7 @@ class Complex(object):
         if dim in self.chains:
             simplices = self.chains[dim]
             x = simplices.x
-            if simplices.upper_index is not None:
+            if simplices.upper_index is not None and (dim+1) in self.chains:
                 upper_index = simplices.upper_index
                 upper_features = self.chains[dim + 1].x
                 if upper_features is not None:
