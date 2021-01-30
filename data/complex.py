@@ -567,7 +567,7 @@ class Complex(object):
             x = simplices.x
             # We also check that dim+1 does exist in the current complex. This chain might have been
             # extracted from a higher dimensional complex by a batching operation, and dim+1
-            # might not exist anymore.
+            # might not exist anymore even though simplices.upper_index is present.
             if simplices.upper_index is not None and (dim+1) in self.chains:
                 upper_index = simplices.upper_index
                 upper_features = self.chains[dim + 1].x
