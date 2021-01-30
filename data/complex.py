@@ -51,6 +51,10 @@ class Chain(object):
         for key, item in kwargs.items():
             if key == 'num_simplices':
                 self.__num_simplices__ = item
+            elif key == 'num_simplices_down':
+                self.num_simplices_down = item
+            elif key == 'num_simplices_up':
+                self.num_simplices_up = item
             else:
                 self[key] = item
 
@@ -111,9 +115,9 @@ class Chain(object):
         if key in ['upper_index', 'lower_index']:
             inc = self.num_simplices
         elif key == 'shared_faces':
-            inc = self.num_faces
+            inc = self.num_simplices_down
         elif key == 'shared_cofaces':
-            inc = self.num_cofaces
+            inc = self.num_simplices_up
         else:
             inc = 0
         if inc is None:
@@ -167,12 +171,12 @@ class Chain(object):
         self.__num_simplices__ = num_simplices
 
     @property
-    def num_cofaces(self):
+    def num_simplices_up(self):
         """
             Returns or sets the number of overall cofaces in the chain.
         """
-        if hasattr(self, '__num_cofaces__'):
-            return self.__num_cofaces__
+        if hasattr(self, '__num_simplices_up__'):
+            return self.__num_simplices_up__
         if self.upper_index is None:
             return 0
         if self.shared_cofaces is not None:
@@ -181,17 +185,17 @@ class Chain(object):
             return int(self.shared_cofaces.max()) + 1
         return None
 
-    @num_cofaces.setter
-    def num_cofaces(self, num_cofaces):
-        self.__num_cofaces__ = num_cofaces
+    @num_simplices_up.setter
+    def num_simplices_up(self, num_simplices_up):
+        self.__num_simplices_up__ = num_simplices_up
 
     @property
-    def num_faces(self):
+    def num_simplices_down(self):
         """
             Returns or sets the number of overall faces in the chain.
         """
-        if hasattr(self, '__num_faces__'):
-            return self.__num_faces__
+        if hasattr(self, '__num_simplices_down__'):
+            return self.__num_simplices_down__
         if self.lower_index is None:
             return 0
         if self.shared_faces is not None:
@@ -203,9 +207,9 @@ class Chain(object):
             return (self.dim + 1) * self.num_simplices
         return None
 
-    @num_faces.setter
-    def num_faces(self, num_faces):
-        self.__num_faces__ = num_faces
+    @num_simplices_down.setter
+    def num_simplices_down(self, num_simplices_down):
+        self.__num_simplices_down__ = num_simplices_down
         
     @property
     def num_features(self):
@@ -330,8 +334,8 @@ class ChainBatch(Chain):
         self.__cumsum__ = None
         self.__cat_dims__ = None
         self.__num_simplices_list__ = None
-        self.__num_faces_list__ = None
-        self.__num_cofaces_list__ = None
+        self.__num_simplices_down_list__ = None
+        self.__num_simplices_up_list__ = None
         self.__num_chains__ = None
 
     @classmethod
@@ -364,8 +368,8 @@ class ChainBatch(Chain):
         cumsum = {key: [0] for key in keys}
         cat_dims = {}
         num_simplices_list = []
-        num_cofaces_list = []
-        num_faces_list = []
+        num_simplices_up_list = []
+        num_simplices_down_list = []
         for i, data in enumerate(data_list):
             for key in keys:
                 item = data[key]
@@ -431,15 +435,15 @@ class ChainBatch(Chain):
             else:
                 num_simplices_list.append(None)
 
-            if hasattr(data, '__num_cofaces__'):
-                num_cofaces_list.append(data.__num_cofaces__)
+            if hasattr(data, '__num_simplices_up__'):
+                num_simplices_up_list.append(data.__num_simplices_up__)
             else:
-                num_cofaces_list.append(None)
+                num_simplices_up_list.append(None)
 
-            if hasattr(data, '__num_faces__'):
-                num_faces_list.append(data.__num_faces__)
+            if hasattr(data, '__num_simplices_down__'):
+                num_simplices_down_list.append(data.__num_simplices_down__)
             else:
-                num_faces_list.append(None)
+                num_simplices_down_list.append(None)
 
             num_simplices = data.num_simplices
             if num_simplices is not None:
@@ -458,8 +462,8 @@ class ChainBatch(Chain):
         batch.__cumsum__ = cumsum
         batch.__cat_dims__ = cat_dims
         batch.__num_simplices_list__ = num_simplices_list
-        batch.__num_cofaces_list__ = num_cofaces_list
-        batch.__num_faces_list__ = num_faces_list
+        batch.__num_simplices_up_list__ = num_simplices_up_list
+        batch.__num_simplices_down_list__ = num_simplices_down_list
 
         ref_data = data_list[0]
         for key in batch.keys:
@@ -533,26 +537,26 @@ class Complex(object):
         return
     
     def _consolidate(self):
-        # TODO: change the attribute names `num_cofaces`, `num_faces` after merging
+        # TODO: change the attribute names `num_simplices_up`, `num_simplices_down` after merging
         # into main and rebasing
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
-                num_cofaces = upper_chain.num_simplices
-                assert num_cofaces is not None
-                if 'num_cofaces' in chain:
-                    assert chain.num_cofaces == num_cofaces
+                num_simplices_up = upper_chain.num_simplices
+                assert num_simplices_up is not None
+                if 'num_simplices_up' in chain:
+                    assert chain.num_simplices_up == num_simplices_up
                 else:
-                    chain.num_cofaces = num_cofaces
+                    chain.num_simplices_up = num_simplices_up
             if dim > 0:
                 lower_chain = self.chains[dim - 1]
-                num_faces = lower_chain.num_simplices
-                assert num_faces is not None
-                if 'num_faces' in chain:
-                    assert chain.num_faces == num_faces
+                num_simplices_down = lower_chain.num_simplices
+                assert num_simplices_down is not None
+                if 'num_simplices_down' in chain:
+                    assert chain.num_simplices_down == num_simplices_down
                 else:
-                    chain.num_faces = num_faces
+                    chain.num_simplices_down = num_simplices_down
                     
     def to(self, device, **kwargs):
         """
@@ -657,7 +661,7 @@ class ComplexBatch(Complex):
                     if dim-1 in comp.chains:
                         # If the chain below exists in the complex, we need to add the number of
                         # faces to the newly initialised complex, otherwise batching will not work.
-                        chains[dim][-1].num_faces = comp.chains[dim-1].num_simplices
+                        chains[dim][-1].num_simplices_down = comp.chains[dim - 1].num_simplices
                 else:
                     chains[dim].append(comp.chains[dim])
             per_complex_labels &= comp.y is not None

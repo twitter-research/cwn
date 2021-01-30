@@ -205,6 +205,15 @@ def test_gudhi_clique_complex(house_edge_index):
     house_complex = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes,
                                                       y=house.y)
 
+    # Check the number of simplices
+    assert house_complex.nodes.num_simplices_down is None
+    assert house_complex.nodes.num_simplices_up == 6
+    assert house_complex.edges.num_simplices_down == 5
+    assert house_complex.edges.num_simplices_up == 1
+    assert house_complex.triangles.num_simplices_down == 6
+    assert house_complex.triangles.num_simplices_up is None
+
+    # Check the returned parameters
     v_params = house_complex.get_chain_params(dim=0)
     assert torch.equal(v_params.x, house.x)
     assert v_params.down_index is None

@@ -428,11 +428,14 @@ def extract_labels(y, size):
 
 
 def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
-                         all_shared_faces, all_shared_cofaces, simplex_tables, y=None):
+                         all_shared_faces, all_shared_cofaces, simplex_tables, complex_dim, y=None):
     """Builds a Chain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
         assert len(all_shared_faces[dim]) == 0
+
+    num_simplices_down = len(simplex_tables[dim-1]) if dim > 0 else None
+    num_simplices_up = len(simplex_tables[dim+1]) if dim < complex_dim else None
 
     up_index = (torch.tensor(all_upper_index[dim], dtype=torch.long).t()
                 if len(all_upper_index[dim]) > 0 else None)
@@ -445,14 +448,22 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
     simplices = (torch.tensor(simplex_tables[dim], dtype=torch.long)
                   if len(simplex_tables[dim]) > 0 else None)
 
+    if num_simplices_down is None:
+        assert shared_faces is None
+    if num_simplices_up is None:
+        assert shared_cofaces is None
+
     if up_index is not None:
         assert up_index.size(1) == shared_cofaces.size(0)
+        assert num_simplices_up == shared_cofaces.max() + 1
     if down_index is not None:
         assert down_index.size(1) == shared_faces.size(0)
+        assert num_simplices_down >= shared_faces.max() + 1
 
     return Chain(dim=dim, x=x, upper_index=up_index,
                  lower_index=down_index, shared_cofaces=shared_cofaces, shared_faces=shared_faces,
-                 mapping=simplices, y=y)
+                 mapping=simplices, y=y, num_simplices_down=num_simplices_down,
+                 num_simplices_up=num_simplices_up)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -494,7 +505,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     for i in range(complex_dim+1):
         y = v_y if i == 0 else None
         chain = generate_chain_gudhi(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                     simplex_tables, y=y)
+                                     simplex_tables, complex_dim=complex_dim, y=y)
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=complex_dim)
