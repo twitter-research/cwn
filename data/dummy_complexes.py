@@ -3,6 +3,15 @@ import torch
 from data.complex import Chain, Complex
 
 
+def get_testing_complex_list():
+    # return [get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
+    #         get_square_dot_complex(), get_square_complex(), get_house_complex(),
+    #         get_pyramid_complex(), get_kite_complex(), get_square_dot_complex()]
+    return [get_house_complex(), get_kite_complex(), get_square_complex(),
+            get_square_dot_complex(), get_square_complex(), get_house_complex(),
+            get_kite_complex(), get_square_dot_complex()]
+
+
 def get_house_complex():
     """
     Returns the `house graph` below with dummy features.
