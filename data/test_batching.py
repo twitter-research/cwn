@@ -1,15 +1,11 @@
-import pytest
 import torch
+import itertools
 
-from torch import Tensor
-from data.complex import ComplexBatch
 from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex, get_square_dot_complex, get_kite_complex
-from data.data_loading import DataLoader
 
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
 from data.data_loading import DataLoader
-from mp.models import SIN0
 
 
 def validate_double_house(batch):
@@ -547,7 +543,41 @@ def test_set_for_features_in_batch():
     assert torch.equal(batch.chains[1].x, ex)
     assert torch.equal(batch.chains[2].x, tx)
 
-import itertools
+
+def test_set_xs_does_not_mutate_dataset():
+    """Batches should be copied, so these mutations should not change the dataset"""
+
+    data_list = get_testing_complex_list()
+    data_loader = DataLoader(data_list, batch_size=5, max_dim=2)
+
+    # Save batch contents
+    xs = [[] for _ in range(3)]
+    for batch in data_loader:
+        for i in range(3):
+            xs[i].append(batch.chains[i].x)
+    txs = []
+    for i in range(3):
+        txs.append(torch.cat(xs[i], dim=0) if len(xs[i]) > 0 else None)
+
+    # Set batch features
+    for batch in data_loader:
+        new_xs = []
+        for i in range(3):
+            new_xs.append(torch.zeros_like(batch.chains[i].x))
+        batch.set_xs(new_xs)
+
+    # Save batch contents after set_xs
+    xs_after = [[] for _ in range(3)]
+    for batch in data_loader:
+        for i in range(3):
+            xs_after[i].append(batch.chains[i].x)
+    txs_after = []
+    for i in range(3):
+        txs_after.append(torch.cat(xs_after[i], dim=0) if len(xs_after[i]) > 0 else None)
+
+    # Check that the batch features are the same
+    for i in range(3):
+        assert torch.equal(txs_after[i], txs[i])
 
 
 def test_batching_returns_the_same_features():

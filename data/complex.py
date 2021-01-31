@@ -36,6 +36,10 @@ class Chain(object):
             may not be available, e.g. when `dim` is the top level dim of a complex
             - `y`: labels over simplices in the chain, shape [num_simplices,]
         """
+        if dim == 0:
+            assert lower_index is None
+            assert shared_faces is None
+
         self.dim = dim
         # TODO: check default for x
         self.__x = x
@@ -596,7 +600,7 @@ class Complex(object):
             lower_index, lower_features = None, None
             if simplices.lower_index is not None:
                 lower_index = simplices.lower_index
-                if self.chains[dim - 1].x is not None:
+                if dim > 0 and self.chains[dim - 1].x is not None:
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
                                                         self.chains[dim].shared_faces)
 
@@ -640,6 +644,7 @@ class Complex(object):
 
     def set_xs(self, xs: List[Tensor]):
         """Sets the features of the chains to the values in the list"""
+        assert (self.dimension + 1) >= len(xs)
         for i, x in enumerate(xs):
             self.chains[i].x = x
 
