@@ -69,9 +69,9 @@ class DataLoader(torch.utils.data.DataLoader):
                              collate_fn=Collater(follow_batch, max_dim), **kwargs)
 
 
-def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0):
+def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0, **kwargs):
     if name.startswith('sr'):
-        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim)
+        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=max_dim, num_classes=kwargs['emb_dim'])
     elif name == 'CLUSTER':
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     elif name == 'IMDBBINARY':
