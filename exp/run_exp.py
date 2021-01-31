@@ -15,7 +15,7 @@ import time
 import numpy as np
 
 # run isomorphism test on sr251256:
-# python3 -m exp.run_exp --model dummy --num_layers 1 --dataset sr251256 --untrained
+# python3 -m exp.run_exp --model dummy --num_layers 1 --dataset sr251256 --eval_metric isomorphism --task_type isomorphism --emb_dim 16 --max_dim  4 --untrained
 
 def main(args):
 
@@ -36,7 +36,10 @@ def main(args):
     filename = os.path.join(result_folder, 'results.txt')
     
     # data loading
-    dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold)
+    load_kwargs = {}
+    if args.dataset.startswith('sr'):
+        load_kwargs['emb_dim'] = args.emb_dim
+    dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, **load_kwargs)
     split_idx = dataset.get_idx_split()
 
     # automatic evaluator, takes dataset name as input
