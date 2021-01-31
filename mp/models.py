@@ -154,8 +154,8 @@ class EdgeSIN0(torch.nn.Module):
                 ReLU(),
                 BN(layer_dim))
             self.convs.append(
-                EdgeSINConv(v_conv_up, e_conv_down, e_conv_up, v_conv_update, e_conv_update,
-                            train_eps=False))
+                EdgeSINConv(layer_dim, layer_dim, v_conv_up, e_conv_down, e_conv_up,
+                            v_conv_update, e_conv_update, train_eps=False))
             if self.update_top_features and i < num_layers - 1:
                 self.update_top_nns.append(Sequential(
                     Linear(layer_dim, hidden),

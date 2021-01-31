@@ -110,14 +110,17 @@ class SINConv(torch.nn.Module):
 
 
 class EdgeSINConv(torch.nn.Module):
-    def __init__(self, v_msg_up_nn: Callable, e_msg_down_nn: Callable, e_msg_up_nn: Callable,
+    def __init__(self, up_msg_size: int, down_msg_size: int,
+                 v_msg_up_nn: Callable, e_msg_down_nn: Callable, e_msg_up_nn: Callable,
                  v_update_nn: Callable, e_update_nn: Callable, eps: float = 0., train_eps=False):
         super(EdgeSINConv, self).__init__()
         self.max_dim = 1
         self.mp_levels = torch.nn.ModuleList()
 
-        v_mp = SINChainConv(v_msg_up_nn, lambda *args: None, v_update_nn, eps, train_eps)
-        e_mp = SINChainConv(e_msg_up_nn, e_msg_down_nn, e_update_nn, eps, train_eps)
+        v_mp = SINChainConv(up_msg_size, down_msg_size,
+                            v_msg_up_nn, lambda *args: None, v_update_nn, eps, train_eps)
+        e_mp = SINChainConv(up_msg_size, down_msg_size,
+                            e_msg_up_nn, e_msg_down_nn, e_update_nn, eps, train_eps)
         self.mp_levels.extend([v_mp, e_mp])
 
     def forward(self, *chain_params: ChainMessagePassingParams):

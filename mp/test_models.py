@@ -44,10 +44,9 @@ def test_sin_model_with_batching():
 
 def test_edge_sin0_model_with_batching_while_excluding_top_features_and_max_din_one():
     """Check this runs without errors and that batching and no batching produce the same output."""
-    data_list = [get_house_complex(), get_square_complex(),
-                 get_square_complex(), get_house_complex()]
+    data_list = get_testing_complex_list()
 
-    data_loader = DataLoader(data_list, batch_size=2)
+    data_loader = DataLoader(data_list, batch_size=4)
 
     model = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
                      jump_mode='cat', include_top_features=False)
@@ -72,10 +71,9 @@ def test_edge_sin0_model_with_batching_while_excluding_top_features_and_max_din_
 
 def test_edge_sin0_model_with_batching_while_including_top_features_and_max_din_one():
     """Check this runs without errors and that batching and no batching produce the same output."""
-    data_list = [get_house_complex(), get_square_complex(),
-                 get_square_complex(), get_house_complex()]
+    data_list = get_testing_complex_list()
 
-    data_loader = DataLoader(data_list, batch_size=2)
+    data_loader = DataLoader(data_list, batch_size=4)
 
     model1 = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
                       jump_mode='cat', include_top_features=True)
