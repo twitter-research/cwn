@@ -110,6 +110,10 @@ class SINConv(torch.nn.Module):
 
 
 class EdgeSINConv(torch.nn.Module):
+    """
+    SIN convolutional layer which performs chain message passing only
+    _up to_ 1-dimensional simplices (edges).
+    """
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  v_msg_up_nn: Callable, e_msg_down_nn: Callable, e_msg_up_nn: Callable,
                  v_update_nn: Callable, e_update_nn: Callable, eps: float = 0., train_eps=False):

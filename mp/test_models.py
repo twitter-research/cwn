@@ -42,31 +42,30 @@ def test_sin_model_with_batching():
         assert torch.allclose(preds, batched_preds)
 
 
-def test_edge_sin0_model_with_batching_while_excluding_top_features_and_max_din_one():
+def test_edge_sin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
-    data_loader = DataLoader(data_list, batch_size=4)
+    for top_features in [True, False]:
+        data_loader = DataLoader(data_list, batch_size=4)
+        model = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+                         jump_mode='cat', include_top_features=top_features)
+        # We use the model in eval mode to avoid problems with batch norm.
+        model.eval()
 
-    model = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
-                     jump_mode='cat', include_top_features=False)
-    # We use the model in eval mode to avoid problems with batch norm.
-    model.eval()
+        batched_preds = []
+        for batch in data_loader:
+            batched_pred = model.forward(batch)
+            batched_preds.append(batched_pred)
+        batched_preds = torch.cat(batched_preds, dim=0)
 
-    batched_preds = []
-    for batch in data_loader:
-        batched_pred = model.forward(batch)
-        batched_preds.append(batched_pred)
-    batched_preds = torch.cat(batched_preds, dim=0)
+        preds = []
+        for complex in data_list:
+            pred = model.forward(ComplexBatch.from_complex_list([complex]))
+            preds.append(pred)
+        preds = torch.cat(preds, dim=0)
 
-    preds = []
-    for complex in data_list:
-        pred = model.forward(ComplexBatch.from_complex_list([complex]))
-        preds.append(pred)
-    preds = torch.cat(preds, dim=0)
-
-    # This is flaky when using equal. I suspect it's because of numerical errors.
-    assert torch.allclose(preds, batched_preds)
+        assert torch.allclose(preds, batched_preds)
 
 
 def test_edge_sin0_model_with_batching_while_including_top_features_and_max_din_one():
