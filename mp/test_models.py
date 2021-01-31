@@ -68,7 +68,7 @@ def test_edge_sin0_model_with_batching():
         assert torch.allclose(preds, batched_preds)
 
 
-def test_edge_sin0_model_with_batching_while_including_top_features_and_max_din_one():
+def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_one():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
