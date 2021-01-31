@@ -179,6 +179,8 @@ class EdgeSIN0(torch.nn.Module):
             self.jump.reset_parameters()
         self.lin1.reset_parameters()
         self.lin2.reset_parameters()
+        for nn in self.update_top_nns:
+            nn.reset_parameters()
 
     def pool_complex(self, xs, data):
         # All complexes have nodes so we can extract the batch size from chains[0]
