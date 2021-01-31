@@ -36,6 +36,10 @@ class Chain(object):
             may not be available, e.g. when `dim` is the top level dim of a complex
             - `y`: labels over simplices in the chain, shape [num_simplices,]
         """
+        if dim == 0:
+            assert lower_index is None
+            assert shared_faces is None
+
         self.dim = dim
         # TODO: check default for x
         self.__x = x
@@ -568,35 +572,38 @@ class Complex(object):
             self.y = self.y.to(device, **kwargs)
         return self
 
-    def get_chain_params(self, dim) -> ChainMessagePassingParams:
+    def get_chain_params(self, dim, max_dim=2,
+                         include_top_features=True) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim
             neural message passing at the specified `dim`.
+
+            Args:
+                dim: The dimension from which to extract the parameters
+                max_dim: The maximum dimension of interest.
+                    This is only used in conjunction with include_top_features.
+                include_top_features: Whether to include the top features from level max_dim+1.
         """
         if dim in self.chains:
             simplices = self.chains[dim]
             x = simplices.x
+            upper_index, upper_features = None, None
             # We also check that dim+1 does exist in the current complex. This chain might have been
             # extracted from a higher dimensional complex by a batching operation, and dim+1
             # might not exist anymore even though simplices.upper_index is present.
             if simplices.upper_index is not None and (dim+1) in self.chains:
                 upper_index = simplices.upper_index
-                upper_features = self.chains[dim + 1].x
-                if upper_features is not None:
-                    upper_features = torch.index_select(upper_features, 0,
+                if self.chains[dim + 1].x is not None and (dim < max_dim or include_top_features):
+                    upper_features = torch.index_select(self.chains[dim + 1].x, 0,
                                                         self.chains[dim].shared_cofaces)
-            else:
-                upper_index = None
-                upper_features = None
+
+            lower_index, lower_features = None, None
             if simplices.lower_index is not None:
                 lower_index = simplices.lower_index
-                lower_features = self.chains[dim - 1].x
-                if lower_features is not None:
-                    lower_features = torch.index_select(lower_features, 0,
+                if dim > 0 and self.chains[dim - 1].x is not None:
+                    lower_features = torch.index_select(self.chains[dim - 1].x, 0,
                                                         self.chains[dim].shared_faces)
-            else:
-                lower_index = None
-                lower_features = None
+
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
                                                up_attr=upper_features, down_attr=lower_features)
         else:
@@ -604,10 +611,18 @@ class Complex(object):
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return inputs
 
-    def get_all_chain_params(self):
+    def get_all_chain_params(self, max_dim=2, include_top_features=True):
+        """Gets the chain parameters for message passing at all layers.
+
+        Args:
+            max_dim: The maximum dimension to extract
+            include_top_features: Whether to include the features from level max_dim+1
+        """
         all_params = []
-        for dim in range(self.dimension+1):
-            all_params.append(self.get_chain_params(dim))
+        return_dim = min(max_dim, self.dimension)
+        for dim in range(return_dim+1):
+            all_params.append(self.get_chain_params(dim, max_dim=max_dim,
+                                                    include_top_features=include_top_features))
         return all_params
 
     def get_labels(self, dim=None):
@@ -629,7 +644,7 @@ class Complex(object):
 
     def set_xs(self, xs: List[Tensor]):
         """Sets the features of the chains to the values in the list"""
-        assert (self.dimension + 1) == len(xs)
+        assert (self.dimension + 1) >= len(xs)
         for i, x in enumerate(xs):
             self.chains[i].x = x
 
