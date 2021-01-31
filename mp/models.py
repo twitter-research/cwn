@@ -204,6 +204,8 @@ class EdgeSIN0(torch.nn.Module):
             params = data.get_all_chain_params(max_dim=self.max_dim,
                                                include_top_features=self.include_top_features)
             xs = conv(*params)
+            # If we are at the last convolutional layer, we do not need to update after
+            # We also check triangle features do indeed exist in this batch before doing this.
             if self.update_top_features and i < len(self.convs) - 1 and 2 in data.chains:
                 top_x = self.update_top_nns[i](data.chains[2].x)
                 data.set_xs(xs + [top_x])
