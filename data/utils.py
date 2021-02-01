@@ -326,6 +326,13 @@ def build_tables(simplex_tree, size):
     return simplex_tables, id_maps
 
 
+def get_simplex_faces(simplex):
+    faces = [tuple(simplex[1:])]
+    for i in range(len(simplex)-1):
+        faces.append(tuple(simplex[:i+1] + simplex[i+2:]))
+    return faces
+
+
 def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, complex_dim: int):
     """Build two maps simplex -> its cofaces and simplex -> its faces"""
     # The extra dimension is added just for convenience to avoid treating it as a special case.
