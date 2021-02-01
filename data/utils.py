@@ -329,8 +329,8 @@ def build_tables(simplex_tree, size):
 def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, complex_dim: int):
     """Build two maps simplex -> its cofaces and simplex -> its faces"""
     # The extra dimension is added just for convenience to avoid treating it as a special case.
-    faces = [OrderedDict() for _ in range(complex_dim+2)]  # simplex -> faces
-    cofaces = [OrderedDict() for _ in range(complex_dim+2)]  # simplex -> cofaces
+    faces = [{} for _ in range(complex_dim+2)]  # simplex -> faces
+    cofaces = [{} for _ in range(complex_dim+2)]  # simplex -> cofaces
 
     for simplex, _ in simplex_tree.get_simplices():
         # Extract the relevant face and coface maps
@@ -355,7 +355,8 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, complex_dim: int):
     return faces, cofaces
 
 
-def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], complex_dim: int):
+def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], complex_dim: int,
+                    include_down_adj: bool):
     """Builds the upper and lower adjacency data structures of the complex
 
     Args:
@@ -383,7 +384,7 @@ def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict],
                     all_shared_cofaces[dim - 1].extend([id, id])
 
             # Add the lower adjacent neighbours from the level above
-            if dim < complex_dim and simplex in cofaces[dim]:
+            if include_down_adj and dim < complex_dim and simplex in cofaces[dim]:
                 for coface1, coface2 in itertools.combinations(cofaces[dim][simplex], 2):
                     id1, id2 = id_maps[dim + 1][coface1], id_maps[dim + 1][coface2]
                     lower_indexes[dim + 1].extend([[id1, id2], [id2, id1]])
@@ -467,7 +468,8 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
-                                      expansion_dim: int = 2, y: Tensor = None) -> Complex:
+                                      expansion_dim: int = 2, y: Tensor = None,
+                                      include_down_adj=True) -> Complex:
     """Generates a clique complex of a pyG graph via gudhi.
 
     Args:
@@ -492,7 +494,8 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
 
     # Computes the adjacencies between all the simplexes in the complex
     shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps,
-                                                                         complex_dim)
+                                                                         complex_dim,
+                                                                         include_down_adj)
 
     # Construct features for the higher dimensions
     # TODO: Make this handle edge features as well and add alternative options to compute this.
@@ -511,14 +514,15 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     return Complex(*chains, y=complex_y, dimension=complex_dim)
 
 
-def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int):
+def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True):
     dimension = -1
     complexes = []
     num_features = [None for _ in range(expansion_dim+1)]
 
     for data in tqdm(dataset):
         complex = compute_clique_complex_with_gudhi(data.x, data.edge_index, data.num_nodes,
-                                                    expansion_dim=expansion_dim, y=data.y)
+                                                    expansion_dim=expansion_dim, y=data.y,
+                                                    include_down_adj=include_down_adj)
         if complex.dimension > dimension:
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
