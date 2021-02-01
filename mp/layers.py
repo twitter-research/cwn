@@ -20,9 +20,9 @@ class DummyChainMessagePassing(ChainMessagePassing):
         return down_x_j + down_attr
 
     def forward(self, chain: ChainMessagePassingParams):
-        up_out, down_out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                                          up_attr=chain.kwargs['up_attr'],
-                                          down_attr=chain.kwargs['down_attr'])
+        up_out, down_out, _ = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+                                             up_attr=chain.kwargs['up_attr'],
+                                             down_attr=chain.kwargs['down_attr'])
         return chain.x + up_out + down_out
 
 
@@ -61,9 +61,9 @@ class SINChainConv(ChainMessagePassing):
         self.reset_parameters()
 
     def forward(self, chain: ChainMessagePassingParams):
-        out_up, out_down = self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                                          up_attr=chain.kwargs['up_attr'],
-                                          down_attr=chain.kwargs['down_attr'])
+        out_up, out_down, _ = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+                                             up_attr=chain.kwargs['up_attr'],
+                                             down_attr=chain.kwargs['down_attr'])
         out_up += (1 + self.eps) * chain.x
         out_down += (1 + self.eps) * chain.x
         # TODO: (Importnat) How should we combine out_up and out_down to make this injective?
