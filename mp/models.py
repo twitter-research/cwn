@@ -175,7 +175,7 @@ class SparseSIN0(torch.nn.Module):
     def forward(self, data: ComplexBatch):
         xs, jump_xs = None, None
         for i, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim)
+            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             xs = conv(*params)
             data.set_xs(xs)
 

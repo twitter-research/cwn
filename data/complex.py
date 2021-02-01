@@ -580,7 +580,9 @@ class Complex(object):
         return self
 
     def get_chain_params(self, dim, max_dim=2,
-                         include_top_features=True) -> ChainMessagePassingParams:
+                         include_top_features=True,
+                         include_down_features=True,
+                         include_face_features=True) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim
             neural message passing at the specified `dim`.
@@ -590,6 +592,8 @@ class Complex(object):
                 max_dim: The maximum dimension of interest.
                     This is only used in conjunction with include_top_features.
                 include_top_features: Whether to include the top features from level max_dim+1.
+                include_down_features: Include the features for down adjacency
+                include_face_features: Include the features for the face
         """
         if dim in self.chains:
             simplices = self.chains[dim]
@@ -607,7 +611,7 @@ class Complex(object):
 
             # Add down features
             lower_index, lower_features = None, None
-            if simplices.lower_index is not None:
+            if include_down_features and simplices.lower_index is not None:
                 lower_index = simplices.lower_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
@@ -615,7 +619,7 @@ class Complex(object):
 
             # Add face features
             face_features = None
-            if simplices.faces is not None:
+            if include_face_features and simplices.faces is not None:
                 faces = simplices.faces
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     face_features = torch.index_select(self.chains[dim - 1].x, 0, faces.view(-1))
@@ -629,18 +633,25 @@ class Complex(object):
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return inputs
 
-    def get_all_chain_params(self, max_dim=2, include_top_features=True):
+    def get_all_chain_params(self, max_dim=2,
+                             include_top_features=True,
+                             include_down_features=True,
+                             include_face_features=True):
         """Gets the chain parameters for message passing at all layers.
 
         Args:
             max_dim: The maximum dimension to extract
             include_top_features: Whether to include the features from level max_dim+1
+            include_down_features: Include the features for down adjacency
+            include_face_features: Include the features for the face
         """
         all_params = []
         return_dim = min(max_dim, self.dimension)
         for dim in range(return_dim+1):
             all_params.append(self.get_chain_params(dim, max_dim=max_dim,
-                                                    include_top_features=include_top_features))
+                                                    include_top_features=include_top_features,
+                                                    include_down_features=include_down_features,
+                                                    include_face_features=include_face_features))
         return all_params
 
     def get_labels(self, dim=None):
