@@ -73,11 +73,11 @@ class ChainMessagePassing(torch.nn.Module):
         # I presume this doesn't pop first to avoid including the self parameter multiple times.
         self.inspector.inspect(self.message_up)
         self.inspector.inspect(self.message_down)
-        self.inspector.inspect(self.aggregate_up, pop_first=True)
-        self.inspector.inspect(self.aggregate_down, pop_first=True)
-        self.inspector.inspect(self.message_and_aggregate_up, pop_first=True)
-        self.inspector.inspect(self.message_and_aggregate_down, pop_first=True)
-        self.inspector.inspect(self.update, pop_first_two=True)
+        self.inspector.inspect(self.aggregate_up, pop_first_n=1)
+        self.inspector.inspect(self.aggregate_down, pop_first_n=1)
+        self.inspector.inspect(self.message_and_aggregate_up, pop_first_n=1)
+        self.inspector.inspect(self.message_and_aggregate_down, pop_first_n=1)
+        self.inspector.inspect(self.update, pop_first_n=3)
 
         # Return the parameter name for these functions minus those specified in special_args
         self.__user_args__ = self.inspector.keys(
@@ -275,7 +275,7 @@ class ChainMessagePassing(torch.nn.Module):
 
         # Face messaging and aggregation
         face_out = None
-        if kwargs['face_attr'] is not None:
+        if 'face_attr' in kwargs and kwargs['face_attr'] is not None:
             # TODO: Add parameter collection like for the other calls later.
             # This collection should not be needed for now.
             face_out = self.message_and_aggregate_faces(kwargs['face_attr'])

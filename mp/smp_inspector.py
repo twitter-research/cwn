@@ -14,14 +14,9 @@ class SimplicialInspector(Inspector):
             return True
         return any(self.__implements__(c, func_name) for c in cls.__bases__)
 
-    def inspect(self, func: Callable,
-                pop_first: bool = False,
-                pop_first_two: bool = False) -> Dict[str, Any]:
+    def inspect(self, func: Callable, pop_first_n: int = 0) -> Dict[str, Any]:
         params = inspect.signature(func).parameters
         params = OrderedDict(params)
-        if pop_first:
-            params.popitem(last=False)
-        elif pop_first_two:
-            params.popitem(last=False)
+        for _ in range(pop_first_n):
             params.popitem(last=False)
         self.params[func.__name__] = params

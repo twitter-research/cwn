@@ -25,7 +25,7 @@ class Chain(object):
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 y=None, **kwargs):
+                 faces: Tensor = None, y=None, **kwargs):
         """
             Constructs a `dim`-chain.
             - `dim`: dim of the simplices in the chain
@@ -39,12 +39,14 @@ class Chain(object):
         if dim == 0:
             assert lower_index is None
             assert shared_faces is None
+            assert faces is None
 
         self.dim = dim
         # TODO: check default for x
         self.__x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
+        self.faces = faces
         self.y = y
         self.shared_faces = shared_faces
         self.shared_cofaces = shared_cofaces
@@ -587,6 +589,7 @@ class Complex(object):
         if dim in self.chains:
             simplices = self.chains[dim]
             x = simplices.x
+            # Add up features
             upper_index, upper_features = None, None
             # We also check that dim+1 does exist in the current complex. This chain might have been
             # extracted from a higher dimensional complex by a batching operation, and dim+1
@@ -597,6 +600,7 @@ class Complex(object):
                     upper_features = torch.index_select(self.chains[dim + 1].x, 0,
                                                         self.chains[dim].shared_cofaces)
 
+            # Add down features
             lower_index, lower_features = None, None
             if simplices.lower_index is not None:
                 lower_index = simplices.lower_index
@@ -604,8 +608,17 @@ class Complex(object):
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
                                                         self.chains[dim].shared_faces)
 
+            # Add face features
+            face_features = None
+            if simplices.faces is not None:
+                faces = simplices.faces
+                if dim > 0 and self.chains[dim - 1].x is not None:
+                    face_features = torch.index_select(self.chains[dim - 1].x, 0, faces.view(-1))
+                    face_features = face_features.view(len(x), dim+1, -1)
+
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
-                                               up_attr=upper_features, down_attr=lower_features)
+                                               up_attr=upper_features, down_attr=lower_features,
+                                               face_attr=face_features)
         else:
             raise NotImplementedError(
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
