@@ -4,6 +4,7 @@ from data.complex import Chain, Complex
 
 # TODO: make the features for these dummy complexes disjoint to stress tests even more
 
+
 def get_testing_complex_list():
     return [get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
             get_square_dot_complex(), get_square_complex(), get_house_complex(),
@@ -39,6 +40,7 @@ def get_house_complex():
     yv = torch.tensor([0, 0, 0, 0, 0], dtype=torch.long)
     v_chain = Chain(dim=0, x=v_x, upper_index=v_up_index, shared_cofaces=v_shared_cofaces, y=yv)
 
+    e_faces = torch.tensor([[0, 1], [1, 2], [2, 3], [0, 3], [3, 4], [2, 4]], dtype=torch.long)
     e_up_index = torch.tensor([[2, 4, 2, 5, 4, 5],
                                [4, 2, 5, 2, 5, 4]], dtype=torch.long)
     e_shared_cofaces = torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
@@ -50,11 +52,13 @@ def get_house_complex():
     e_x = torch.tensor([[1], [2], [3], [4], [5], [6]], dtype=torch.float)
     ye = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.long)
     e_chain = Chain(dim=1, x=e_x, upper_index=e_up_index, lower_index=e_down_index,
-                    shared_cofaces=e_shared_cofaces, shared_faces=e_shared_faces, y=ye)
+                    shared_cofaces=e_shared_cofaces, shared_faces=e_shared_faces, faces=e_faces,
+                    y=ye)
 
+    t_faces = torch.tensor([[2, 4, 5]], dtype=torch.long)
     t_x = torch.tensor([[1]], dtype=torch.float)
     yt = torch.tensor([2], dtype=torch.long)
-    t_chain = Chain(dim=2, x=t_x, y=yt)
+    t_chain = Chain(dim=2, x=t_x, y=yt, faces=t_faces)
     return Complex(v_chain, e_chain, t_chain)
 
 
