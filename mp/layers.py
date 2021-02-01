@@ -147,11 +147,12 @@ class SparseSINChainConv(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_faces_nn: Callable, update_nn: Callable,
-                 eps: float = 0., train_eps: bool = False):
+                 combine_nn: Callable, eps: float = 0., train_eps: bool = False):
         super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, use_down_msg=False)
         self.msg_up_nn = msg_up_nn
         self.msg_faces_nn = msg_faces_nn
         self.update_nn = update_nn
+        self.combine_nn = combine_nn
         self.initial_eps = eps
         if train_eps:
             self.eps = torch.nn.Parameter(torch.Tensor([eps]))
@@ -161,13 +162,19 @@ class SparseSINChainConv(ChainMessagePassing):
 
     def forward(self, chain: ChainMessagePassingParams):
         out_up, _, out_faces = self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                                             up_attr=chain.kwargs['up_attr'],
-                                             down_attr=chain.kwargs['down_attr'])
+                                              up_attr=chain.kwargs['up_attr'],
+                                              face_attr=chain.kwargs['face_attr'])
+
+        # As in GIN, we can learn an injective update function for each multi-set
         out_up += (1 + self.eps) * chain.x
         out_faces += (1 + self.eps) * chain.x
-        # TODO: (Importnat) How should we combine out_up and out_down to make this injective?
-        # Do we need another MLP here to merge them.
-        return self.update_nn(out_up + out_faces)
+        out_up = self.update_nn(out_up)
+        out_faces = self.update_nn(out_faces)
+
+        # We need to combine the two such that the output is injective
+        # Because the cross product of countable spaces is countable, then such a function exists.
+        # And we can learn it with another MLP.
+        return self.combine_nn(torch.cat([out_up, out_faces], dim=1))
 
     def reset_parameters(self):
         reset(self.msg_up_nn)
@@ -192,13 +199,13 @@ class SparseSINChainConv(ChainMessagePassing):
 class SparseSINConv(torch.nn.Module):
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_faces_nn: Callable, update_nn: Callable,
-                 eps: float = 0., train_eps: bool = False, max_dim: int = 2):
+                 combine_nn: Callable, eps: float = 0., train_eps: bool = False, max_dim: int = 2):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
             mp = SparseSINChainConv(up_msg_size, down_msg_size,
-                                    msg_up_nn, msg_faces_nn, update_nn, eps, train_eps)
+                                    msg_up_nn, msg_faces_nn, update_nn, combine_nn, eps, train_eps)
             self.mp_levels.append(mp)
 
     def forward(self, *chain_params: ChainMessagePassingParams):

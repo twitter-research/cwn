@@ -132,12 +132,12 @@ class SparseSIN0(torch.nn.Module):
                 Linear(layer_dim * 2, layer_dim),
                 ReLU(),
                 BN(layer_dim))
-            conv_faces = Sequential(
-                Linear(layer_dim, layer_dim),
+            combine = Sequential(
+                Linear(hidden*2, hidden),
                 ReLU(),
-                BN(layer_dim))
+                BN(hidden))
             self.convs.append(
-                SparseSINConv(layer_dim, layer_dim, conv_up, conv_faces, conv_update,
+                SparseSINConv(layer_dim, layer_dim, conv_up, lambda x: x, conv_update, combine,
                               train_eps=False, max_dim=self.max_dim))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         if jump_mode == 'cat':
