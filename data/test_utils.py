@@ -7,6 +7,9 @@ from data.complex import ComplexBatch
 import numpy as np
 import pytest
 
+# TODO: Gudhi does not preserve the order of the edges in edge_index. It uses a lexicographic order
+# Once we care about edge_features at initialisation, we need to make the order the same.
+
 # Define here below the `house graph` and the expected connectivity to be constructed.
 # The `house graph` (3-2-4 is a filled triangle):
 #    4
@@ -209,10 +212,13 @@ def test_gudhi_clique_complex(house_edge_index):
     # Check the number of simplices
     assert house_complex.nodes.num_simplices_down is None
     assert house_complex.nodes.num_simplices_up == 6
+    assert house_complex.nodes.faces is None
     assert house_complex.edges.num_simplices_down == 5
     assert house_complex.edges.num_simplices_up == 1
+    assert list(house_complex.edges.faces.size()) == [6, 2]
     assert house_complex.triangles.num_simplices_down == 6
     assert house_complex.triangles.num_simplices_up == 0
+    assert list(house_complex.triangles.faces.size()) == [1, 3]
 
     # Check the returned parameters
     v_params = house_complex.get_chain_params(dim=0)
@@ -227,6 +233,7 @@ def test_gudhi_clique_complex(house_edge_index):
                                        [5], [5], [6], [6], [7], [7]], dtype=torch.float)
     assert torch.equal(v_params.kwargs['up_attr'], expected_v_up_attr)
     assert v_params.kwargs['down_attr'] is None
+    assert v_params.kwargs['face_attr'] is None
 
     e_params = house_complex.get_chain_params(dim=1)
     expected_e_x = torch.tensor([[1], [3], [3], [5], [6], [7]], dtype=torch.float)
@@ -248,11 +255,20 @@ def test_gudhi_clique_complex(house_edge_index):
                                         dtype=torch.float)
     assert torch.equal(e_params.kwargs['down_attr'], expected_e_down_attr)
 
+    expected_e_face_attr = torch.tensor([[[0], [1]], [[0], [3]], [[1], [2]], [[2], [3]],
+                                         [[2], [4]], [[3], [4]]], dtype=torch.float)
+    assert list(e_params.kwargs['face_attr'].size()) == [6, 2, 1]
+    assert torch.equal(e_params.kwargs['face_attr'], expected_e_face_attr)
+
     t_params = house_complex.get_chain_params(dim=2)
     expected_t_x = torch.tensor([[9]], dtype=torch.float)
     assert torch.equal(t_params.x, expected_t_x)
     assert t_params.down_index is None
     assert t_params.up_index is None
+
+    expected_t_face_attr = torch.tensor([[[5], [6], [7]]], dtype=torch.float)
+    assert list(t_params.kwargs['face_attr'].size()) == [1, 3, 1]
+    assert torch.equal(t_params.kwargs['face_attr'], expected_t_face_attr)
 
     assert torch.equal(house_complex.y, house.y)
 
@@ -272,6 +288,9 @@ def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
     for i in range(len(complexes)):
         # Do some basic checks for each complex.
         assert complexes[i].dimension == 2
+        assert complexes[i].nodes.faces is None
+        assert list(complexes[i].edges.faces.size()) == [6, 2]
+        assert list(complexes[i].triangles.faces.size()) == [1, 3]
         assert complexes[i].edges.lower_index.size(1) == 18
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].y, house1.y)
@@ -293,6 +312,9 @@ def test_gudhi_clique_complex_dataset_conversion_with_down_adj_excluded(house_ed
     for i in range(len(complexes)):
         # Do some basic checks for each complex.
         assert complexes[i].dimension == 2
+        assert complexes[i].nodes.faces is None
+        assert list(complexes[i].edges.faces.size()) == [6, 2]
+        assert list(complexes[i].triangles.faces.size()) == [1, 3]
         assert complexes[i].edges.lower_index is None
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].y, house1.y)
@@ -314,6 +336,9 @@ def test_gudhi_integration_with_batching_without_adj(house_edge_index):
     batch = ComplexBatch.from_complex_list(complexes)
     assert batch.dimension == 2
     assert batch.edges.lower_index is None
+    assert batch.nodes.faces is None
+    assert list(batch.edges.faces.size()) == [6*3, 2]
+    assert list(batch.triangles.faces.size()) == [1*3, 3]
 
 
 def test_gudhi_integration_with_batching_with_adj(house_edge_index):
@@ -332,3 +357,5 @@ def test_gudhi_integration_with_batching_with_adj(house_edge_index):
     batch = ComplexBatch.from_complex_list(complexes)
     assert batch.dimension == 2
     assert batch.edges.lower_index.size(1) == 18*3
+    assert list(batch.edges.faces.size()) == [6*3, 2]
+    assert list(batch.triangles.faces.size()) == [1*3, 3]
