@@ -108,7 +108,7 @@ class Chain(object):
             Returns the dimension for which :obj:`value` of attribute
             :obj:`key` will get concatenated when creating batches.
         """
-        if key in ['upper_index', 'lower_index', 'shared_faces', 'shared_cofaces', 'faces']:
+        if key in ['upper_index', 'lower_index', 'shared_faces', 'shared_cofaces']:
             return -1
         # by default, concatenate sparse matrices diagonally.
         elif isinstance(value, SparseTensor):
