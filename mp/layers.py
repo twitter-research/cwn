@@ -8,6 +8,10 @@ from torch_geometric.nn.inits import reset
 
 class DummyChainMessagePassing(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
+    def __init__(self, up_msg_size, down_msg_size, use_face_msg=False, use_down_msg=True):
+        super(DummyChainMessagePassing, self).__init__(up_msg_size, down_msg_size,
+                                                       use_face_msg=use_face_msg,
+                                                       use_down_msg=use_down_msg)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
         # (num_up_adj, x_feature_dim) + (num_up_adj, up_feat_dim)
@@ -20,19 +24,22 @@ class DummyChainMessagePassing(ChainMessagePassing):
         return down_x_j + down_attr
 
     def forward(self, chain: ChainMessagePassingParams):
-        up_out, down_out, _ = self.propagate(chain.up_index, chain.down_index, x=chain.x,
-                                             up_attr=chain.kwargs['up_attr'],
-                                             down_attr=chain.kwargs['down_attr'])
-        return chain.x + up_out + down_out
+        up_out, down_out, face_out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+                                                    up_attr=chain.kwargs['up_attr'],
+                                                    down_attr=chain.kwargs['down_attr'],
+                                                    face_attr=chain.kwargs['face_attr'])
+        # down or face will be zero if one of them is not used.
+        return chain.x + up_out + down_out + face_out
 
 
 class DummySimplicialMessagePassing(torch.nn.Module):
-    def __init__(self, input_dim=1, max_dim: int = 2):
+    def __init__(self, input_dim=1, max_dim: int = 2, use_face_msg=False, use_down_msg=True):
         super(DummySimplicialMessagePassing, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = DummyChainMessagePassing(input_dim, input_dim)
+            mp = DummyChainMessagePassing(input_dim, input_dim, use_face_msg=use_face_msg,
+                                          use_down_msg=use_down_msg)
             self.mp_levels.append(mp)
     
     def forward(self, *chain_params: ChainMessagePassingParams):
@@ -49,7 +56,7 @@ class SINChainConv(ChainMessagePassing):
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
                  eps: float = 0., train_eps: bool = False):
-        super(SINChainConv, self).__init__(up_msg_size, down_msg_size)
+        super(SINChainConv, self).__init__(up_msg_size, down_msg_size, use_face_msg=False)
         self.msg_up_nn = msg_up_nn
         self.msg_down_nn = msg_down_nn
         self.update_nn = update_nn

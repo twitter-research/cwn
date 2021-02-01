@@ -47,12 +47,14 @@ class ChainMessagePassing(torch.nn.Module):
                  aggr_up: Optional[str] = "add",
                  aggr_down: Optional[str] = "add",
                  flow: str = "source_to_target", node_dim: int = -2,
-                 face_msg_size=None):
+                 face_msg_size=None, use_down_msg=True, use_face_msg=True):
 
         super(ChainMessagePassing, self).__init__()
 
         self.up_msg_size = up_msg_size
         self.down_msg_size = down_msg_size
+        self.use_face_msg = use_face_msg
+        self.use_down_msg = use_down_msg
         # Use the same out dimension for faces as for down adjacency by default
         self.face_msg_size = down_msg_size if face_msg_size is None else face_msg_size
         self.aggr_up = aggr_up
@@ -270,12 +272,12 @@ class ChainMessagePassing(torch.nn.Module):
             up_out = self.__message_and_aggregate__(up_index, 'up', up_size, **kwargs)
 
         # Down messaging and aggregation
-        if down_index is not None:
+        if self.use_down_msg and down_index is not None:
             down_out = self.__message_and_aggregate__(down_index, 'down', down_size, **kwargs)
 
         # Face messaging and aggregation
         face_out = None
-        if 'face_attr' in kwargs and kwargs['face_attr'] is not None:
+        if self.use_face_msg and 'face_attr' in kwargs and kwargs['face_attr'] is not None:
             # TODO: Add parameter collection like for the other calls later.
             # This collection should not be needed for now.
             face_out = self.message_and_aggregate_faces(kwargs['face_attr'])
