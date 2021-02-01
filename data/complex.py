@@ -40,6 +40,8 @@ class Chain(object):
             assert lower_index is None
             assert shared_faces is None
             assert faces is None
+        if faces is not None:
+            assert faces.size(1) == dim+1
 
         self.dim = dim
         # TODO: check default for x
@@ -106,7 +108,7 @@ class Chain(object):
             Returns the dimension for which :obj:`value` of attribute
             :obj:`key` will get concatenated when creating batches.
         """
-        if key in ['upper_index', 'lower_index', 'shared_faces', 'shared_cofaces']:
+        if key in ['upper_index', 'lower_index', 'shared_faces', 'shared_cofaces', 'faces']:
             return -1
         # by default, concatenate sparse matrices diagonally.
         elif isinstance(value, SparseTensor):
@@ -120,7 +122,7 @@ class Chain(object):
         """
         if key in ['upper_index', 'lower_index']:
             inc = self.num_simplices
-        elif key == 'shared_faces':
+        elif key in ['shared_faces', 'faces']:
             inc = self.num_simplices_down
         elif key == 'shared_cofaces':
             inc = self.num_simplices_up
@@ -204,6 +206,9 @@ class Chain(object):
             return self.__num_simplices_down__
         if self.lower_index is None:
             return 0
+        if self.faces is not None:
+            logging.warning(__num_warn_msg__.format('faces', 'faces'))
+            return int(self.faces.max()) + 1
         if self.shared_faces is not None:
             logging.warning(__num_warn_msg__.format('faces', 'shared_faces'))
             return int(self.shared_faces.max()) + 1
