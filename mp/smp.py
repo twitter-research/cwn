@@ -46,12 +46,17 @@ class ChainMessagePassing(torch.nn.Module):
                  up_msg_size, down_msg_size,
                  aggr_up: Optional[str] = "add",
                  aggr_down: Optional[str] = "add",
-                 flow: str = "source_to_target", node_dim: int = -2):
+                 flow: str = "source_to_target", node_dim: int = -2,
+                 face_msg_size=None, use_down_msg=True, use_face_msg=True):
 
         super(ChainMessagePassing, self).__init__()
 
         self.up_msg_size = up_msg_size
         self.down_msg_size = down_msg_size
+        self.use_face_msg = use_face_msg
+        self.use_down_msg = use_down_msg
+        # Use the same out dimension for faces as for down adjacency by default
+        self.face_msg_size = down_msg_size if face_msg_size is None else face_msg_size
         self.aggr_up = aggr_up
         self.aggr_down = aggr_down
         assert self.aggr_up in ['add', 'mean', 'max', None]
@@ -70,11 +75,11 @@ class ChainMessagePassing(torch.nn.Module):
         # I presume this doesn't pop first to avoid including the self parameter multiple times.
         self.inspector.inspect(self.message_up)
         self.inspector.inspect(self.message_down)
-        self.inspector.inspect(self.aggregate_up, pop_first=True)
-        self.inspector.inspect(self.aggregate_down, pop_first=True)
-        self.inspector.inspect(self.message_and_aggregate_up, pop_first=True)
-        self.inspector.inspect(self.message_and_aggregate_down, pop_first=True)
-        self.inspector.inspect(self.update, pop_first_two=True)
+        self.inspector.inspect(self.aggregate_up, pop_first_n=1)
+        self.inspector.inspect(self.aggregate_down, pop_first_n=1)
+        self.inspector.inspect(self.message_and_aggregate_up, pop_first_n=1)
+        self.inspector.inspect(self.message_and_aggregate_down, pop_first_n=1)
+        self.inspector.inspect(self.update, pop_first_n=3)
 
         # Return the parameter name for these functions minus those specified in special_args
         self.__user_args__ = self.inspector.keys(
@@ -262,11 +267,20 @@ class ChainMessagePassing(torch.nn.Module):
         self.__check_input_together__(up_index, down_index, up_size, down_size)
 
         up_out, down_out = None, None
+        # Up messaging and aggregation
         if up_index is not None:
             up_out = self.__message_and_aggregate__(up_index, 'up', up_size, **kwargs)
 
-        if down_index is not None:
+        # Down messaging and aggregation
+        if self.use_down_msg and down_index is not None:
             down_out = self.__message_and_aggregate__(down_index, 'down', down_size, **kwargs)
+
+        # Face messaging and aggregation
+        face_out = None
+        if self.use_face_msg and 'face_attr' in kwargs and kwargs['face_attr'] is not None:
+            # TODO: Add parameter collection like for the other calls later.
+            # This collection should not be needed for now.
+            face_out = self.message_and_aggregate_faces(kwargs['face_attr'])
 
         coll_dict = {}
         up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
@@ -276,7 +290,7 @@ class ChainMessagePassing(torch.nn.Module):
         coll_dict.update(up_coll_dict)
         coll_dict.update(down_coll_dict)
         update_kwargs = self.inspector.distribute('update', coll_dict)
-        return self.update(up_out, down_out, **update_kwargs)
+        return self.update(up_out, down_out, face_out, **update_kwargs)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
@@ -301,6 +315,17 @@ class ChainMessagePassing(torch.nn.Module):
         :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
         """
         return down_x_j
+
+    def message_and_aggregate_faces(self, face_attr: Tensor) -> Tensor:
+        """
+        Args:
+            face_attr: A tensor of shape (num_simplices, num_faces, face_feature_dim)
+                containing the features of the faces of each simplex.
+        Returns:
+            face_msg: A tensor of shape (num_simplices, out_feature_dim) containing the aggregated
+                message from the faces to the simplex.
+        """
+        return face_attr.sum(dim=1)
 
     def aggregate_up(self, inputs: Tensor, up_index: Tensor,
                      up_ptr: Optional[Tensor] = None,
@@ -363,7 +388,7 @@ class ChainMessagePassing(torch.nn.Module):
         raise NotImplementedError
 
     def update(self, up_inputs: Optional[Tensor], down_inputs: Optional[Tensor],
-               x: Tensor) -> (Tensor, Tensor):
+               face_inputs: Optional[Tensor], x: Tensor) -> (Tensor, Tensor, Tensor):
         r"""Updates node embeddings in analogy to
         :math:`\gamma_{\mathbf{\Theta}}` for each node
         :math:`i \in \mathcal{V}`.
@@ -372,14 +397,12 @@ class ChainMessagePassing(torch.nn.Module):
         """
         if up_inputs is None:
             up_inputs = torch.zeros(x.size(0), self.up_msg_size).to(device=x.device)
-        else:
-            assert up_inputs.size(1) == self.up_msg_size
         if down_inputs is None:
             down_inputs = torch.zeros(x.size(0), self.down_msg_size).to(device=x.device)
-        else:
-            assert down_inputs.size(1) == self.down_msg_size
+        if face_inputs is None:
+            face_inputs = torch.zeros(x.size(0), self.face_msg_size).to(device=x.device)
 
-        return up_inputs, down_inputs
+        return up_inputs, down_inputs, face_inputs
 
 
 class ChainMessagePassingParams:

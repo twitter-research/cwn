@@ -6,7 +6,7 @@ from data.dummy_complexes import get_house_complex, get_square_dot_complex
 from torch import nn
 
 
-def test_dummy_simplicial_message_passing():
+def test_dummy_simplicial_message_passing_with_down_msg():
     house_complex = get_house_complex()
     v_params = house_complex.get_chain_params(dim=0)
     e_params = house_complex.get_chain_params(dim=1)
@@ -22,6 +22,25 @@ def test_dummy_simplicial_message_passing():
     assert torch.equal(e_x, expected_e_x)
 
     expected_t_x = torch.tensor([[1]], dtype=torch.float)
+    assert torch.equal(t_x, expected_t_x)
+
+
+def test_dummy_simplicial_message_passing_with_face_msg():
+    house_complex = get_house_complex()
+    v_params = house_complex.get_chain_params(dim=0)
+    e_params = house_complex.get_chain_params(dim=1)
+    t_params = house_complex.get_chain_params(dim=2)
+
+    dsmp = DummySimplicialMessagePassing(use_face_msg=True, use_down_msg=False)
+    v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
+
+    expected_v_x = torch.tensor([[12], [9], [25], [25], [23]], dtype=torch.float)
+    assert torch.equal(v_x, expected_v_x)
+
+    expected_e_x = torch.tensor([[4], [7], [23], [9], [25], [24]], dtype=torch.float)
+    assert torch.equal(e_x, expected_e_x)
+
+    expected_t_x = torch.tensor([[15]], dtype=torch.float)
     assert torch.equal(t_x, expected_t_x)
 
 

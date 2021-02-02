@@ -25,26 +25,40 @@ class Chain(object):
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 y=None, **kwargs):
+                 faces: Tensor = None, y=None, **kwargs):
         """
+        Args:
             Constructs a `dim`-chain.
-            - `dim`: dim of the simplices in the chain
-            - `x`: feature matrix, shape [num_simplices, num_features]; may not be available
-            - `upper_index`: upper adjacency, matrix, shape [2, num_upper_connections];
-            may not be available, e.g. when `dim` is the top level dim of a complex
-            - `lower_index`: lower adjacency, matrix, shape [2, num_lower_connections];
-            may not be available, e.g. when `dim` is the top level dim of a complex
-            - `y`: labels over simplices in the chain, shape [num_simplices,]
+            dim: dim of the simplices in the chain
+            x: feature matrix, shape [num_simplices, num_features]; may not be available
+            upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
+            lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
+                may not be available, e.g. when `dim` is the top level dim of a complex
+            shared_faces: a tensor of shape (num_lower_adjacencies,) specifying the indices of
+                the shared face for each lower adjacency
+            shared_cofaces: a tensor of shape (num_upper_adjacencies,) specifying the indices of
+                the shared coface for each upper adjacency
+            faces: a tensor of shape (simplices, dim+1) specifying the indices of the dim-1
+                dimensional faces of each simplex
+            y: labels over simplices in the chain, shape [num_simplices,]
         """
         if dim == 0:
             assert lower_index is None
             assert shared_faces is None
+            assert faces is None
+        if faces is not None:
+            assert faces.size(1) == dim+1
+            if x is not None:
+                assert x.size(0) == faces.size(0)
 
-        self.dim = dim
+        # Note, everything that is not of form __smth__ is made None during batching
+        # So dim must be stored like this.
+        self.__dim__ = dim
         # TODO: check default for x
         self.__x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
+        self.faces = faces
         self.y = y
         self.shared_faces = shared_faces
         self.shared_cofaces = shared_cofaces
@@ -61,6 +75,11 @@ class Chain(object):
                 self.num_simplices_up = item
             else:
                 self[key] = item
+
+    @property
+    def dim(self):
+        """This field should not have a setter. The dimension of a chain cannot be changed"""
+        return self.__dim__
 
     @property
     def x(self):
@@ -118,7 +137,7 @@ class Chain(object):
         """
         if key in ['upper_index', 'lower_index']:
             inc = self.num_simplices
-        elif key == 'shared_faces':
+        elif key in ['shared_faces', 'faces']:
             inc = self.num_simplices_down
         elif key == 'shared_cofaces':
             inc = self.num_simplices_up
@@ -162,6 +181,8 @@ class Chain(object):
             return self.__num_simplices__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
+        if self.faces is not None:
+            return self.faces.size(0)
         if self.upper_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
             return int(self.upper_index.max()) + 1
@@ -202,6 +223,9 @@ class Chain(object):
             return self.__num_simplices_down__
         if self.lower_index is None:
             return 0
+        if self.faces is not None:
+            logging.warning(__num_warn_msg__.format('faces', 'faces'))
+            return int(self.faces.max()) + 1
         if self.shared_faces is not None:
             logging.warning(__num_warn_msg__.format('faces', 'shared_faces'))
             return int(self.shared_faces.max()) + 1
@@ -354,6 +378,7 @@ class ChainBatch(Chain):
 
         keys = [set(data.keys) for data in data_list]
         keys = list(set.union(*keys))
+
         assert 'batch' not in keys and 'ptr' not in keys
 
         batch = cls(data_list[0].dim)
@@ -377,9 +402,8 @@ class ChainBatch(Chain):
         for i, data in enumerate(data_list):
             for key in keys:
                 item = data[key]
-                
+
                 if item is not None:
-                    
                     # Increase values by `cumsum` value.
                     cum = cumsum[key][-1]
                     if isinstance(item, Tensor) and item.dtype != torch.bool:
@@ -543,6 +567,7 @@ class Complex(object):
     def _consolidate(self):
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
+            assert chain.dim == dim
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
                 num_simplices_up = upper_chain.num_simplices
@@ -552,6 +577,9 @@ class Complex(object):
                 else:
                     chain.num_simplices_up = num_simplices_up
             if dim > 0:
+                if chain.faces is not None:
+                    assert list(chain.faces.size()) == [chain.num_simplices, dim+1]
+
                 lower_chain = self.chains[dim - 1]
                 num_simplices_down = lower_chain.num_simplices
                 assert num_simplices_down is not None
@@ -573,7 +601,9 @@ class Complex(object):
         return self
 
     def get_chain_params(self, dim, max_dim=2,
-                         include_top_features=True) -> ChainMessagePassingParams:
+                         include_top_features=True,
+                         include_down_features=True,
+                         include_face_features=True) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim
             neural message passing at the specified `dim`.
@@ -583,10 +613,13 @@ class Complex(object):
                 max_dim: The maximum dimension of interest.
                     This is only used in conjunction with include_top_features.
                 include_top_features: Whether to include the top features from level max_dim+1.
+                include_down_features: Include the features for down adjacency
+                include_face_features: Include the features for the face
         """
         if dim in self.chains:
             simplices = self.chains[dim]
             x = simplices.x
+            # Add up features
             upper_index, upper_features = None, None
             # We also check that dim+1 does exist in the current complex. This chain might have been
             # extracted from a higher dimensional complex by a batching operation, and dim+1
@@ -597,32 +630,50 @@ class Complex(object):
                     upper_features = torch.index_select(self.chains[dim + 1].x, 0,
                                                         self.chains[dim].shared_cofaces)
 
+            # Add down features
             lower_index, lower_features = None, None
-            if simplices.lower_index is not None:
+            if include_down_features and simplices.lower_index is not None:
                 lower_index = simplices.lower_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
                                                         self.chains[dim].shared_faces)
 
+            # Add face features
+            face_features = None
+            if include_face_features and simplices.faces is not None:
+                faces = simplices.faces
+                if dim > 0 and self.chains[dim - 1].x is not None:
+                    # Flatten the face features of shape [num_simplices, dim+1, feature_dim]
+                    face_features = torch.index_select(self.chains[dim - 1].x, 0, faces.view(-1))
+                    face_features = face_features.view(simplices.num_simplices, dim+1, -1)
+
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
-                                               up_attr=upper_features, down_attr=lower_features)
+                                               up_attr=upper_features, down_attr=lower_features,
+                                               face_attr=face_features)
         else:
             raise NotImplementedError(
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return inputs
 
-    def get_all_chain_params(self, max_dim=2, include_top_features=True):
+    def get_all_chain_params(self, max_dim=2,
+                             include_top_features=True,
+                             include_down_features=True,
+                             include_face_features=True):
         """Gets the chain parameters for message passing at all layers.
 
         Args:
             max_dim: The maximum dimension to extract
             include_top_features: Whether to include the features from level max_dim+1
+            include_down_features: Include the features for down adjacency
+            include_face_features: Include the features for the face
         """
         all_params = []
         return_dim = min(max_dim, self.dimension)
         for dim in range(return_dim+1):
             all_params.append(self.get_chain_params(dim, max_dim=max_dim,
-                                                    include_top_features=include_top_features))
+                                                    include_top_features=include_top_features,
+                                                    include_down_features=include_down_features,
+                                                    include_face_features=include_face_features))
         return all_params
 
     def get_labels(self, dim=None):
@@ -681,7 +732,8 @@ class ComplexBatch(Complex):
             if per_complex_labels:
                 label_list.append(comp.y)
 
-        batched_chains = [ChainBatch.from_chain_list(chain_list, follow_batch=follow_batch) for chain_list in chains]
+        batched_chains = [ChainBatch.from_chain_list(chain_list, follow_batch=follow_batch)
+                          for chain_list in chains]
         y = None if not per_complex_labels else torch.cat(label_list, 0)
         batch = cls(*batched_chains, y=y, num_complexes=len(data_list), dimension=dimension)
 
