@@ -37,8 +37,7 @@ def main(args):
     
     # data loading
     load_kwargs = {}
-    if args.dataset.startswith('sr'):
-        load_kwargs['emb_dim'] = args.emb_dim
+    load_kwargs['emb_dim'] = args.emb_dim
     dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, **load_kwargs)
     split_idx = dataset.get_idx_split()
 
@@ -64,6 +63,7 @@ def main(args):
                      args.emb_dim,                            # hidden
                      dropout_rate=args.drop_rate,             # dropout rate
                      max_dim=dataset.max_dim,                 # max_dim
+                     nonlinearity=args.nonlinearity,
                      linear_output=linear_output
                     ).to(device)
     elif args.model == 'dummy':
