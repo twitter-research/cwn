@@ -71,10 +71,10 @@ class SINChainConv(ChainMessagePassing):
         out_up, out_down, _ = self.propagate(chain.up_index, chain.down_index, x=chain.x,
                                              up_attr=chain.kwargs['up_attr'],
                                              down_attr=chain.kwargs['down_attr'])
+
+        # TODO: This is probably not injective, so we should do something else.
         out_up += (1 + self.eps) * chain.x
         out_down += (1 + self.eps) * chain.x
-        # TODO: (Importnat) How should we combine out_up and out_down to make this injective?
-        # Do we need another MLP here to merge them.
         return self.update_nn(out_up + out_down)
 
     def reset_parameters(self):
@@ -144,7 +144,7 @@ class EdgeSINConv(torch.nn.Module):
 
 
 class SparseSINChainConv(ChainMessagePassing):
-    """This is a dummy parameter-free message passing model used for testing."""
+    """This is a SIN Chain layer that operates of faces and upper adjacent simplices."""
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_faces_nn: Callable, update_nn: Callable,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False):
@@ -180,6 +180,7 @@ class SparseSINChainConv(ChainMessagePassing):
         reset(self.msg_up_nn)
         reset(self.msg_faces_nn)
         reset(self.update_nn)
+        reset(self.combine_nn)
         self.eps.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
@@ -197,6 +198,10 @@ class SparseSINChainConv(ChainMessagePassing):
 
 
 class SparseSINConv(torch.nn.Module):
+    """A simplicial version of GIN which performs message passing from  simplicial upper
+    neighbors and faces, but not from lower neighbors (hence why "Sparse")
+    """
+
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_faces_nn: Callable, update_nn: Callable,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False, max_dim: int = 2):
