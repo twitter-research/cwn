@@ -227,7 +227,7 @@ class EdgeSIN0(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
-                 linear_output: bool = False, jump_mode=None, include_top_features=True,
+                 linear_output: bool = False, jump_mode=None, nonlinearity='relu', include_top_features=True,
                  update_top_features=True):
         super(EdgeSIN0, self).__init__()
 
@@ -240,40 +240,34 @@ class EdgeSIN0(torch.nn.Module):
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.update_top_nns = torch.nn.ModuleList()
-
+        self.nonlinearity = nonlinearity
+        conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             v_conv_update = Sequential(
                 Linear(layer_dim, hidden),
-                ELU(),
-                # ReLU(),
+                conv_nonlinearity(),
                 Linear(hidden, hidden),
-                ELU(),
-                # ReLU(),
+                conv_nonlinearity(),
                 BN(hidden))
             e_conv_update = Sequential(
                 Linear(layer_dim, hidden),
-                ELU(),
-                # ReLU(),
+                conv_nonlinearity(),
                 Linear(hidden, hidden),
-                ELU(),
-                # ReLU(),
+                conv_nonlinearity(),
                 BN(hidden))
             v_conv_up = Sequential(
                 Linear(layer_dim * 2, layer_dim),
-                ELU(),
-                # ReLU(),
+                conv_nonlinearity(),
                 BN(layer_dim))
             e_conv_down = Sequential(
                 Linear(layer_dim * 2, layer_dim),
-                ELU(),
-                # ReLU(),
+                conv_nonlinearity(),
                 BN(layer_dim))
             e_conv_inp_dim = layer_dim*2 if include_top_features else layer_dim
             e_conv_up = Sequential(
                 Linear(e_conv_inp_dim, layer_dim),
-                ELU(),
-                # ReLU(),
+                conv_nonlinearity(),
                 BN(layer_dim))
             self.convs.append(
                 EdgeSINConv(layer_dim, layer_dim, v_conv_up, e_conv_down, e_conv_up,
@@ -281,11 +275,9 @@ class EdgeSIN0(torch.nn.Module):
             if self.update_top_features and i < num_layers - 1:
                 self.update_top_nns.append(Sequential(
                     Linear(layer_dim, hidden),
-                    ELU(),
-                    # ReLU(),
+                    conv_nonlinearity(),
                     Linear(hidden, hidden),
-                    ELU(),
-                    # ReLU(),
+                    conv_nonlinearity(),
                     BN(hidden))
                 )
 
@@ -325,6 +317,7 @@ class EdgeSIN0(torch.nn.Module):
         return xs
 
     def forward(self, data: ComplexBatch):
+        model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
         xs, jump_xs = None, None
         for i, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim,
@@ -350,8 +343,7 @@ class EdgeSIN0(torch.nn.Module):
         pooled_xs = self.pool_complex(xs, data)
         x = pooled_xs.sum(dim=0)
 
-        x = F.elu(self.lin1(x))
-        # x = F.relu(self.lin1(x))
+        x = model_nonlinearity(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
         if self.linear_output:
