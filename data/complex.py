@@ -643,8 +643,9 @@ class Complex(object):
             if include_face_features and simplices.faces is not None:
                 faces = simplices.faces
                 if dim > 0 and self.chains[dim - 1].x is not None:
+                    # Flatten the face features of shape [num_simplices, dim+1, feature_dim]
                     face_features = torch.index_select(self.chains[dim - 1].x, 0, faces.view(-1))
-                    face_features = face_features.view(len(x), dim+1, -1)
+                    face_features = face_features.view(simplices.num_simplices, dim+1, -1)
 
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
                                                up_attr=upper_features, down_attr=lower_features,

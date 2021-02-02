@@ -174,7 +174,7 @@ def get_kite_complex():
     e_chain = Chain(dim=1, x=e_x, lower_index=e_down_index, shared_faces=e_shared_faces,
                     upper_index=e_up_index, shared_cofaces=e_shared_cofaces, y=ye, faces=e_faces)
 
-    t_faces = torch.tensor([[0, 1, 2], [1, 2, 3]], dtype=torch.long)
+    t_faces = torch.tensor([[0, 1, 2], [1, 3, 4]], dtype=torch.long)
     t_down_index = torch.tensor( [[0, 1],
                                   [1, 0]], dtype=torch.long)
     t_shared_faces = torch.tensor([1, 1], dtype=torch.long)
