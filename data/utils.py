@@ -468,7 +468,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
 
     if num_simplices_down is None:
         assert shared_faces is None
-    if num_simplices_up is 0:
+    if num_simplices_up == 0:
         assert shared_cofaces is None
 
     if up_index is not None:

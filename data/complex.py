@@ -27,14 +27,20 @@ class Chain(object):
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
                  faces: Tensor = None, y=None, **kwargs):
         """
+        Args:
             Constructs a `dim`-chain.
-            - `dim`: dim of the simplices in the chain
-            - `x`: feature matrix, shape [num_simplices, num_features]; may not be available
-            - `upper_index`: upper adjacency, matrix, shape [2, num_upper_connections];
-            may not be available, e.g. when `dim` is the top level dim of a complex
-            - `lower_index`: lower adjacency, matrix, shape [2, num_lower_connections];
-            may not be available, e.g. when `dim` is the top level dim of a complex
-            - `y`: labels over simplices in the chain, shape [num_simplices,]
+            dim: dim of the simplices in the chain
+            x: feature matrix, shape [num_simplices, num_features]; may not be available
+            upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
+            lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
+                may not be available, e.g. when `dim` is the top level dim of a complex
+            shared_faces: a tensor of shape (num_lower_adjacencies,) specifying the indices of
+                the shared face for each lower adjacency
+            shared_cofaces: a tensor of shape (num_upper_adjacencies,) specifying the indices of
+                the shared coface for each upper adjacency
+            faces: a tensor of shape (simplices, dim+1) specifying the indices of the dim-1
+                dimensional faces of each simplex
+            y: labels over simplices in the chain, shape [num_simplices,]
         """
         if dim == 0:
             assert lower_index is None
@@ -42,8 +48,12 @@ class Chain(object):
             assert faces is None
         if faces is not None:
             assert faces.size(1) == dim+1
+            if x is not None:
+                assert x.size(0) == faces.size(0)
 
-        self.dim = dim
+        # Note, everything that is not of form __smth__ is made None during batching
+        # So dim must be stored like this.
+        self.__dim__ = dim
         # TODO: check default for x
         self.__x = x
         self.upper_index = upper_index
@@ -65,6 +75,11 @@ class Chain(object):
                 self.num_simplices_up = item
             else:
                 self[key] = item
+
+    @property
+    def dim(self):
+        """This field should not have a setter. The dimension of a chain cannot be changed"""
+        return self.__dim__
 
     @property
     def x(self):
@@ -166,6 +181,8 @@ class Chain(object):
             return self.__num_simplices__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
+        if self.faces is not None:
+            return self.faces.size(0)
         if self.upper_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
             return int(self.upper_index.max()) + 1
@@ -361,6 +378,7 @@ class ChainBatch(Chain):
 
         keys = [set(data.keys) for data in data_list]
         keys = list(set.union(*keys))
+
         assert 'batch' not in keys and 'ptr' not in keys
 
         batch = cls(data_list[0].dim)
@@ -384,9 +402,8 @@ class ChainBatch(Chain):
         for i, data in enumerate(data_list):
             for key in keys:
                 item = data[key]
-                
+
                 if item is not None:
-                    
                     # Increase values by `cumsum` value.
                     cum = cumsum[key][-1]
                     if isinstance(item, Tensor) and item.dtype != torch.bool:
@@ -550,6 +567,7 @@ class Complex(object):
     def _consolidate(self):
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
+            assert chain.dim == dim
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
                 num_simplices_up = upper_chain.num_simplices
@@ -559,6 +577,9 @@ class Complex(object):
                 else:
                     chain.num_simplices_up = num_simplices_up
             if dim > 0:
+                if chain.faces is not None:
+                    assert list(chain.faces.size()) == [chain.num_simplices, dim+1]
+
                 lower_chain = self.chains[dim - 1]
                 num_simplices_down = lower_chain.num_simplices
                 assert num_simplices_down is not None
@@ -710,7 +731,8 @@ class ComplexBatch(Complex):
             if per_complex_labels:
                 label_list.append(comp.y)
 
-        batched_chains = [ChainBatch.from_chain_list(chain_list, follow_batch=follow_batch) for chain_list in chains]
+        batched_chains = [ChainBatch.from_chain_list(chain_list, follow_batch=follow_batch)
+                          for chain_list in chains]
         y = None if not per_complex_labels else torch.cat(label_list, 0)
         batch = cls(*batched_chains, y=y, num_complexes=len(data_list), dimension=dimension)
 
