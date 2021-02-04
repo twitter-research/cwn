@@ -10,6 +10,10 @@ def get_parser():
                         help='dropout rate (default: 0.5)')
     parser.add_argument('--nonlinearity', type=str, default='relu',
                         help='activation function (default: relu)')
+    parser.add_argument('--readout', type=str, default='sum',
+                        help='readout function (default: sum)')
+    parser.add_argument('--jump_mode', type=str, default=None,
+                        help='Mode for JK (default: None, i.e. no JK)')
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate (default: 0.001)')
     parser.add_argument('--lr_scheduler', type=str, default='None',
