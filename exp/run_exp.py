@@ -4,10 +4,12 @@ import pickle
 import torch
 import torch.optim as optim
 
-from data.data_loading import DataLoader, load_dataset
+from data.data_loading import DataLoader, load_dataset, load_sr_graph_dataset
+from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
 from mp.models import SIN0, Dummy, SparseSIN0
+from mp.graph_models import GIN0
 
 from definitions import ROOT_DIR
 
@@ -38,23 +40,41 @@ def main(args):
         os.makedirs(result_folder)
     filename = os.path.join(result_folder, 'results.txt')
     
-    # data loading
-    load_kwargs = {}
-    load_kwargs['emb_dim'] = args.emb_dim
-    dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, **load_kwargs)
-    split_idx = dataset.get_idx_split()
+    if args.model.startswith('gin'):  # load graph dataset
+        
+        assert args.dataset.startswith('sr')
+        graph_list, train_ids, val_ids, test_ids = load_sr_graph_dataset(args.dataset, args.emb_dim)
+        train_graphs = [graph_list[i] for i in train_ids]
+        val_graphs = [graph_list[i] for i in val_ids]
+        test_graphs = [graph_list[i] for i in test_ids]
+        train_loader = PyGDataLoader(train_graphs, batch_size=args.batch_size,
+                                  shuffle=True, num_workers=args.num_workers)
+        valid_loader = PyGDataLoader(val_graphs, batch_size=args.batch_size,
+                                   shuffle=False, num_workers=args.num_workers)
+        test_loader = PyGDataLoader(test_graphs, batch_size=args.batch_size,
+                                   shuffle=False, num_workers=args.num_workers)
+        num_features = 1
+        num_classes = args.emb_dim
+    
+    else:
+        
+        # data loading
+        load_kwargs = {}
+        load_kwargs['emb_dim'] = args.emb_dim
+        dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, **load_kwargs)
+        split_idx = dataset.get_idx_split()
 
+        # instantiate data loaders
+        train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
+        valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
+        test_split = split_idx.get("test", None)
+        if test_split is not None:
+            test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
+        else:
+            test_loader = None
+            
     # automatic evaluator, takes dataset name as input
     evaluator = Evaluator(args.eval_metric)
-
-    # instantiate data loaders
-    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
-    valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
-    test_split = split_idx.get("test", None)
-    if test_split is not None:
-        test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
-    else:
-        test_loader = None
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
@@ -80,6 +100,17 @@ def main(args):
                      dropout_rate=args.drop_rate,             # dropout rate
                      max_dim=dataset.max_dim,                 # max_dim
                      jump_mode=args.jump_mode,                # jump mode
+                     nonlinearity=args.nonlinearity,          # nonlinearity
+                     readout=args.readout,                    # readout
+                    ).to(device)
+        
+    elif args.model == 'gin':
+        
+        model = GIN0(num_features,                            # num_input_features
+                     args.num_layers,                         # num_layers
+                     args.emb_dim,                            # hidden
+                     num_classes,                             # num_classes
+                     dropout_rate=args.drop_rate,             # dropout rate
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
