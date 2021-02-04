@@ -22,6 +22,14 @@ def get_nonlinearity(nonlinearity, return_module=True):
         return module
     return function
 
+def get_pooling_fn(readout):
+    if readout == 'sum':
+        return global_add_pool
+    elif readout == 'mean':
+        return global_mean_pool
+    else:
+        raise NotImplementError('Readout {} is not currently supported.'.format(readout))
+
 class SIN0(torch.nn.Module):
     """
     A simplicial version of GIN.
@@ -30,15 +38,15 @@ class SIN0(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
-                 max_dim: int = 2, linear_output: bool = False, jump_mode=None, nonlinearity='relu'):
+                 max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum'):
         super(SIN0, self).__init__()
 
         self.max_dim = max_dim
         self.dropout_rate = dropout_rate
-        self.linear_output = linear_output
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
+        self.pooling_fn = get_pooling_fn(readout) 
         conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
@@ -82,7 +90,7 @@ class SIN0(torch.nn.Module):
                                 device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
-            pooled_xs[i, :, :] = global_mean_pool(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
         return pooled_xs
 
     def jump_complex(self, jump_xs):
@@ -114,9 +122,7 @@ class SIN0(torch.nn.Module):
         x = model_nonlinearity(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
-        if self.linear_output:
-            return x
-        return F.log_softmax(x, dim=-1)
+        return x
 
     def __repr__(self):
         return self.__class__.__name__
@@ -130,29 +136,31 @@ class SparseSIN0(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
-                 max_dim: int = 2, linear_output: bool = False, jump_mode=None):
+                 max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum'):
         super(SparseSIN0, self).__init__()
 
         self.max_dim = max_dim
         self.dropout_rate = dropout_rate
-        self.linear_output = linear_output
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
+        self.nonlinearity = nonlinearity
+        self.pooling_fn = get_pooling_fn(readout) 
+        conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             conv_update = Sequential(
                 Linear(layer_dim, hidden),
-                ReLU(),
+                conv_nonlinearity(),
                 Linear(hidden, hidden),
-                ReLU(),
+                conv_nonlinearity(),
                 BN(hidden))
             conv_up = Sequential(
                 Linear(layer_dim * 2, layer_dim),
-                ReLU(),
+                conv_nonlinearity(),
                 BN(layer_dim))
             combine = Sequential(
                 Linear(hidden*2, hidden),
-                ReLU(),
+                conv_nonlinearity(),
                 BN(hidden))
             self.convs.append(
                 SparseSINConv(layer_dim, layer_dim, conv_up, lambda x: x, conv_update, combine,
@@ -180,7 +188,7 @@ class SparseSIN0(torch.nn.Module):
                                 device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
-            pooled_xs[i, :, :] = global_mean_pool(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
         return pooled_xs
 
     def jump_complex(self, jump_xs):
@@ -191,6 +199,7 @@ class SparseSIN0(torch.nn.Module):
         return xs
 
     def forward(self, data: ComplexBatch):
+        model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
         xs, jump_xs = None, None
         for i, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
@@ -208,12 +217,10 @@ class SparseSIN0(torch.nn.Module):
         pooled_xs = self.pool_complex(xs, data)
         x = pooled_xs.sum(dim=0)
 
-        x = F.relu(self.lin1(x))
+        x = model_nonlinearity(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
-        if self.linear_output:
-            return x
-        return F.log_softmax(x, dim=-1)
+        return x
 
     def __repr__(self):
         return self.__class__.__name__
@@ -227,8 +234,8 @@ class EdgeSIN0(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
-                 linear_output: bool = False, jump_mode=None, nonlinearity='relu', include_top_features=True,
-                 update_top_features=True):
+                 jump_mode=None, nonlinearity='relu', include_top_features=True, update_top_features=True,
+                 readout='sum'):
         super(EdgeSIN0, self).__init__()
 
         self.max_dim = 1
@@ -236,11 +243,11 @@ class EdgeSIN0(torch.nn.Module):
         # If the top features are included, then they can be updated by a network.
         self.update_top_features = include_top_features and update_top_features
         self.dropout_rate = dropout_rate
-        self.linear_output = linear_output
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.update_top_nns = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
+        self.pooling_fn = get_pooling_fn(readout) 
         conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
@@ -306,7 +313,7 @@ class EdgeSIN0(torch.nn.Module):
                                 device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
-            pooled_xs[i, :, :] = global_mean_pool(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
         return pooled_xs
 
     def jump_complex(self, jump_xs):
@@ -346,9 +353,7 @@ class EdgeSIN0(torch.nn.Module):
         x = model_nonlinearity(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
-        if self.linear_output:
-            return x
-        return F.log_softmax(x, dim=-1)
+        return x
 
     def __repr__(self):
         return self.__class__.__name__
@@ -361,12 +366,12 @@ class Dummy(torch.nn.Module):
     Readout at each layer is by summation.
     Outputs are computed by one single linear layer.
     """
-    def __init__(self, num_input_features, num_classes, num_layers, max_dim: int = 2, linear_output: bool = False):
+    def __init__(self, num_input_features, num_classes, num_layers, max_dim: int = 2, readout='sum'):
         super(Dummy, self).__init__()
 
         self.max_dim = max_dim
-        self.linear_output = linear_output
         self.convs = torch.nn.ModuleList()
+        self.pooling_fn = get_pooling_fn(readout)
         for i in range(num_layers):
             self.convs.append(DummySimplicialMessagePassing(max_dim=self.max_dim))
         self.lin = Linear(num_input_features, num_classes)
@@ -394,14 +399,12 @@ class Dummy(torch.nn.Module):
             # Otherwise, if we have complexes with no simplices at certain levels, the wrong
             # shape could be inferred automatically from data.chains[i].batch.
             # This makes sure the output tensor will have the right dimensions.
-            pooled_xs[i, :, :] = global_add_pool(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
         # Reduce across the levels of the complexes
         x = pooled_xs.sum(dim=0)
 
         x = self.lin(x)
-        if self.linear_output:
-            return x
-        return F.log_softmax(x, dim=-1)
-
+        return x
+    
     def __repr__(self):
         return self.__class__.__name__

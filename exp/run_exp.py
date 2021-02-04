@@ -7,7 +7,7 @@ import torch.optim as optim
 from data.data_loading import DataLoader, load_dataset
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
-from mp.models import SIN0, Dummy
+from mp.models import SIN0, Dummy, SparseSIN0
 
 from definitions import ROOT_DIR
 
@@ -21,8 +21,11 @@ def main(args):
 
     # set device
     device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
-    
-    result_folder = args.result_folder if args.result_folder is not None else os.path.join(ROOT_DIR, 'exp', 'results')
+        
+    if args.result_folder is None:
+        result_folder = os.path.join(ROOT_DIR, 'exp', 'results')
+    else:
+        result_folder = args.result_folder
     if args.exp_name is None:
         # get timestamp for results and set result directory
         exp_name = time.time()
@@ -55,24 +58,41 @@ def main(args):
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
-    linear_output = (not args.task_type=='classification')
     if args.model == 'sin':
+        
         model = SIN0(dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
                      dropout_rate=args.drop_rate,             # dropout rate
                      max_dim=dataset.max_dim,                 # max_dim
-                     nonlinearity=args.nonlinearity,
-                     linear_output=linear_output
+                     jump_mode=args.jump_mode,                # jump mode
+                     nonlinearity=args.nonlinearity,          # nonlinearity
+                     readout=args.readout,                    # readout
                     ).to(device)
+        
+    elif args.model == 'sparse_sin':
+        
+        model = SparseSIN0(dataset.num_features_in_dim(0),    # num_input_features
+                     dataset.num_classes,                     # num_classes
+                     args.num_layers,                         # num_layers
+                     args.emb_dim,                            # hidden
+                     dropout_rate=args.drop_rate,             # dropout rate
+                     max_dim=dataset.max_dim,                 # max_dim
+                     jump_mode=args.jump_mode,                # jump mode
+                     nonlinearity=args.nonlinearity,          # nonlinearity
+                     readout=args.readout,                    # readout
+                    ).to(device)
+        
     elif args.model == 'dummy':
+        
         model = Dummy(dataset.num_features_in_dim(0),
                       dataset.num_classes,
                       args.num_layers,
                       max_dim=dataset.max_dim,
-                      linear_output=linear_output
+                      readout=args.readout,
                      ).to(device)
+        
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
         
