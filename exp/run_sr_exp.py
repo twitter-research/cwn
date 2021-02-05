@@ -40,14 +40,15 @@ if __name__ == "__main__":
     passed_args = sys.argv[1:]
     assert 'dataset' not in passed_args
     assert 'exp_name' not in passed_args
-    assert 'max_dim' not in passed_args
     ts = str(time.time())
     passed_args += ['--result_folder', os.path.join(ROOT_DIR, 'exp', 'results', 'sr-{}'.format(ts))]
     
     # run each experiment separately and gather results
     results = list()
     for f, family in enumerate(__families__):
-        current_args = copy.copy(passed_args) + ['--dataset', family, '--exp_name', family, '--max_dim', str(__max_dim__[f])]
+        current_args = copy.copy(passed_args) + ['--dataset', family, '--exp_name', family]
+        if '--max_dim' not in passed_args:
+            current_args += ['--max_dim', str(__max_dim__[f])]
         parsed_args = parser.parse_args(current_args)
         curves = main(parsed_args)
         results.append(curves)
