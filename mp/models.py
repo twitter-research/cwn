@@ -174,7 +174,7 @@ class SparseSIN(torch.nn.Module):
             if jump_mode == 'cat':
                 # These layers don't use a bias. Then, in case a level is not present the output
                 # is just zero and it is not given by the biases.
-                self.lin1s.append(Linear(num_layers * hidden, final_hidden_multiplier*hidden,
+                self.lin1s.append(Linear(num_layers * hidden, final_hidden_multiplier * hidden,
                     bias=False))
             else:
                 self.lin1s.append(Linear(hidden, final_hidden_multiplier * hidden))
