@@ -129,7 +129,7 @@ class Evaluator(object):
     def eval(self, input_dict):
         return self.eval_fn(input_dict)
         
-    def _isomorphism(self, input_dict, **kwargs):
+    def _isomorphism(self, input_dict):
         # NB: here we return the failure percentage... the smaller the better!
         p = input_dict.get('p', 2)
         eps = input_dict.get('eps', 0.01)
