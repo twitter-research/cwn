@@ -4,7 +4,7 @@ import pickle
 import torch
 import torch.optim as optim
 
-from data.data_loading import DataLoader, load_dataset, load_sr_graph_dataset
+from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
@@ -43,7 +43,7 @@ def main(args):
     if args.model.startswith('gin'):  # load graph dataset
         
         assert args.dataset.startswith('sr')
-        graph_list, train_ids, val_ids, test_ids = load_sr_graph_dataset(args.dataset, args.emb_dim)
+        graph_list, train_ids, val_ids, test_ids = load_graph_dataset(args.dataset, emb_dim=args.emb_dim)
         train_graphs = [graph_list[i] for i in train_ids]
         val_graphs = [graph_list[i] for i in val_ids]
         test_graphs = [graph_list[i] for i in test_ids]

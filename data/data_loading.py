@@ -7,8 +7,7 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
-from data.datasets import SRDataset, ClusterDataset, TUDataset
-from data.sr_utils import load_sr_dataset
+from data.datasets import SRDataset, ClusterDataset, TUDataset, load_sr_graph_dataset
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -83,18 +82,9 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         raise NotImplementedError
     return dataset
 
-def load_sr_graph_dataset(name, emb_dim, root=os.path.join(ROOT_DIR, 'datasets')):
-    raw_dir = os.path.join(root, 'SR_graphs', 'raw')
-    load_from = os.path.join(raw_dir, '{}.g6'.format(name))
-    data = load_sr_dataset(load_from)
-    y = torch.ones(emb_dim, dtype=torch.long)
-    graphs = list()
-    for datum in data:
-        edge_index, num_nodes = datum
-        x = torch.ones(num_nodes, 1, dtype=torch.float32)
-        graph = Data(x=x, edge_index=edge_index, y=y, num_nodes=num_nodes)
-        graphs.append(graph) 
-    train_ids = list(range(len(graphs)))
-    val_ids = list(range(len(graphs)))
-    test_ids = list(range(len(graphs)))
-    return graphs, train_ids, val_ids, test_ids
+def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **kwargs):
+    if name.startswith('sr'):
+        data = load_sr_graph_dataset(name, root=root, emb_dim=kwargs['emb_dim'])
+    else:
+        raise NotImplementedError
+    return data
