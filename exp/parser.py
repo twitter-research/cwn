@@ -58,4 +58,6 @@ def get_parser():
                         help='fold index for k-fold cross-validation experiments')
     parser.add_argument('--init_method', type=str, default='sum',
                         help='How to initialise features at higher levels (sum, mean)')
+    parser.add_argument('--train_eval_period', type=int, default=10,
+                        help='How often to evaluate on train.')
     return parser

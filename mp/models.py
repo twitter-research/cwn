@@ -140,7 +140,7 @@ class SparseSIN(torch.nn.Module):
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
-                 train_eps=False):
+                 train_eps=False, final_hidden_multiplier: int = 2):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -149,32 +149,36 @@ class SparseSIN(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
         self.pooling_fn = get_pooling_fn(readout) 
-        conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
+        act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             conv_update_up = Sequential(
                 Linear(layer_dim, hidden),
-                conv_nonlinearity(),
+                act_module(),
                 Linear(hidden, hidden),
-                conv_nonlinearity())
+                act_module())
             conv_update_faces = Sequential(
                 Linear(layer_dim, hidden),
-                conv_nonlinearity(),
+                act_module(),
                 Linear(hidden, hidden),
-                conv_nonlinearity())
+                act_module())
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    msg_faces_nn=lambda x: x, msg_up_nn=lambda x1, x2: x1, update_up_nn=conv_update_up,
-                    update_faces_nn=conv_update_faces, train_eps=train_eps, max_dim=self.max_dim,
-                    hidden=hidden))
+                    msg_faces_nn=lambda x: x, msg_up_nn=lambda x1, x2: x1,
+                    update_up_nn=conv_update_up, update_faces_nn=conv_update_faces,
+                    train_eps=train_eps, max_dim=self.max_dim,
+                    hidden=hidden, act_module=act_module))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim+1):
             if jump_mode == 'cat':
-                self.lin1s.append(Linear(num_layers * hidden,2*hidden))
+                # These layers don't use a bias. Then, in case a level is not present the output
+                # is just zero and it is not given by the biases.
+                self.lin1s.append(Linear(num_layers * hidden, final_hidden_multiplier*hidden,
+                    bias=False))
             else:
-                self.lin1s.append(Linear(hidden, 2*hidden))
-        self.lin2 = Linear(2*hidden, num_classes)
+                self.lin1s.append(Linear(hidden, final_hidden_multiplier*hidden))
+        self.lin2 = Linear(final_hidden_multiplier*hidden, num_classes)
 
     def reset_parameters(self):
         for conv in self.convs:

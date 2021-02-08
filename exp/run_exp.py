@@ -3,6 +3,7 @@ import os
 import pickle
 import torch
 import torch.optim as optim
+import random
 
 from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
@@ -40,6 +41,7 @@ def main(args):
     # Set the seed for everything
     torch.manual_seed(43)
     np.random.seed(43)
+    random.seed(43)
 
     if args.exp_name is None:
         # get timestamp for results and set result directory
@@ -177,9 +179,9 @@ def main(args):
             
             # evaluate model
             print('Evaluating...')
-            if epoch == 1 or epoch % 10 == 0:
+            if epoch == 1 or epoch % args.train_eval_period == 0:
                 train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
-                train_curve.append(train_perf)
+            train_curve.append(train_perf)
             valid_perf, epoch_val_loss = eval(model, device,
                 valid_loader, evaluator, args.task_type, dataset[split_idx["valid"]])
             valid_curve.append(valid_perf)
@@ -240,13 +242,12 @@ def main(args):
         'test': test_curve,
         'best': best_val_epoch}
     msg = (
-        'Dataset:        {0}\n'
-        'Validation:     {1}\n'
-        'Test:           {2}\n'
-        'Best epoch:     {3}\n'
-        '-------------------------------\n')
-    msg = msg.format(args.dataset, valid_curve[best_val_epoch], test_curve[best_val_epoch],
-        best_val_epoch)
+       f'Dataset:        {args.dataset}\n'
+       f'Validation:     {valid_curve[best_val_epoch]}\n'
+       f'Train:          {train_curve[best_val_epoch]}\n'
+       f'Test:           {test_curve[best_val_epoch]}\n'
+       f'Best epoch:     {best_val_epoch}\n'
+       '-------------------------------\n')
     msg += str(args)
     with open(filename, 'w') as handle:
         handle.write(msg)

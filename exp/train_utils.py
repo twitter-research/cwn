@@ -24,14 +24,22 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     
     curve = list()
     model.train()
+    num_skips = 0
     for step, batch in enumerate(tqdm(loader, desc="Training iteration")):
         batch = batch.to(device)
-        num_samples = batch.chains[0].x.size(0)
-        for dim in range(1, batch.dimension+1):
-            num_samples = min(num_samples, batch.chains[dim].x.size(0))
+        if isinstance(batch, ComplexBatch):
+            num_samples = batch.chains[0].x.size(0)
+            for dim in range(1, batch.dimension+1):
+                num_samples = min(num_samples, batch.chains[dim].x.size(0))
+        else:
+            # This is graph.
+            num_samples = batch.x.size(0)
 
         if num_samples <= 1:
             # Skip batch if it only comprises one sample (could cause problems with BN)
+            num_skips += 1
+            if float(num_skips) / len(loader) >= 0.25:
+                print("Warning! 25% of the batches were skipped this epoch")
             continue
 
         optimizer.zero_grad()
@@ -84,7 +92,7 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
-            loss = loss_fn(pred, batch.y)
+            loss = loss_fn(pred, batch.y.view(-1))
         losses.append(loss.detach().cpu().item())
 
         y_true.append(batch.y.detach().cpu())

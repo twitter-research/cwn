@@ -16,7 +16,6 @@ if __name__ == "__main__":
     passed_args = sys.argv[1:]
     assert 'fold' not in passed_args
     passed_args += ['--exp_name', str(time.time())]
-    parsed_args = parser.parse_args(passed_args)
 
     # run each experiment separately and gather results
     results = list()

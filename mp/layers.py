@@ -214,9 +214,9 @@ class SparseSINConv(torch.nn.Module):
         for dim in range(max_dim+1):
             combine_nn = Sequential(
                 Linear(kwargs['hidden']*2, kwargs['hidden']),
-                ReLU(),
+                kwargs['act_module'](),
                 Linear(kwargs['hidden'], kwargs['hidden']),
-                ReLU(),
+                kwargs['act_module'](),
                 BN(kwargs['hidden']))
             mp = SparseSINChainConv(dim, up_msg_size, down_msg_size,
                                     msg_up_nn, msg_faces_nn, update_up_nn,
