@@ -24,6 +24,11 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     model.train()
     for step, batch in enumerate(tqdm(loader, desc="Training iteration")):
         batch = batch.to(device)
+        # TODO: the try-except construct below needs to be fixed
+        #       1. num_complexes will except in the case of graph datasets
+        #       2. `num_samples = batch.x.shape[0] == 1` is not correct as a statement
+        #       3. batch.x.shape[0] is not the num of samples but of overall features (that may be ok)
+        #       4. we might need to do checks at each level of the complex batch
         try:
             num_samples = batch.num_complexes
         except AttributeError:
