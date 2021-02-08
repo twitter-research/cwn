@@ -141,6 +141,7 @@ datasets/**/processed/
 datasets/**/complex*
 exp/results/
 *.pt
+*.pkl
 
 !datasets/SR_graphs/raw
 !datasets/IMDBBINARY/raw
