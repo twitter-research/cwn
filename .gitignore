@@ -136,14 +136,10 @@ dmypy.json
 
 *.gz
 #data/dataset/
-#datasets/
-datasets/**/processed/
-datasets/**/complex*
+datasets/
 exp/results/
 *.pt
 *.pkl
+datasets.zip
 
-!datasets/SR_graphs/raw
-!datasets/IMDBBINARY/raw
-!datasets/PROTEINS/raw
-!datasets/NCI1/raw
+!datasets/SR_graphs/
