@@ -39,7 +39,8 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
             # Skip batch if it only comprises one sample (could cause problems with BN)
             num_skips += 1
             if float(num_skips) / len(loader) >= 0.25:
-                print("Warning! 25% of the batches were skipped this epoch")
+                import logging
+                logging.warning("Warning! 25% of the batches were skipped this epoch")
             continue
 
         optimizer.zero_grad()
