@@ -4,6 +4,7 @@ from typing import Callable
 from torch import Tensor
 from mp.smp import ChainMessagePassing, ChainMessagePassingParams
 from torch_geometric.nn.inits import reset
+from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
 
 
 class DummyChainMessagePassing(ChainMessagePassing):
@@ -145,19 +146,23 @@ class EdgeSINConv(torch.nn.Module):
 
 class SparseSINChainConv(ChainMessagePassing):
     """This is a SIN Chain layer that operates of faces and upper adjacent simplices."""
-    def __init__(self, up_msg_size: int, down_msg_size: int,
-                 msg_up_nn: Callable, msg_faces_nn: Callable, update_nn: Callable,
+    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
+                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable, update_faces_nn,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False):
         super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, use_down_msg=False)
+        self.dim = dim
         self.msg_up_nn = msg_up_nn
         self.msg_faces_nn = msg_faces_nn
-        self.update_nn = update_nn
+        self.update_up_nn = update_up_nn
+        self.update_faces_nn = update_faces_nn
         self.combine_nn = combine_nn
         self.initial_eps = eps
         if train_eps:
-            self.eps = torch.nn.Parameter(torch.Tensor([eps]))
+            self.eps1 = torch.nn.Parameter(torch.Tensor([eps]))
+            self.eps2 = torch.nn.Parameter(torch.Tensor([eps]))
         else:
-            self.register_buffer('eps', torch.Tensor([eps]))
+            self.register_buffer('eps1', torch.Tensor([eps]))
+            self.register_buffer('eps2', torch.Tensor([eps]))
         self.reset_parameters()
 
     def forward(self, chain: ChainMessagePassingParams):
@@ -166,29 +171,35 @@ class SparseSINChainConv(ChainMessagePassing):
                                               face_attr=chain.kwargs['face_attr'])
 
         # As in GIN, we can learn an injective update function for each multi-set
-        out_up += (1 + self.eps) * chain.x
-        out_faces += (1 + self.eps) * chain.x
-        out_up = self.update_nn(out_up)
-        out_faces = self.update_nn(out_faces)
+        out_up += (1 + self.eps1) * chain.x
+        out_faces += (1 + self.eps2) * chain.x
+        out_up = self.update_up_nn(out_up)
+        out_faces = self.update_faces_nn(out_faces)
 
         # We need to combine the two such that the output is injective
         # Because the cross product of countable spaces is countable, then such a function exists.
         # And we can learn it with another MLP.
-        return self.combine_nn(torch.cat([out_up, out_faces], dim=1))
+        return self.combine_nn(torch.cat([out_up, out_faces], dim=-1))
 
     def reset_parameters(self):
         reset(self.msg_up_nn)
         reset(self.msg_faces_nn)
-        reset(self.update_nn)
+        reset(self.update_up_nn)
+        reset(self.update_faces_nn)
         reset(self.combine_nn)
-        self.eps.data.fill_(self.initial_eps)
+        self.eps1.data.fill_(self.initial_eps)
+        self.eps2.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        if up_attr is not None:
-            x = torch.cat([up_x_j, up_attr], dim=-1)
-            return self.msg_up_nn(x)
+        # if up_attr is not None and self.dim > 0:
+        #     x = torch.cat([up_x_j, up_attr], dim=-1)
+        #     return self.msg_up_nn(x)
+        # else:
+        #     return up_x_j
+        if self.dim == 0:
+            return up_x_j
         else:
-            return self.msg_up_nn(up_x_j)
+            return up_x_j
 
     def message_and_aggregate_faces(self, face_attr: Tensor) -> Tensor:
         shape = face_attr.size()
@@ -203,14 +214,21 @@ class SparseSINConv(torch.nn.Module):
     """
 
     def __init__(self, up_msg_size: int, down_msg_size: int,
-                 msg_up_nn: Callable, msg_faces_nn: Callable, update_nn: Callable,
-                 combine_nn: Callable, eps: float = 0., train_eps: bool = False, max_dim: int = 2):
+                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable, update_faces_nn,
+                 eps: float = 0., train_eps: bool = False, max_dim: int = 2, **kwargs):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = SparseSINChainConv(up_msg_size, down_msg_size,
-                                    msg_up_nn, msg_faces_nn, update_nn, combine_nn, eps, train_eps)
+            combine_nn = Sequential(
+                Linear(kwargs['hidden']*2, kwargs['hidden']),
+                ReLU(),
+                Linear(kwargs['hidden'], kwargs['hidden']),
+                ReLU(),
+                BN(kwargs['hidden']))
+            mp = SparseSINChainConv(dim, up_msg_size, down_msg_size,
+                                    msg_up_nn, msg_faces_nn, update_up_nn,
+                                    update_faces_nn, combine_nn, eps, train_eps)
             self.mp_levels.append(mp)
 
     def forward(self, *chain_params: ChainMessagePassingParams):

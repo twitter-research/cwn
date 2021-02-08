@@ -1,10 +1,11 @@
 import torch
 import torch.nn.functional as F
 
-from torch.nn import Linear, Sequential, BatchNorm1d as BN
+from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
 from torch_geometric.nn import global_mean_pool, global_add_pool, JumpingKnowledge
 from mp.layers import SINConv, EdgeSINConv, SparseSINConv, DummySimplicialMessagePassing
 from data.complex import Complex, ComplexBatch
+
 
 def get_nonlinearity(nonlinearity, return_module=True):
     if nonlinearity=='relu':
@@ -22,6 +23,7 @@ def get_nonlinearity(nonlinearity, return_module=True):
         return module
     return function
 
+
 def get_pooling_fn(readout):
     if readout == 'sum':
         return global_add_pool
@@ -29,6 +31,7 @@ def get_pooling_fn(readout):
         return global_mean_pool
     else:
         raise NotImplementError('Readout {} is not currently supported.'.format(readout))
+
 
 class SIN0(torch.nn.Module):
     """
@@ -66,7 +69,7 @@ class SIN0(torch.nn.Module):
                 BN(layer_dim))
             self.convs.append(
                 SINConv(layer_dim, layer_dim,
-                        conv_up, conv_down, conv_update, train_eps=False, max_dim=self.max_dim))
+                        conv_up, conv_down, conv_update, train_eps=True, max_dim=self.max_dim))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         if jump_mode == 'cat':
             self.lin1 = Linear(num_layers * hidden, hidden)
@@ -128,7 +131,7 @@ class SIN0(torch.nn.Module):
         return self.__class__.__name__
 
 
-class SparseSIN0(torch.nn.Module):
+class SparseSIN(torch.nn.Module):
     """
     A simplicial version of GIN.
 
@@ -136,8 +139,9 @@ class SparseSIN0(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
-                 max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum'):
-        super(SparseSIN0, self).__init__()
+                 max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
+                 train_eps=False):
+        super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
         self.dropout_rate = dropout_rate
@@ -148,29 +152,31 @@ class SparseSIN0(torch.nn.Module):
         conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
-            conv_update = Sequential(
+            conv_update_up = Sequential(
                 Linear(layer_dim, hidden),
                 conv_nonlinearity(),
                 Linear(hidden, hidden),
                 conv_nonlinearity(),
                 BN(hidden))
-            conv_up = Sequential(
-                Linear(layer_dim * 2, layer_dim),
+            conv_update_faces = Sequential(
+                Linear(layer_dim, hidden),
                 conv_nonlinearity(),
-                BN(layer_dim))
-            combine = Sequential(
-                Linear(hidden*2, hidden),
+                Linear(hidden, hidden),
                 conv_nonlinearity(),
                 BN(hidden))
             self.convs.append(
-                SparseSINConv(layer_dim, layer_dim, conv_up, lambda x: x, conv_update, combine,
-                              train_eps=False, max_dim=self.max_dim))
+                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                    msg_faces_nn=lambda x: x, msg_up_nn=lambda x: x, update_up_nn=conv_update_up,
+                    update_faces_nn=conv_update_faces, train_eps=train_eps, max_dim=self.max_dim,
+                    hidden=hidden))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
-        if jump_mode == 'cat':
-            self.lin1 = Linear(num_layers * hidden, hidden)
-        else:
-            self.lin1 = Linear(hidden, hidden)
-        self.lin2 = Linear(hidden, num_classes)
+        self.lin1s = torch.nn.ModuleList()
+        for _ in range(max_dim+1):
+            if jump_mode == 'cat':
+                self.lin1s.append(Linear(num_layers * hidden,2*hidden))
+            else:
+                self.lin1s.append(Linear(hidden, 2*hidden))
+        self.lin2 = Linear(2*hidden, num_classes)
 
     def reset_parameters(self):
         for conv in self.convs:
@@ -183,13 +189,18 @@ class SparseSIN0(torch.nn.Module):
     def pool_complex(self, xs, data):
         # All complexes have nodes so we can extract the batch size from chains[0]
         batch_size = data.chains[0].batch.max() + 1
+        # print(batch_size)
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
         pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1),
                                 device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
             pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
-        return pooled_xs
+
+        new_xs = []
+        for i in range(self.max_dim+1):
+            new_xs.append(pooled_xs[i])
+        return new_xs
 
     def jump_complex(self, jump_xs):
         # Perform JumpingKnowledge at each level of the complex
@@ -198,13 +209,20 @@ class SparseSIN0(torch.nn.Module):
             xs += [self.jump(jumpx)]
         return xs
 
-    def forward(self, data: ComplexBatch):
-        model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
+
+    def forward(self, data: ComplexBatch, include_partial=False):
+        act = get_nonlinearity(self.nonlinearity, return_module=False)
+
         xs, jump_xs = None, None
+        res = {}
         for i, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             xs = conv(*params)
             data.set_xs(xs)
+
+            if include_partial:
+                for k in range(len(xs)):
+                    res[f"layer{i}_{k}"] = xs[k]
 
             if self.jump_mode is not None:
                 if jump_xs is None:
@@ -214,12 +232,26 @@ class SparseSIN0(torch.nn.Module):
 
         if self.jump_mode is not None:
             xs = self.jump_complex(jump_xs)
-        pooled_xs = self.pool_complex(xs, data)
-        x = pooled_xs.sum(dim=0)
 
-        x = model_nonlinearity(self.lin1(x))
+        xs = self.pool_complex(xs, data)
+
+        if include_partial:
+            for k in range(len(xs)):
+                res[f"pool_{k}"] = xs[k]
+
+        new_xs = []
+        for i, x in enumerate(xs):
+            new_xs.append(act(self.lin1s[i](x)))
+
+        x = torch.stack(new_xs, dim=0)
+        x = x.sum(0)
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
+
         x = self.lin2(x)
+
+        res['out'] = x
+        if include_partial:
+            return x, res
         return x
 
     def __repr__(self):

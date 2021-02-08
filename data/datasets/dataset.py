@@ -20,10 +20,11 @@ class ComplexDataset(Dataset, ABC):
     """
 
     def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None,
-                 max_dim: int = None, num_classes: int = None):
+                 max_dim: int = None, num_classes: int = None, init_method: str = 'sum'):
         # These have to be initialised before calling the super class.
         self._max_dim = max_dim
         self._num_features = [None for _ in range(max_dim+1)]
+        self._init_method = init_method
 
         super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
         self._num_classes = num_classes
@@ -46,7 +47,7 @@ class ComplexDataset(Dataset, ABC):
     @property
     def processed_dir(self):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
-        return osp.join(self.root, f'complex_dim{self.max_dim}')
+        return osp.join(self.root, f'complex_dim{self.max_dim}_{self._init_method}')
 
     def num_features_in_dim(self, dim):
         if dim > self.max_dim:
@@ -62,32 +63,6 @@ class ComplexDataset(Dataset, ABC):
                     self._num_features[dim] = complex.chains[dim].num_features
                 else:
                     assert self._num_features[dim] == complex.chains[dim].num_features
-        
-    def index_select(self, idx):
-        """We override this because we store data in a list for now."""
-        indices = list(range(self.len()))
-        if isinstance(idx, slice):
-            indices = indices[idx]
-        elif torch.is_tensor(idx):
-            if idx.dtype == torch.long:
-                if len(idx.shape) == 0:
-                    idx = idx.unsqueeze(0)
-                return self.index_select(idx.tolist())
-            elif idx.dtype == torch.bool or idx.dtype == torch.uint8:
-                return self.index_select(
-                    idx.nonzero(as_tuple=False).flatten().tolist())
-        elif isinstance(idx, list) or isinstance(idx, tuple):
-            indices = [indices[i] for i in idx]
-        else:
-            raise IndexError(
-                'Only integers, slices (`:`), list, tuples, and long or bool '
-                'tensors are valid indices (got {}).'.format(
-                    type(idx).__name__))
-
-        # TODO: PyG abstracts this by having an additional __indices__ property and by returning another
-        # dataset rather than a list, as a copy of self but with only the selected __indices__
-        data = [self.get(i) for i in indices]
-        return data
 
     def get_idx_split(self):
         idx_split = {
@@ -120,9 +95,11 @@ class InMemoryComplexDataset(ComplexDataset):
         raise NotImplementedError
     
     def __init__(self, root=None, transform=None, pre_transform=None,
-                 pre_filter=None, max_dim: int = None, num_classes: int = None):
+                 pre_filter=None, max_dim: int = None, num_classes: int = None,
+                 include_down_adj=False, init_method=None):
+        self.include_down_adj = include_down_adj
         super(InMemoryComplexDataset, self).__init__(root, transform, pre_transform, pre_filter,
-                                                     max_dim, num_classes)
+                                                     max_dim, num_classes, init_method=init_method)
         self._data_list = None
                 
     def len(self):
@@ -137,5 +114,6 @@ class InMemoryComplexDataset(ComplexDataset):
         else:
             data_list = [self.get(i) for i in idx]
         dataset = copy.copy(self)
+        dataset.__indices__ = None
         dataset._data_list = data_list
         return dataset

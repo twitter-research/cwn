@@ -26,8 +26,8 @@ def color_mapper(val, ncolors, max_c=16):
         return ncolors[int((val / max_c) * (len(ncolors)-1))]
     else:
         return [0.0, 0.0, 0.0]
-    
-    
+
+
 def draw_legend(colors):
     plt.figure(figsize=(2,2), dpi=100)
     plt.box(False)
@@ -51,8 +51,8 @@ def get_faces(simplex):
     if k == 1:
         raise ValueError("0-simplices do not have faces.")
     return set([tuple(sorted(comb)) for comb in it.combinations(simplex, k-1)])
-    
-    
+
+
 def lower_adj(a, b, min_k=1, all_simplices=None):
     '''
         Returns True if simplices a, b are lower-adjacent.
@@ -69,7 +69,7 @@ def lower_adj(a, b, min_k=1, all_simplices=None):
     result = len(intersection) == k - 1 and k > min_k
     if all_simplices is not None:
         result = result and intersection in all_simplices
-    return result 
+    return result
 
 
 def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled):
@@ -88,17 +88,17 @@ def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper
     all_simplices.add(nodes)
     if nodes not in all_facets:
         non_facets.add(nodes)
-        
+
     # stop recursion if nodes have been reached
     k = len(nodes)
     if k == 1:
         return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
-    
+
     # get faces of the input simplex: all of them are
     # considered to be upper adjacent w.r.t present simplex
     faces = get_faces(nodes)
     for face in faces:
-            
+
         # add adjacencies to all other faces in the simplex
         if face not in upper_adjacencies[k-1]:
             upper_adjacencies[k-1][face] = set()
@@ -106,7 +106,7 @@ def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper
         upper_adjacencies[k-1][face] |= faces - {face}
         for neighbor in faces - {face}:
             upper_adjacencies_labeled[k-1][face][neighbor] = nodes
-        
+
         # recur down w.r.t. present face
         all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(face, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
 
@@ -135,14 +135,14 @@ def compute_upper_adjs(all_facets, all_facets_by_size, max_size):
     # iterate over sizes
     for k in range(1, max_size+1):
         facets = all_facets_by_size[k]
-        
+
         # iterate over facets of size k
         for facet in facets:
             all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(facet, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
 
     return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
-        
-    
+
+
 def compute_lower_adjs(all_simplices, all_simplices_by_size, max_size):
     '''
         Computes lower adjacencies for all simplices in a complex.
@@ -158,7 +158,7 @@ def compute_lower_adjs(all_simplices, all_simplices_by_size, max_size):
     # iterate over sizes
     for k in range(1, max_size+1):
         simplices = all_simplices_by_size[k]
-        
+
         # iterate over simplices of size k: for each (ordered) couple
         # test wether they are lower adjacent
         for p in range(len(simplices)):
@@ -173,7 +173,7 @@ def compute_lower_adjs(all_simplices, all_simplices_by_size, max_size):
                     # add both directions
                     lower_adjacencies[k][nodes_p].add(nodes_pp)
                     lower_adjacencies[k][nodes_pp].add(nodes_p)
-    
+
     return lower_adjacencies
 
 
@@ -188,7 +188,7 @@ def compute_connectivity(all_facets, all_facets_by_size, max_size):
     '''
     # 1. compute upper adjacencies starting from the facets
     all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = compute_upper_adjs(all_facets, all_facets_by_size, max_size)
-    
+
     # 2. group all simplices by their size
     all_simplices_by_size = dict()
     for simplex in all_simplices:
@@ -196,10 +196,10 @@ def compute_connectivity(all_facets, all_facets_by_size, max_size):
         if k not in all_simplices_by_size:
             all_simplices_by_size[k] = list()
         all_simplices_by_size[k].append(simplex)
-        
+
     # 3. compute lower_adjacencies
     lower_adjacencies = compute_lower_adjs(all_simplices, all_simplices_by_size, max_size)
-    
+
     return upper_adjacencies, lower_adjacencies, all_simplices, all_simplices_by_size, upper_adjacencies_labeled
 
 
@@ -232,7 +232,7 @@ def get_adj_index(simplices, connectivity, size):
 
 
 def generate_complex(attributes, labels, upper_indices, lower_indices, mappings, upper_adjs, min_order, max_order):
-    
+
     # generate mappings nodes -> simplex index
     rev_mappings = dict()
     for order in range(min_order, max_order+1):
@@ -241,13 +241,13 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
         for key in range(current_map.shape[0]):
             current_rev_map[tuple(current_map[key].numpy())] = key
         rev_mappings[order] = current_rev_map
-    
+
     shared_faces = dict()
     shared_cofaces = dict()
     shared_faces[min_order] = None
     shared_cofaces[max_order] = None
     for order in range(min_order, max_order):
-        
+
         shared = list()
         lower = lower_indices[order+1].numpy().T
         for link in lower:
@@ -257,7 +257,7 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             shared_face = rev_mappings[order][tuple(sorted(nodes_a & nodes_b))]
             shared.append(shared_face)
         shared_faces[order+1] = torch.LongTensor(shared)
-        
+
         shared = list()
         upper = upper_indices[order].numpy().T
         for link in upper:
@@ -267,7 +267,7 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             shared_coface = rev_mappings[order+1][upper_adjs[order+1][nodes_a][nodes_b]]
             shared.append(shared_coface)
         shared_cofaces[order] = torch.LongTensor(shared)
-        
+
     chains = list()
     for k in range(min_order, max_order+1):
         try:
@@ -275,7 +275,7 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
         except TypeError:
             y = None
         chains.append(Chain(k, x=attributes[k], y=y, upper_index=upper_indices[k], lower_index=lower_indices[k], mapping=mappings[k], shared_faces=shared_faces[k], shared_cofaces=shared_cofaces[k]))
-    
+
     try:
         _ = labels.keys()
         y = labels
@@ -406,7 +406,7 @@ def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict],
     return all_shared_faces, all_shared_cofaces, lower_indexes, upper_indexes
 
 
-def construct_features(vx: Tensor, simplex_tables):
+def construct_features(vx: Tensor, simplex_tables, init_method: str):
     """Combines the features of the component vertices to initialise the simplex features"""
     features = [vx]
     for dim in range(1, len(simplex_tables)):
@@ -416,7 +416,12 @@ def construct_features(vx: Tensor, simplex_tables):
         # Reshape to [simplices, (dim+1), node_feature_dim]
         node_features = node_features.view(len(simplex_tables[dim]), dim+1, -1)
         # Reduce along the simplex dimension containing the features of the vertices of the simplex
-        features.append(node_features.sum(dim=1))
+        if init_method == 'sum':
+            features.append(node_features.sum(dim=1))
+        elif init_method == 'mean':
+            features.append(node_features.mean(dim=1))
+        else:
+            raise ValueError(f'Init method {init_method} is not supported now.')
 
     return features
 
@@ -486,7 +491,8 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
                                       expansion_dim: int = 2, y: Tensor = None,
-                                      include_down_adj=True) -> Complex:
+                                      include_down_adj=True,
+                                      init_method: str = 'sum') -> Complex:
     """Generates a clique complex of a pyG graph via gudhi.
 
     Args:
@@ -495,7 +501,10 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
         size: The number of nodes in the graph
         expansion_dim: The dimension to expand the simplex to.
         y: Labels for the graph nodes or a label for the whole graph.
+        include_down_adj: Whether to add down adj in the complex or not
+        init_method: How to initialise features at higher levels.
     """
+    assert x is not None
     assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
 
     # Creates the gudhi-based simplicial complex
@@ -517,7 +526,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
 
     # Construct features for the higher dimensions
     # TODO: Make this handle edge features as well and add alternative options to compute this.
-    xs = construct_features(x, simplex_tables)
+    xs = construct_features(x, simplex_tables, init_method)
 
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
@@ -532,15 +541,16 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     return Complex(*chains, y=complex_y, dimension=complex_dim)
 
 
-def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True):
+def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True,
+                                     init_method: str = 'sum'):
     dimension = -1
     complexes = []
     num_features = [None for _ in range(expansion_dim+1)]
 
     for data in tqdm(dataset):
         complex = compute_clique_complex_with_gudhi(data.x, data.edge_index, data.num_nodes,
-                                                    expansion_dim=expansion_dim, y=data.y,
-                                                    include_down_adj=include_down_adj)
+            expansion_dim=expansion_dim, y=data.y, include_down_adj=include_down_adj,
+            init_method=init_method)
         if complex.dimension > dimension:
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):

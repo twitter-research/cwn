@@ -7,7 +7,7 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
-from data.datasets import SRDataset, ClusterDataset, TUDataset, load_sr_graph_dataset
+from data.datasets import SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -69,7 +69,8 @@ class DataLoader(torch.utils.data.DataLoader):
                              collate_fn=Collater(follow_batch, max_dim), **kwargs)
 
 
-def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0, **kwargs):
+def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0,
+                 init_method='sum', **kwargs) -> ComplexDataset:
     if name.startswith('sr'):
         dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=max_dim, num_classes=kwargs['emb_dim'])
     elif name == 'CLUSTER':
@@ -77,7 +78,11 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'IMDBBINARY':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2, fold=fold, degree_as_tag=True)
     elif name == 'PROTEINS':
-        dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2, fold=fold, degree_as_tag=False)
+        dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
+            fold=fold, degree_as_tag=False, init_method=init_method)
+    elif name == 'NCI1':
+        dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
+            fold=fold, degree_as_tag=False, init_method=init_method)
     else:
         raise NotImplementedError
     return dataset
