@@ -66,7 +66,7 @@ class ClusterDataset(InMemoryComplexDataset):
         train_complexes, _, _ = convert_graph_dataset_with_gudhi(train_data,
             expansion_dim=self.max_dim, include_down_adj=self.include_down_adj)
         print("Converting the validation dataset with gudhi...")
-        val_complexes, _, _ = convert_graph_dataset_with_gudhi(val_data, expansion_dim=self.max_dim)
+        val_complexes, _, _ = convert_graph_dataset_with_gudhi(val_data, expansion_dim=self.max_dim, include_down_adj=self.include_down_adj)
         print("Converting the test dataset with gudhi...")
         test_complexes, _, _ = convert_graph_dataset_with_gudhi(test_data,
                                                                 expansion_dim=self.max_dim)
