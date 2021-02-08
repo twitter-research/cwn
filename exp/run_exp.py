@@ -3,31 +3,46 @@ import os
 import pickle
 import torch
 import torch.optim as optim
+import random
 
 from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
-from mp.models import SIN0, Dummy, SparseSIN0
+from mp.models import SIN0, Dummy, SparseSIN
 from mp.graph_models import GIN0
 
 from definitions import ROOT_DIR
 
 import time
 import numpy as np
+import copy
 
 # run isomorphism test on sr251256:
 # python3 -m exp.run_exp --model dummy --num_layers 1 --dataset sr251256 --eval_metric isomorphism --task_type isomorphism --emb_dim 16 --max_dim  4 --untrained
+
 
 def main(args):
 
     # set device
     device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
-        
+
     if args.result_folder is None:
         result_folder = os.path.join(ROOT_DIR, 'exp', 'results')
     else:
         result_folder = args.result_folder
+
+    print("==========================================================================")
+    print("Using device", str(device))
+    print(f"Fold: {args.fold}")
+    print("======================== Args ===========================")
+    print(args)
+
+    # Set the seed for everything
+    torch.manual_seed(43)
+    np.random.seed(43)
+    random.seed(43)
+
     if args.exp_name is None:
         # get timestamp for results and set result directory
         exp_name = time.time()
@@ -79,7 +94,6 @@ def main(args):
     # instantiate model
     # NB: here we assume to have the same number of features per dim
     if args.model == 'sin':
-        
         model = SIN0(dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
@@ -90,10 +104,8 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
-        
     elif args.model == 'sparse_sin':
-        
-        model = SparseSIN0(dataset.num_features_in_dim(0),    # num_input_features
+        model = SparseSIN(dataset.num_features_in_dim(0),    # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -103,9 +115,7 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
-        
     elif args.model == 'gin':
-        
         model = GIN0(num_features,                            # num_input_features
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -114,7 +124,6 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
-        
     elif args.model == 'dummy':
         
         model = Dummy(dataset.num_features_in_dim(0),
@@ -126,6 +135,18 @@ def main(args):
         
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
+
+    print("============= Model Parameters =================")
+    trainable_params = 0
+    total_params = 0
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name, param.size())
+            trainable_params += param.numel()
+        total_params += param.numel()
+    print("============= Params stats ==================")
+    print(f"Trainable params: {trainable_params}")
+    print(f"Total params    : {total_params}")
         
     # instantiate optimiser
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -145,26 +166,32 @@ def main(args):
     test_curve = []
     train_curve = []
     train_loss_curve = []
+    params = []
     if not args.untrained:
         for epoch in range(1, args.epochs + 1):
 
             # perform one epoch
             print("=====Epoch {}".format(epoch))
             print('Training...')
-            train_loss_curve += train(model, device, train_loader, optimizer, args.task_type)
+            epoch_train_curve = train(model, device, train_loader, optimizer, args.task_type)
+            train_loss_curve += epoch_train_curve
+            epoch_train_loss = float(np.mean(epoch_train_curve))
             
             # evaluate model
             print('Evaluating...')
-            train_perf = eval(model, device, train_loader, evaluator)
+            if epoch == 1 or epoch % args.train_eval_period == 0:
+                train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
             train_curve.append(train_perf)
-            valid_perf = eval(model, device, valid_loader, evaluator)
+            valid_perf, epoch_val_loss = eval(model, device,
+                valid_loader, evaluator, args.task_type, dataset[split_idx["valid"]])
             valid_curve.append(valid_perf)
             if test_loader is not None:
-                test_perf = eval(model, device, test_loader, evaluator)
+                test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
             else:
                 test_perf = np.nan
             test_curve.append(test_perf)
-            print({'Train': train_perf, 'Validation': valid_perf, 'Test': test_perf})
+            print(f'Train: {train_perf:.3f} | Validation: {valid_perf:.3f} | Test: {test_perf:.3f}'
+                  f' | Train Loss {epoch_train_loss:.3f} | Val Loss {epoch_val_loss:.3f}')
             
             # decay learning rate
             if scheduler is not None:
@@ -172,6 +199,20 @@ def main(args):
                     scheduler.step(valid_perf)
                 else:
                     scheduler.step()
+
+            i = 0
+            new_params = []
+            if epoch % 10 == 0:
+                print("====== Slowly changing params ======= ")
+            for name, param in model.named_parameters():
+                # print(f"Param {name}: {param.data.view(-1)[0]}")
+                # new_params.append(param.data.detach().clone().view(-1)[0])
+                new_params.append(param.data.detach().mean().item())
+                if len(params) > 0 and epoch % 10 == 0:
+                    if abs(params[i] - new_params[i]) < 1e-6:
+                        print(f"Param {name}: {params[i] - new_params[i]}")
+                i += 1
+            params = copy.copy(new_params)
 
         if not args.minimize:
             best_val_epoch = np.argmax(np.array(valid_curve))
@@ -201,13 +242,12 @@ def main(args):
         'test': test_curve,
         'best': best_val_epoch}
     msg = (
-        'Dataset:        {0}\n'
-        'Validation:     {1}\n'
-        'Test:           {2}\n'
-        'Train:          {3}\n'
-        'Best epoch:     {4}\n'
-        '-------------------------------\n')
-    msg = msg.format(args.dataset, valid_curve[best_val_epoch], test_curve[best_val_epoch], train_curve[best_val_epoch], best_val_epoch)
+       f'Dataset:        {args.dataset}\n'
+       f'Validation:     {valid_curve[best_val_epoch]}\n'
+       f'Train:          {train_curve[best_val_epoch]}\n'
+       f'Test:           {test_curve[best_val_epoch]}\n'
+       f'Best epoch:     {best_val_epoch}\n'
+       '-------------------------------\n')
     msg += str(args)
     with open(filename, 'w') as handle:
         handle.write(msg)
@@ -216,6 +256,7 @@ def main(args):
             pickle.dump(curves, handle)
             
     return curves
+
 
 if __name__ == "__main__":
 

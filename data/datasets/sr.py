@@ -37,10 +37,11 @@ def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), emb_dim
 class SRDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, max_dim=2, num_classes=2,
-                 train_ids=None, val_ids=None, test_ids=None):
+                 train_ids=None, val_ids=None, test_ids=None, include_down_adj=False):
         self.name = name
         self._num_classes = num_classes
-        super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes)
+        super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
+            include_down_adj=include_down_adj)
         
         with open(self.processed_paths[0], 'rb') as handle:
             self._data_list = pickle.load(handle)
@@ -64,7 +65,7 @@ class SRDataset(InMemoryComplexDataset):
             edge_index, num_nodes = datum
             x = torch.ones(num_nodes, 1, dtype=torch.float32)
             complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes,
-                                                        expansion_dim=exp_dim)
+                expansion_dim=exp_dim, include_down_adj=self.include_down_adj)
             if complex.dimension > max_dim:
                 max_dim = complex.dimension
             for dim in range(complex.dimension + 1):

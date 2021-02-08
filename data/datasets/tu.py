@@ -1,5 +1,4 @@
 import os
-import torch
 import pickle
 import numpy as np
 
@@ -10,10 +9,12 @@ from data.datasets import InMemoryComplexDataset
 
 class TUDataset(InMemoryComplexDataset):
 
-    def __init__(self, root, name, max_dim=2, num_classes=2, degree_as_tag=False, fold=0):
+    def __init__(self, root, name, max_dim=2, num_classes=2, degree_as_tag=False, fold=0,
+                 init_method='sum'):
         self.name = name
         self.degree_as_tag = degree_as_tag
-        super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes)
+        super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
+            init_method=init_method)
 
         with open(self.processed_paths[0], 'rb') as handle:
             self._data_list = pickle.load(handle)
@@ -52,8 +53,8 @@ class TUDataset(InMemoryComplexDataset):
             graph_list = pickle.load(handle)        
         
         print("Converting the dataset with gudhi...")
-        import pdb; pdb.set_trace()
-        complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim)
+        complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim,
+                                                           include_down_adj=self.include_down_adj)
         
         with open(self.processed_paths[0], 'wb') as handle:
             pickle.dump(complexes, handle)

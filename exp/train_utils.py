@@ -3,10 +3,12 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from sklearn import metrics as met
+from data.complex import ComplexBatch
 
 # cls_criterion = torch.nn.BCEWithLogitsLoss()
 cls_criterion = torch.nn.CrossEntropyLoss()
 reg_criterion = torch.nn.MSELoss()
+
 
 def train(model, device, loader, optimizer, task_type='classification', ignore_unlabeled=False):
     """
@@ -22,36 +24,39 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     
     curve = list()
     model.train()
+    num_skips = 0
     for step, batch in enumerate(tqdm(loader, desc="Training iteration")):
         batch = batch.to(device)
-        # TODO: the try-except construct below needs to be fixed
-        #       1. num_complexes will except in the case of graph datasets
-        #       2. `num_samples = batch.x.shape[0] == 1` is not correct as a statement
-        #       3. batch.x.shape[0] is not the num of samples but of overall features (that may be ok)
-        #       4. we might need to do checks at each level of the complex batch
-        try:
-            num_samples = batch.num_complexes
-        except AttributeError:
-            num_samples = batch.x.shape[0] == 1
-        if num_samples <= 1:
-            # TODO : what about condition batch.batch[-1] == 0 ? 
-            # Skip batch if it only comprises one sample (could cause problems with BN)
-            pass
+        if isinstance(batch, ComplexBatch):
+            num_samples = batch.chains[0].x.size(0)
+            for dim in range(1, batch.dimension+1):
+                num_samples = min(num_samples, batch.chains[dim].x.size(0))
         else:
-            # import pdb; pdb.set_trace()
-            pred = model(batch)
-            optimizer.zero_grad()
-            # TODO: shall we do some dtype checking here on the y?
-            if ignore_unlabeled:
-                is_labeled = batch.y == batch.y
-                loss = loss_fn(pred[is_labeled], batch.y[is_labeled])
-            else:
-                loss = loss_fn(pred, batch.y)
-            loss.backward()
-            optimizer.step()
-            curve.append(loss.detach().cpu().item())
+            # This is graph.
+            num_samples = batch.x.size(0)
+
+        if num_samples <= 1:
+            # Skip batch if it only comprises one sample (could cause problems with BN)
+            num_skips += 1
+            if float(num_skips) / len(loader) >= 0.25:
+                import logging
+                logging.warning("Warning! 25% of the batches were skipped this epoch")
+            continue
+
+        optimizer.zero_grad()
+        pred = model(batch)
+        # TODO: shall we do some dtype checking here on the y?
+        if ignore_unlabeled:
+            is_labeled = batch.y == batch.y
+            loss = loss_fn(pred[is_labeled], batch.y[is_labeled])
+        else:
+            loss = loss_fn(pred, batch.y.view(-1))
+        loss.backward()
+        optimizer.step()
+        curve.append(loss.detach().cpu().item())
             
     return curve
+
 
 def infer(model, device, loader):
     """
@@ -66,27 +71,59 @@ def infer(model, device, loader):
         y_pred.append(pred.detach().cpu())
     y_pred = torch.cat(y_pred, dim=0).numpy()
     return y_pred
-            
-def eval(model, device, loader, evaluator):
+
+
+def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     """
         Evaluates a model over all the batches of a data loader.
     """
+
+    if task_type == 'classification':
+        loss_fn = cls_criterion
+    elif task_type == 'regression':
+        loss_fn = reg_criterion
+    else:
+        raise NotImplementedError('Training on task type {} not yet supported.'.format(task_type))
     
     model.eval()
     y_true = []
     y_pred = []
+    losses = []
     for step, batch in enumerate(tqdm(loader, desc="Eval iteration")):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
+            loss = loss_fn(pred, batch.y.view(-1))
+        losses.append(loss.detach().cpu().item())
+
         y_true.append(batch.y.detach().cpu())
         y_pred.append(pred.detach().cpu())
 
     y_true = torch.cat(y_true, dim=0).numpy()
     y_pred = torch.cat(y_pred, dim=0).numpy()
-    input_dict = {"y_true": y_true, "y_pred": y_pred}
 
-    return evaluator.eval(input_dict)
+    # # Test the predictions are the same without batching
+    # if dataset is not None:
+    #     y_true2 = []
+    #     y_pred2 = []
+    #     for step, batch in enumerate(tqdm(dataset, desc="Eval assert iteration")):
+    #         batch = ComplexBatch.from_complex_list([batch])
+    #         batch = batch.to(device)
+    #         with torch.no_grad():
+    #             pred = model(batch)
+    #
+    #         y_true2.append(batch.y.detach().cpu())
+    #         y_pred2.append(pred.detach().cpu())
+    #
+    #     y_true2 = torch.cat(y_true2, dim=0).numpy()
+    #     y_pred2 = torch.cat(y_pred2, dim=0).numpy()
+    #
+    #     assert np.array_equal(y_true, y_true2), print(y_true, y_true2)
+    #     assert np.allclose(y_pred, y_pred2), print(np.abs(y_pred -y_pred2))
+
+    input_dict = {'y_pred': y_pred, 'y_true': y_true}
+    return evaluator.eval(input_dict), float(np.mean(losses))
+
     
 class Evaluator(object):
     
@@ -111,8 +148,7 @@ class Evaluator(object):
         metric = wrong / mm.shape[0]
         return metric
     
-    def _accuracy(self, input_dict):
-        # import pdb; pdb.set_trace()
+    def _accuracy(self, input_dict, **kwargs):
         y_true = input_dict['y_true']
         y_pred = np.argmax(input_dict['y_pred'], axis=1)
         metric = met.accuracy_score(y_true, y_pred)
