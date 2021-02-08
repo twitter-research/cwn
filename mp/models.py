@@ -246,8 +246,8 @@ class SparseSIN(torch.nn.Module):
 
         x = self.lin2(x)
 
-        res['out'] = x
         if include_partial:
+            res['out'] = x
             return x, res
         return x
 
