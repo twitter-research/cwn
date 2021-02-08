@@ -177,8 +177,8 @@ class SparseSIN(torch.nn.Module):
                 self.lin1s.append(Linear(num_layers * hidden, final_hidden_multiplier*hidden,
                     bias=False))
             else:
-                self.lin1s.append(Linear(hidden, final_hidden_multiplier*hidden))
-        self.lin2 = Linear(final_hidden_multiplier*hidden, num_classes)
+                self.lin1s.append(Linear(hidden, final_hidden_multiplier * hidden))
+        self.lin2 = Linear(final_hidden_multiplier * hidden, num_classes)
 
     def reset_parameters(self):
         for conv in self.convs:
