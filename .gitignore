@@ -134,12 +134,10 @@ dmypy.json
 .idea/
 .vscode/
 
+
 *.gz
-#data/dataset/
-datasets/
 exp/results/
 *.pt
-*.pkl
 datasets.zip
 
-!datasets/SR_graphs/
+
