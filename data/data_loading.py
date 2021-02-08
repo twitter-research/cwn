@@ -7,7 +7,7 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
-from data.datasets import SRDataset, ClusterDataset, TUDataset
+from data.datasets import SRDataset, ClusterDataset, TUDataset, load_sr_graph_dataset
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -69,9 +69,9 @@ class DataLoader(torch.utils.data.DataLoader):
                              collate_fn=Collater(follow_batch, max_dim), **kwargs)
 
 
-def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0):
+def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0, **kwargs):
     if name.startswith('sr'):
-        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim)
+        dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=max_dim, num_classes=kwargs['emb_dim'])
     elif name == 'CLUSTER':
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     elif name == 'IMDBBINARY':
@@ -81,3 +81,10 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     else:
         raise NotImplementedError
     return dataset
+
+def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **kwargs):
+    if name.startswith('sr'):
+        data = load_sr_graph_dataset(name, root=root, emb_dim=kwargs['emb_dim'])
+    else:
+        raise NotImplementedError
+    return data

@@ -24,6 +24,11 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     model.train()
     for step, batch in enumerate(tqdm(loader, desc="Training iteration")):
         batch = batch.to(device)
+        # TODO: the try-except construct below needs to be fixed
+        #       1. num_complexes will except in the case of graph datasets
+        #       2. `num_samples = batch.x.shape[0] == 1` is not correct as a statement
+        #       3. batch.x.shape[0] is not the num of samples but of overall features (that may be ok)
+        #       4. we might need to do checks at each level of the complex batch
         try:
             num_samples = batch.num_complexes
         except AttributeError:
@@ -56,17 +61,9 @@ def infer(model, device, loader):
     y_pred = list()
     for step, batch in enumerate(tqdm(loader, desc="Inference iteration")):
         batch = batch.to(device)
-        try:
-            num_samples = batch.num_complexes
-        except AttributeError:
-            num_samples = batch.x.shape[0] == 1
-        if num_samples <= 1:
-            # Skip batch if it only comprises one sample (could cause problems with BN)
-            pass
-        else:
-            with torch.no_grad():
-                pred = model(batch)
-            y_pred.append(pred.detach().cpu())
+        with torch.no_grad():
+            pred = model(batch)
+        y_pred.append(pred.detach().cpu())
     y_pred = torch.cat(y_pred, dim=0).numpy()
     return y_pred
             
@@ -80,18 +77,10 @@ def eval(model, device, loader, evaluator):
     y_pred = []
     for step, batch in enumerate(tqdm(loader, desc="Eval iteration")):
         batch = batch.to(device)
-        try:
-            num_samples = batch.num_complexes
-        except AttributeError:
-            num_samples = batch.x.shape[0] == 1
-        if num_samples <= 1:
-            # Skip batch if it only comprises one sample (could cause problems with BN)
-            pass
-        else:
-            with torch.no_grad():
-                pred = model(batch)
-            y_true.append(batch.y.detach().cpu())
-            y_pred.append(pred.detach().cpu())
+        with torch.no_grad():
+            pred = model(batch)
+        y_true.append(batch.y.detach().cpu())
+        y_pred.append(pred.detach().cpu())
 
     y_true = torch.cat(y_true, dim=0).numpy()
     y_pred = torch.cat(y_pred, dim=0).numpy()

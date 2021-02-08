@@ -39,7 +39,7 @@ def test_sin_model_with_batching():
 
         # This is flaky when using equal. I suspect it's because of numerical errors.
         assert (preds.size() == batched_preds.size())
-        assert torch.allclose(preds, batched_preds)
+        assert torch.allclose(preds, batched_preds, atol=1e-5)
 
 
 def test_edge_sin0_model_with_batching():
@@ -65,7 +65,7 @@ def test_edge_sin0_model_with_batching():
             preds.append(pred)
         preds = torch.cat(preds, dim=0)
 
-        assert torch.allclose(preds, batched_preds)
+        assert torch.allclose(preds, batched_preds, atol=1e-5)
 
 
 def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_one():
@@ -167,7 +167,7 @@ def test_sparse_sin0_model_with_batching():
 
         # This is flaky when using equal. I suspect it's because of numerical errors.
         assert (preds.size() == batched_preds.size())
-        assert torch.allclose(preds, batched_preds)
+        assert torch.allclose(preds, batched_preds, atol=1e-5)
 
 
 
