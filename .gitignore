@@ -138,6 +138,4 @@ dmypy.json
 *.gz
 exp/results/
 *.pt
-datasets.zip
-
 
