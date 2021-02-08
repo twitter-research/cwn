@@ -58,6 +58,4 @@ def get_parser():
                         help='fold index for k-fold cross-validation experiments')
     parser.add_argument('--init_method', type=str, default='sum',
                         help='How to initialise features at higher levels (sum, mean)')
-    parser.add_argument('--jump_mode', type=str, default=None,
-                        help='Knowledge jump inside the model')
     return parser

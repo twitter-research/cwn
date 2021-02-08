@@ -64,7 +64,7 @@ def infer(model, device, loader):
     return y_pred
 
 
-def eval(model, device, loader, evaluator, task_type, dataset):
+def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     """
         Evaluates a model over all the batches of a data loader.
     """

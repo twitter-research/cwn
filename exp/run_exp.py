@@ -8,7 +8,7 @@ from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
-from mp.models import SIN0, Dummy, SparseSIN0
+from mp.models import SIN0, Dummy, SparseSIN
 from mp.graph_models import GIN0
 
 from definitions import ROOT_DIR
@@ -19,6 +19,7 @@ import copy
 
 # run isomorphism test on sr251256:
 # python3 -m exp.run_exp --model dummy --num_layers 1 --dataset sr251256 --eval_metric isomorphism --task_type isomorphism --emb_dim 16 --max_dim  4 --untrained
+
 
 def main(args):
 
@@ -102,7 +103,7 @@ def main(args):
                      readout=args.readout,                    # readout
                     ).to(device)
     elif args.model == 'sparse_sin':
-        model = SparseSIN0(dataset.num_features_in_dim(0),    # num_input_features
+        model = SparseSIN(dataset.num_features_in_dim(0),    # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -177,13 +178,13 @@ def main(args):
             # evaluate model
             print('Evaluating...')
             if epoch == 1 or epoch % 10 == 0:
-                train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type, None)
+                train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
                 train_curve.append(train_perf)
             valid_perf, epoch_val_loss = eval(model, device,
                 valid_loader, evaluator, args.task_type, dataset[split_idx["valid"]])
             valid_curve.append(valid_perf)
             if test_loader is not None:
-                test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type, None)
+                test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
             else:
                 test_perf = np.nan
             test_curve.append(test_perf)
@@ -254,6 +255,7 @@ def main(args):
             pickle.dump(curves, handle)
             
     return curves
+
 
 if __name__ == "__main__":
 

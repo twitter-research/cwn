@@ -191,15 +191,7 @@ class SparseSINChainConv(ChainMessagePassing):
         self.eps2.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        # if up_attr is not None and self.dim > 0:
-        #     x = torch.cat([up_x_j, up_attr], dim=-1)
-        #     return self.msg_up_nn(x)
-        # else:
-        #     return up_x_j
-        if self.dim == 0:
-            return up_x_j
-        else:
-            return up_x_j
+        return self.msg_up_nn(up_x_j, up_attr)
 
     def message_and_aggregate_faces(self, face_attr: Tensor) -> Tensor:
         shape = face_attr.size()
