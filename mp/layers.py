@@ -218,8 +218,9 @@ class SparseSINConv(torch.nn.Module):
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
                     BN(kwargs['hidden']),
                     kwargs['act_module'](),
-                    # Linear(kwargs['hidden'], kwargs['hidden']),
-                    # kwargs['act_module']()
+                    Linear(kwargs['hidden'], kwargs['hidden']),
+                    BN(kwargs['hidden']),
+                    kwargs['act_module']()
                 )
             else:
                 update_up_nn = inp_update_up_nn
@@ -228,8 +229,9 @@ class SparseSINConv(torch.nn.Module):
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
                     BN(kwargs['hidden']),
                     kwargs['act_module'](),
-                    # Linear(kwargs['hidden'], kwargs['hidden']),
-                    # kwargs['act_module']()
+                    Linear(kwargs['hidden'], kwargs['hidden']),
+                    BN(kwargs['hidden']),
+                    kwargs['act_module']()
                 )
             else:
                 update_faces_nn = inp_update_faces_nn
