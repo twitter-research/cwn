@@ -206,27 +206,50 @@ class SparseSINConv(torch.nn.Module):
     """
 
     def __init__(self, up_msg_size: int, down_msg_size: int,
-                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable, update_faces_nn,
-                 eps: float = 0., train_eps: bool = False, max_dim: int = 2, **kwargs):
+                 msg_up_nn: Callable, msg_faces_nn: Callable, inp_update_up_nn: Callable,
+                 inp_update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
+                 max_dim: int = 2, **kwargs):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
+            if inp_update_up_nn is None:
+                update_up_nn = Sequential(
+                    Linear(kwargs['layer_dim'], kwargs['hidden']),
+                    kwargs['act_module'](),
+                    # Linear(kwargs['hidden'], kwargs['hidden']),
+                    # kwargs['act_module']()
+                )
+            else:
+                update_up_nn = inp_update_up_nn
+            if inp_update_faces_nn is None:
+                update_faces_nn = Sequential(
+                    Linear(kwargs['layer_dim'], kwargs['hidden']),
+                    kwargs['act_module'](),
+                    # Linear(kwargs['hidden'], kwargs['hidden']),
+                    # kwargs['act_module']()
+                )
+            else:
+                update_faces_nn = inp_update_faces_nn
             combine_nn = Sequential(
                 Linear(kwargs['hidden']*2, kwargs['hidden']),
-                kwargs['act_module'](),
-                Linear(kwargs['hidden'], kwargs['hidden']),
+                # kwargs['act_module'](),
+                # Linear(kwargs['hidden'], kwargs['hidden']),
                 kwargs['act_module'](),
                 BN(kwargs['hidden']))
             mp = SparseSINChainConv(dim, up_msg_size, down_msg_size,
-                                    msg_up_nn, msg_faces_nn, update_up_nn,
-                                    update_faces_nn, combine_nn, eps, train_eps)
+                msg_up_nn=msg_up_nn, msg_faces_nn=msg_faces_nn, update_up_nn=update_up_nn,
+                update_faces_nn=update_faces_nn, combine_nn=combine_nn, eps=eps,
+                train_eps=train_eps)
             self.mp_levels.append(mp)
 
-    def forward(self, *chain_params: ChainMessagePassingParams):
+    def forward(self, *chain_params: ChainMessagePassingParams, start_to_process=0):
         assert len(chain_params) <= self.max_dim+1
 
         out = []
         for dim in range(len(chain_params)):
-            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+            if dim < start_to_process:
+                out.append(chain_params[dim].x)
+            else:
+                out.append(self.mp_levels[dim].forward(chain_params[dim]))
         return out
