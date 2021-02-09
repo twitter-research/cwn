@@ -145,7 +145,7 @@ class SparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
                  train_eps=False, final_hidden_multiplier: int = 2,
-                 readout_dims=(0, 2, 3)):
+                 readout_dims=(0, 2)):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -161,16 +161,16 @@ class SparseSIN(torch.nn.Module):
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
-            conv_update_up = Sequential(
-                Linear(layer_dim, hidden),
-                act_module(),
-                Linear(hidden, hidden),
-                act_module())
-            conv_update_faces = Sequential(
-                Linear(layer_dim, hidden),
-                act_module(),
-                Linear(hidden, hidden),
-                act_module())
+            # conv_update_up = Sequential(
+            #     Linear(layer_dim, hidden),
+            #     act_module(),
+            #     Linear(hidden, hidden),
+            #     act_module())
+            # conv_update_faces = Sequential(
+            #     Linear(layer_dim, hidden),
+            #     act_module(),
+            #     Linear(hidden, hidden),
+            #     act_module())
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     msg_faces_nn=lambda x: x, msg_up_nn=lambda x1, x2: x1,
