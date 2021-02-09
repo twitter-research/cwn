@@ -217,16 +217,18 @@ class SparseSINConv(torch.nn.Module):
                 update_up_nn = Sequential(
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
                     kwargs['act_module'](),
-                    Linear(kwargs['hidden'], kwargs['hidden']),
-                    kwargs['act_module']())
+                    # Linear(kwargs['hidden'], kwargs['hidden']),
+                    # kwargs['act_module']()
+                )
             else:
                 update_up_nn = inp_update_up_nn
             if inp_update_faces_nn is None:
                 update_faces_nn = Sequential(
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
                     kwargs['act_module'](),
-                    Linear(kwargs['hidden'], kwargs['hidden']),
-                    kwargs['act_module']())
+                    # Linear(kwargs['hidden'], kwargs['hidden']),
+                    # kwargs['act_module']()
+                )
             else:
                 update_faces_nn = inp_update_faces_nn
             combine_nn = Sequential(

@@ -923,3 +923,23 @@ def test_batching_returns_the_same_face_attr():
             else:
                 assert len(xs[i]) == len(batched_xs[i])
                 assert torch.equal(xs[i], batched_xs[i])
+
+
+def test_data_loader_shuffling():
+    dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
+    data_loader = DataLoader(dataset, batch_size=32)
+
+    unshuffled_ys = []
+    for data in data_loader:
+        unshuffled_ys.append(data.y)
+
+    data_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+    shuffled_ys = []
+    for data in data_loader:
+        shuffled_ys.append(data.y)
+
+    unshuffled_ys = torch.cat(unshuffled_ys, dim=0)
+    shuffled_ys = torch.cat(shuffled_ys, dim=0)
+
+    assert list(unshuffled_ys.size()) == list(shuffled_ys.size())
+    assert not torch.equal(unshuffled_ys, shuffled_ys)
