@@ -165,7 +165,7 @@ class SparseSIN(torch.nn.Module):
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     msg_faces_nn=lambda x: x, msg_up_nn=lambda x1, x2: x1,
-                    update_up_nn=None, update_faces_nn=None,
+                    inp_update_up_nn=None, inp_update_faces_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
