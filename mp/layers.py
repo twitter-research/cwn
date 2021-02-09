@@ -219,7 +219,7 @@ class SparseSINConv(torch.nn.Module):
                     BN(kwargs['hidden']),
                     kwargs['act_module'](),
                     Linear(kwargs['hidden'], kwargs['hidden']),
-                    BN(kwargs['hidden']),
+                    # BN(kwargs['hidden']),
                     kwargs['act_module']()
                 )
             else:
@@ -230,7 +230,7 @@ class SparseSINConv(torch.nn.Module):
                     BN(kwargs['hidden']),
                     kwargs['act_module'](),
                     Linear(kwargs['hidden'], kwargs['hidden']),
-                    BN(kwargs['hidden']),
+                    # BN(kwargs['hidden']),
                     kwargs['act_module']()
                 )
             else:
