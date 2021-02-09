@@ -232,8 +232,9 @@ class SparseSINConv(torch.nn.Module):
                 kwargs['act_module'](),
                 BN(kwargs['hidden']))
             mp = SparseSINChainConv(dim, up_msg_size, down_msg_size,
-                                    msg_up_nn, msg_faces_nn, update_up_nn,
-                                    update_faces_nn, combine_nn, eps, train_eps)
+                msg_up_nn=msg_up_nn, msg_faces_nn=msg_faces_nn, update_up_nn=update_up_nn,
+                update_faces_nn=update_faces_nn, combine_nn=combine_nn, eps=eps,
+                train_eps=train_eps)
             self.mp_levels.append(mp)
 
     def forward(self, *chain_params: ChainMessagePassingParams, start_to_process=0):
