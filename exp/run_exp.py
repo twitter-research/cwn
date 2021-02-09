@@ -39,9 +39,9 @@ def main(args):
     print(args)
 
     # Set the seed for everything
-    torch.manual_seed(43)
-    np.random.seed(43)
-    random.seed(43)
+    torch.manual_seed(0)
+    np.random.seed(0)
+    random.seed(0)
 
     if args.exp_name is None:
         # get timestamp for results and set result directory
