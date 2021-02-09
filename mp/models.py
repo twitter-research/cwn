@@ -8,13 +8,13 @@ from data.complex import Complex, ComplexBatch
 
 
 def get_nonlinearity(nonlinearity, return_module=True):
-    if nonlinearity=='relu':
+    if nonlinearity == 'relu':
         module = torch.nn.ReLU
         function = F.relu
-    elif nonlinearity=='elu':
+    elif nonlinearity == 'elu':
         module = torch.nn.ELU
         function = F.elu
-    elif nonlinearity=='id':
+    elif nonlinearity == 'id':
         module = torch.nn.Identity
         function = lambda x: x
     else:
@@ -40,7 +40,9 @@ class SIN0(torch.nn.Module):
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
-    def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
+
+    def __init__(self, num_input_features, num_classes, num_layers, hidden,
+                 dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum'):
         super(SIN0, self).__init__()
 
@@ -49,7 +51,7 @@ class SIN0(torch.nn.Module):
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
-        self.pooling_fn = get_pooling_fn(readout) 
+        self.pooling_fn = get_pooling_fn(readout)
         conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
@@ -69,7 +71,7 @@ class SIN0(torch.nn.Module):
                 BN(layer_dim))
             self.convs.append(
                 SINConv(layer_dim, layer_dim,
-                        conv_up, conv_down, conv_update, train_eps=False, max_dim=self.max_dim))
+                    conv_up, conv_down, conv_update, train_eps=False, max_dim=self.max_dim))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         if jump_mode == 'cat':
             self.lin1 = Linear(num_layers * hidden, hidden)
@@ -89,8 +91,8 @@ class SIN0(torch.nn.Module):
         # All complexes have nodes so we can extract the batch size from chains[0]
         batch_size = data.chains[0].batch.max() + 1
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
-        pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1),
-                                device=batch_size.device)
+        pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
+            device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
             pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
@@ -138,17 +140,24 @@ class SparseSIN(torch.nn.Module):
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
-    def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
+
+    def __init__(self, num_input_features, num_classes, num_layers, hidden,
+                 dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
-                 train_eps=False, final_hidden_multiplier: int = 2):
+                 train_eps=False, final_hidden_multiplier: int = 2,
+                 readout_dims=None):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
+        if readout_dims is not None:
+            self.readout_dims = tuple([dim for dim in readout_dims if dim <= max_dim])
+        else:
+            self.readout_dims = list(range(max_dim+1))
         self.dropout_rate = dropout_rate
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
-        self.pooling_fn = get_pooling_fn(readout) 
+        self.pooling_fn = get_pooling_fn(readout)
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
@@ -170,7 +179,7 @@ class SparseSIN(torch.nn.Module):
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
-        for _ in range(max_dim+1):
+        for _ in range(max_dim + 1):
             if jump_mode == 'cat':
                 # These layers don't use a bias. Then, in case a level is not present the output
                 # is just zero and it is not given by the biases.
@@ -193,14 +202,14 @@ class SparseSIN(torch.nn.Module):
         batch_size = data.chains[0].batch.max() + 1
         # print(batch_size)
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
-        pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1),
-                                device=batch_size.device)
+        pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
+            device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
             pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
 
         new_xs = []
-        for i in range(self.max_dim+1):
+        for i in range(self.max_dim + 1):
             new_xs.append(pooled_xs[i])
         return new_xs
 
@@ -240,20 +249,19 @@ class SparseSIN(torch.nn.Module):
             xs = self.jump_complex(jump_xs)
 
         xs = self.pool_complex(xs, data)
+        # Select the dimensions we want at the end.
+        xs = [xs[i] for i in self.readout_dims]
 
         if include_partial:
             for k in range(len(xs)):
                 res[f"pool_{k}"] = xs[k]
 
-        # Select only triangles
-        xs = [xs[0], xs[2]]
         new_xs = []
         for i, x in enumerate(xs):
             new_xs.append(act(self.lin1s[i](x)))
 
         x = torch.stack(new_xs, dim=0)
         x = x.sum(0)
-        # x = new_xs[0]
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         x = self.lin2(x)
@@ -274,8 +282,11 @@ class EdgeSIN0(torch.nn.Module):
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
-    def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
-                 jump_mode=None, nonlinearity='relu', include_top_features=True, update_top_features=True,
+
+    def __init__(self, num_input_features, num_classes, num_layers, hidden,
+                 dropout_rate: float = 0.5,
+                 jump_mode=None, nonlinearity='relu', include_top_features=True,
+                 update_top_features=True,
                  readout='sum'):
         super(EdgeSIN0, self).__init__()
 
@@ -288,7 +299,7 @@ class EdgeSIN0(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.update_top_nns = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
-        self.pooling_fn = get_pooling_fn(readout) 
+        self.pooling_fn = get_pooling_fn(readout)
         conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
@@ -312,14 +323,14 @@ class EdgeSIN0(torch.nn.Module):
                 Linear(layer_dim * 2, layer_dim),
                 conv_nonlinearity(),
                 BN(layer_dim))
-            e_conv_inp_dim = layer_dim*2 if include_top_features else layer_dim
+            e_conv_inp_dim = layer_dim * 2 if include_top_features else layer_dim
             e_conv_up = Sequential(
                 Linear(e_conv_inp_dim, layer_dim),
                 conv_nonlinearity(),
                 BN(layer_dim))
             self.convs.append(
                 EdgeSINConv(layer_dim, layer_dim, v_conv_up, e_conv_down, e_conv_up,
-                            v_conv_update, e_conv_update, train_eps=False))
+                    v_conv_update, e_conv_update, train_eps=False))
             if self.update_top_features and i < num_layers - 1:
                 self.update_top_nns.append(Sequential(
                     Linear(layer_dim, hidden),
@@ -350,8 +361,8 @@ class EdgeSIN0(torch.nn.Module):
         # All complexes have nodes so we can extract the batch size from chains[0]
         batch_size = data.chains[0].batch.max() + 1
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
-        pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1),
-                                device=batch_size.device)
+        pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
+            device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
             pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
@@ -369,7 +380,7 @@ class EdgeSIN0(torch.nn.Module):
         xs, jump_xs = None, None
         for i, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim,
-                                               include_top_features=self.include_top_features)
+                include_top_features=self.include_top_features)
             xs = conv(*params)
             # If we are at the last convolutional layer, we do not need to update after
             # We also check triangle features do indeed exist in this batch before doing this.
@@ -398,8 +409,8 @@ class EdgeSIN0(torch.nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__
-    
-    
+
+
 class Dummy(torch.nn.Module):
     """
     A dummy simplicial network model.
@@ -407,7 +418,9 @@ class Dummy(torch.nn.Module):
     Readout at each layer is by summation.
     Outputs are computed by one single linear layer.
     """
-    def __init__(self, num_input_features, num_classes, num_layers, max_dim: int = 2, readout='sum'):
+
+    def __init__(self, num_input_features, num_classes, num_layers, max_dim: int = 2,
+                 readout='sum'):
         super(Dummy, self).__init__()
 
         self.max_dim = max_dim
@@ -434,7 +447,8 @@ class Dummy(torch.nn.Module):
         # Note that levels where we do MP at but where there was no data are set to 0.
         # TODO: shall we retain the device as an attribute of self? then `device=batch_size.device`
         # would become `device=self.device`
-        pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1), device=batch_size.device)
+        pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
+            device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
             # Otherwise, if we have complexes with no simplices at certain levels, the wrong
@@ -446,6 +460,6 @@ class Dummy(torch.nn.Module):
 
         x = self.lin(x)
         return x
-    
+
     def __repr__(self):
         return self.__class__.__name__
