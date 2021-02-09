@@ -140,7 +140,7 @@ class SparseSIN(torch.nn.Module):
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
-                 train_eps=False, final_hidden_multiplier: int = 3):
+                 train_eps=False, final_hidden_multiplier: int = 2):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -219,10 +219,10 @@ class SparseSIN(torch.nn.Module):
         for i, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
-            if i == len(self.convs) - 2:
-                start_to_process = 1
-            if i == len(self.convs) - 1:
-                start_to_process = 2
+            # if i == len(self.convs) - 2:
+            #     start_to_process = 1
+            # if i == len(self.convs) - 1:
+            #     start_to_process = 2
             xs = conv(*params, start_to_process=start_to_process)
             data.set_xs(xs)
 
@@ -246,14 +246,14 @@ class SparseSIN(torch.nn.Module):
                 res[f"pool_{k}"] = xs[k]
 
         # Select only triangles
-        xs = xs[2:]
+        xs = [xs[0], xs[2]]
         new_xs = []
         for i, x in enumerate(xs):
             new_xs.append(act(self.lin1s[i](x)))
 
-        # x = torch.stack(new_xs, dim=0)
-        # x = x.sum(0)
-        x = new_xs[0]
+        x = torch.stack(new_xs, dim=0)
+        x = x.sum(0)
+        # x = new_xs[0]
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         x = self.lin2(x)
