@@ -140,7 +140,7 @@ class SparseSIN(torch.nn.Module):
     """
     def __init__(self, num_input_features, num_classes, num_layers, hidden, dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
-                 train_eps=False, final_hidden_multiplier: int = 1):
+                 train_eps=False, final_hidden_multiplier: int = 3):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
