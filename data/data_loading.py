@@ -77,7 +77,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     elif name == 'IMDBBINARY':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2, fold=fold, degree_as_tag=True, init_method=init_method)
-    elif name == 'IMDBBMULTI':
+    elif name == 'IMDBMULTI':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=3, fold=fold, degree_as_tag=True, init_method=init_method)
     elif name == 'PROTEINS':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
