@@ -218,7 +218,12 @@ class SparseSIN(torch.nn.Module):
         res = {}
         for i, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
-            xs = conv(*params)
+            start_to_process = 0
+            if i == len(self.convs) - 2:
+                start_to_process = 1
+            if i == len(self.convs) - 1:
+                start_to_process = 2
+            xs = conv(*params, start_to_process=start_to_process)
             data.set_xs(xs)
 
             if include_partial:

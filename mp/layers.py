@@ -223,10 +223,13 @@ class SparseSINConv(torch.nn.Module):
                                     update_faces_nn, combine_nn, eps, train_eps)
             self.mp_levels.append(mp)
 
-    def forward(self, *chain_params: ChainMessagePassingParams):
+    def forward(self, *chain_params: ChainMessagePassingParams, start_to_process=0):
         assert len(chain_params) <= self.max_dim+1
 
         out = []
         for dim in range(len(chain_params)):
-            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+            if dim < start_to_process:
+                out.append(chain_params[dim].x)
+            else:
+                out.append(self.mp_levels[dim].forward(chain_params[dim]))
         return out
