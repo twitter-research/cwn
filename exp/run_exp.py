@@ -77,7 +77,10 @@ def main(args):
         load_kwargs = {}
         load_kwargs['emb_dim'] = args.emb_dim
         dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, **load_kwargs)
-        split_idx = dataset.get_idx_split()
+        if args.tune:
+            split_idx = dataset.get_tune_idx_split()
+        else:
+            split_idx = dataset.get_idx_split()
 
         # instantiate data loaders
         train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)

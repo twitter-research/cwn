@@ -134,16 +134,8 @@ dmypy.json
 .idea/
 .vscode/
 
+
 *.gz
-#data/dataset/
-#datasets/
-datasets/**/processed/
-datasets/**/complex*
 exp/results/
 *.pt
-*.pkl
 
-!datasets/SR_graphs/raw
-!datasets/IMDBBINARY/raw
-!datasets/PROTEINS/raw
-!datasets/NCI1/raw

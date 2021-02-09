@@ -27,6 +27,14 @@ class TUDataset(InMemoryComplexDataset):
         #     to make it more convenient to work with the training pipeline
         self.val_ids = np.loadtxt(test_filename, dtype=int).tolist()
         self.test_ids = None
+
+        # TODO: Add this later to our zip
+        # tune_train_filename = os.path.join(self.raw_dir, 'tests_train_split.txt'.format(fold + 1))
+        # self.tune_train_ids = np.loadtxt(tune_train_filename, dtype=int).tolist()
+        # tune_test_filename = os.path.join(self.raw_dir, 'tests_val_split.txt'.format(fold + 1))
+        # self.tune_val_ids = np.loadtxt(tune_test_filename, dtype=int).tolist()
+        # self.tune_test_ids = None
+
             
     @property
     def processed_file_names(self):
@@ -34,7 +42,6 @@ class TUDataset(InMemoryComplexDataset):
     
     @property
     def raw_file_names(self):
-        name = self.name
         # The processed graph files are our raw files.
         # They are obtained when running the initial data conversion S2V_to_PyG. 
         return ['{}_graph_list.pkl'.format(self.name)]
@@ -58,4 +65,12 @@ class TUDataset(InMemoryComplexDataset):
         
         with open(self.processed_paths[0], 'wb') as handle:
             pickle.dump(complexes, handle)
+
+    def get_tune_idx_split(self):
+        raise NotImplementedError('Not implemented yet')
+        # idx_split = {
+        #     'train': self.tune_train_ids,
+        #     'valid': self.tune_val_ids,
+        #     'test': self.tune_test_ids}
+        # return idx_split
 
