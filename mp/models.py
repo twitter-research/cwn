@@ -240,12 +240,15 @@ class SparseSIN(torch.nn.Module):
             for k in range(len(xs)):
                 res[f"pool_{k}"] = xs[k]
 
+        # Select only triangles
+        xs = xs[2:]
         new_xs = []
         for i, x in enumerate(xs):
             new_xs.append(act(self.lin1s[i](x)))
 
-        x = torch.stack(new_xs, dim=0)
-        x = x.sum(0)
+        # x = torch.stack(new_xs, dim=0)
+        # x = x.sum(0)
+        x = new_xs[0]
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         x = self.lin2(x)
