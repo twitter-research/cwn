@@ -943,3 +943,23 @@ def test_data_loader_shuffling():
 
     assert list(unshuffled_ys.size()) == list(shuffled_ys.size())
     assert not torch.equal(unshuffled_ys, shuffled_ys)
+
+
+def test_idx_splitting_works():
+    dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
+    splits = dataset.get_idx_split()
+
+    val_dataset = dataset[splits["valid"]]
+    ys1 = []
+    for data in val_dataset:
+        ys1.append(data.y)
+
+    ys2 = []
+    for i in splits['valid']:
+        data = dataset.get(i)
+        ys2.append(data.y)
+
+    ys1 = torch.cat(ys1, dim=0)
+    ys2 = torch.cat(ys2, dim=0)
+
+    assert torch.equal(ys1, ys2)
