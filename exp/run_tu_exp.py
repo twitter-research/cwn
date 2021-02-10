@@ -57,6 +57,11 @@ if __name__ == "__main__":
     perf_per_fold = {i: perf_per_fold[i] for i in range(len(perf_per_fold))}
     print_summary(perf_per_fold)
 
+    print(" ===== Performance on best epoch ======")
+    perf_per_fold = val_curves[:, best_index]
+    perf_per_fold = {i: perf_per_fold[i] for i in range(len(perf_per_fold))}
+    print_summary(perf_per_fold)
+
     print(" ===== Final result ======")
     msg = (
         'Dataset:        {0}\n'
