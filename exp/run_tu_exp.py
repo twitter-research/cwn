@@ -9,6 +9,14 @@ from exp.run_exp import main
 
 __num_folds__ = 10
 
+
+def print_summary(summary):
+    msg = ''
+    for k, v in summary.items():
+        msg += f'Fold {k:1d}:  {v:.3f}\n'
+    print(msg)
+
+
 if __name__ == "__main__":
     
     # standard args
@@ -33,7 +41,23 @@ if __name__ == "__main__":
     best_index = np.argmax(avg_val_curve)
     mean_perf = avg_val_curve[best_index]
     std_perf = val_curves.std(axis=0)[best_index]
-    
+
+    print(" ===== Mean performance per fold ======")
+    perf_per_fold = val_curves.mean(1)
+    perf_per_fold = {i: perf_per_fold[i] for i in range(len(perf_per_fold))}
+    print_summary(perf_per_fold)
+
+    print(" ===== Max performance per fold ======")
+    perf_per_fold = np.max(val_curves, axis=1)
+    perf_per_fold = {i: perf_per_fold[i] for i in range(len(perf_per_fold))}
+    print_summary(perf_per_fold)
+
+    print(" ===== Median performance per fold ======")
+    perf_per_fold = np.median(val_curves, axis=1)
+    perf_per_fold = {i: perf_per_fold[i] for i in range(len(perf_per_fold))}
+    print_summary(perf_per_fold)
+
+    print(" ===== Final result ======")
     msg = (
         'Dataset:        {0}\n'
         'Accuracy:       {1} ± {2}\n'
@@ -41,5 +65,3 @@ if __name__ == "__main__":
         '-------------------------------\n').format(parsed_args.dataset,
                                                     mean_perf, std_perf, best_index)
     print(msg)
-    
-        
