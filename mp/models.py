@@ -145,7 +145,7 @@ class SparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
                  train_eps=False, final_hidden_multiplier: int = 2,
-                 readout_dims=(0, 2, 3)):
+                 readout_dims=(0, 2)):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
