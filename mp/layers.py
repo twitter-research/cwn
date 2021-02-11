@@ -171,10 +171,15 @@ class SparseSINChainConv(ChainMessagePassing):
                                               face_attr=chain.kwargs['face_attr'])
 
         # As in GIN, we can learn an injective update function for each multi-set
-        out_up += (1 + self.eps1) * chain.x
-        out_faces += (1 + self.eps2) * chain.x
-        out_up = self.update_up_nn(out_up)
-        out_faces = self.update_faces_nn(out_faces)
+        out = torch.cat([(1 + self.eps1) * chain.x + out_up, (1 + self.eps2) * chain.x + out_faces], dim=0)
+        out = self.update_up_nn(out)
+        out_up = out[:len(chain.x), :]
+        out_faces = out[len(chain.x):, :]
+
+        # out_up += (1 + self.eps1) * chain.x
+        # out_faces += (1 + self.eps2) * chain.x
+        # out_up = self.update_up_nn(out_up)
+        # out_faces = self.update_faces_nn(out_faces)
 
         # We need to combine the two such that the output is injective
         # Because the cross product of countable spaces is countable, then such a function exists.
