@@ -145,7 +145,7 @@ class SparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
                  train_eps=False, final_hidden_multiplier: int = 2,
-                 readout_dims=(0, 3)):
+                 readout_dims=(0, 2, 3)):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -258,11 +258,12 @@ class SparseSIN(torch.nn.Module):
 
         new_xs = []
         for i, x in enumerate(xs):
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
             new_xs.append(act(self.lin1s[self.readout_dims[i]](x)))
 
         x = torch.stack(new_xs, dim=0)
         x = x.sum(0)
-        x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        # x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         x = self.lin2(x)
 
