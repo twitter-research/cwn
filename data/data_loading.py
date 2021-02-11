@@ -85,9 +85,13 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'NCI1':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
             fold=fold, degree_as_tag=False, init_method=init_method)
+    elif name == 'PTC':
+        dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
+            fold=fold, degree_as_tag=False, init_method=init_method)
     else:
         raise NotImplementedError
     return dataset
+
 
 def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **kwargs):
     if name.startswith('sr'):
