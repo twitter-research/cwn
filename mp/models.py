@@ -258,12 +258,12 @@ class SparseSIN(torch.nn.Module):
 
         new_xs = []
         for i, x in enumerate(xs):
-            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+            # x = F.dropout(x, p=self.dropout_rate, training=self.training)
             new_xs.append(act(self.lin1s[self.readout_dims[i]](x)))
 
         x = torch.stack(new_xs, dim=0)
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = x.sum(0)
-        # x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         x = self.lin2(x)
 
