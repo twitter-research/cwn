@@ -108,7 +108,7 @@ def main(args):
                      readout=args.readout,                    # readout
                     ).to(device)
     elif args.model == 'sparse_sin':
-        model = SparseSIN(dataset.num_features_in_dim(0),    # num_input_features
+        model = SparseSIN(dataset.num_features_in_dim(0),     # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -117,6 +117,8 @@ def main(args):
                      jump_mode=args.jump_mode,                # jump mode
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
+                     final_readout=args.final_readout,        # final readout
+                     apply_dropout_before=args.drop_position, # where to apply dropout
                     ).to(device)
     elif args.model == 'gin':
         model = GIN0(num_features,                            # num_input_features

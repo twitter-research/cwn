@@ -9,10 +9,14 @@ def get_parser():
                         help='model, possible choices: sin, dummy, ... (default: sin)')
     parser.add_argument('--drop_rate', type=float, default=0.5,
                         help='dropout rate (default: 0.5)')
+    parser.add_argument('--drop_position', type=str, default='lin2',
+                        help='where to apply the final dropout (default: lin2, i.e. _before_ lin2)')
     parser.add_argument('--nonlinearity', type=str, default='relu',
                         help='activation function (default: relu)')
     parser.add_argument('--readout', type=str, default='sum',
                         help='readout function (default: sum)')
+    parser.add_argument('--final_readout', type=str, default='sum',
+                        help='final readout function (default: sum)')
     parser.add_argument('--jump_mode', type=str, default=None,
                         help='Mode for JK (default: None, i.e. no JK)')
     parser.add_argument('--lr', type=float, default=0.001,
