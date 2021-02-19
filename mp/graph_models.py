@@ -40,10 +40,11 @@ class GIN0(torch.nn.Module):
         self.conv1 = GINConv(
             Sequential(
                 Linear(num_features, hidden),
+                BN(hidden),
                 conv_nonlinearity(),
                 Linear(hidden, hidden),
-                conv_nonlinearity(),
                 BN(hidden),
+                conv_nonlinearity(),
             ), train_eps=False)
         self.convs = torch.nn.ModuleList()
         for i in range(num_layers - 1):
@@ -51,10 +52,11 @@ class GIN0(torch.nn.Module):
                 GINConv(
                     Sequential(
                         Linear(hidden, hidden),
+                        BN(hidden),
                         conv_nonlinearity(),
                         Linear(hidden, hidden),
-                        conv_nonlinearity(),
                         BN(hidden),
+                        conv_nonlinearity(),
                     ), train_eps=False))
         self.lin1 = Linear(hidden, hidden)
         self.lin2 = Linear(hidden, num_classes)
@@ -93,10 +95,11 @@ class GIN0WithJK(torch.nn.Module):
         self.conv1 = GINConv(
             Sequential(
                 Linear(num_features, hidden),
+                BN(hidden),
                 conv_nonlinearity(),
                 Linear(hidden, hidden),
-                conv_nonlinearity(),
                 BN(hidden),
+                conv_nonlinearity(),
             ), train_eps=False)
         self.convs = torch.nn.ModuleList()
         for i in range(num_layers - 1):
@@ -104,10 +107,11 @@ class GIN0WithJK(torch.nn.Module):
                 GINConv(
                     Sequential(
                         Linear(hidden, hidden),
+                        BN(hidden),
                         conv_nonlinearity(),
                         Linear(hidden, hidden),
-                        conv_nonlinearity(),
                         BN(hidden),
+                        conv_nonlinearity(),
                     ), train_eps=False))
         self.jump = JumpingKnowledge(mode)
         if mode == 'cat':
@@ -154,10 +158,11 @@ class GIN(torch.nn.Module):
         self.conv1 = GINConv(
             Sequential(
                 Linear(num_features, hidden),
+                BN(hidden),
                 conv_nonlinearity(),
                 Linear(hidden, hidden),
-                conv_nonlinearity(),
                 BN(hidden),
+                conv_nonlinearity(),
             ), train_eps=True)
         self.convs = torch.nn.ModuleList()
         for i in range(num_layers - 1):
@@ -165,10 +170,11 @@ class GIN(torch.nn.Module):
                 GINConv(
                     Sequential(
                         Linear(hidden, hidden),
+                        BN(hidden),
                         conv_nonlinearity(),
                         Linear(hidden, hidden),
-                        conv_nonlinearity(),
                         BN(hidden),
+                        conv_nonlinearity(),
                     ), train_eps=True))
         self.lin1 = Linear(hidden, hidden)
         self.lin2 = Linear(hidden, num_classes)
@@ -207,10 +213,11 @@ class GINWithJK(torch.nn.Module):
         self.conv1 = GINConv(
             Sequential(
                 Linear(num_features, hidden),
+                BN(hidden),
                 conv_nonlinearity(),
                 Linear(hidden, hidden),
-                conv_nonlinearity(),
                 BN(hidden),
+                conv_nonlinearity(),
             ), train_eps=True)
         self.convs = torch.nn.ModuleList()
         for i in range(num_layers - 1):
@@ -218,10 +225,11 @@ class GINWithJK(torch.nn.Module):
                 GINConv(
                     Sequential(
                         Linear(hidden, hidden),
+                        BN(hidden),
                         conv_nonlinearity(),
                         Linear(hidden, hidden),
-                        conv_nonlinearity(),
                         BN(hidden),
+                        conv_nonlinearity(),
                     ), train_eps=True))
         self.jump = JumpingKnowledge(mode)
         if mode == 'cat':

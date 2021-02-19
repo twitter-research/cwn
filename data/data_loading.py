@@ -7,7 +7,7 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
-from data.datasets import SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset
+from data.datasets import SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset, load_tu_graph_dataset
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -100,7 +100,26 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
 
 def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **kwargs):
     if name.startswith('sr'):
-        data = load_sr_graph_dataset(name, root=root, emb_dim=kwargs['emb_dim'])
+        graph_list, train_ids, val_ids, test_ids = load_sr_graph_dataset(name, root=root, emb_dim=kwargs['emb_dim'])
+        data = (graph_list, train_ids, val_ids, test_ids, None)
+    elif name == 'IMDBBINARY':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
+    elif name == 'IMDBMULTI':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 3)
+    elif name == 'REDDITBINARY':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
+    elif name == 'REDDITMULTI5K':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 5)
+    elif name == 'PROTEINS':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
+    elif name == 'NCI1':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
     else:
         raise NotImplementedError
     return data

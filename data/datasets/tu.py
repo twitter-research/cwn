@@ -1,11 +1,35 @@
 import os
 import pickle
 import numpy as np
+from definitions import ROOT_DIR
 
 from data.tu_utils import load_data, S2V_to_PyG, get_fold_indices
 from data.utils import convert_graph_dataset_with_gudhi
 from data.datasets import InMemoryComplexDataset
 
+def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_as_tag=False, fold=0, seed=0):
+    raw_dir = os.path.join(root, name, 'raw')
+    load_from = os.path.join(raw_dir, '{}_graph_list_degree_as_tag_{}.pkl'.format(name, degree_as_tag))
+    if os.path.isfile(load_from):
+        with open(load_from, 'rb') as handle:
+            graph_list = pickle.load(handle)
+    else:
+        data, num_classes = load_data(raw_dir, name, degree_as_tag)
+        print('Converting graph data into PyG format...')
+        graph_list = [S2V_to_PyG(datum) for datum in data]
+        with open(load_from, 'wb') as handle:
+            pickle.dump(graph_list, handle)
+    train_filename = os.path.join(raw_dir, '10fold_idx', 'train_idx-{}.txt'.format(fold + 1))  
+    test_filename = os.path.join(raw_dir, '10fold_idx', 'test_idx-{}.txt'.format(fold + 1))
+    if os.path.isfile(train_filename) and os.path.isfile(test_filename):
+        # NB: we consider the loaded test indices as val_ids ones and set test_ids to None
+        #     to make it more convenient to work with the training pipeline
+        train_ids = np.loadtxt(train_filename, dtype=int).tolist()
+        val_ids = np.loadtxt(test_filename, dtype=int).tolist()
+    else:
+        train_ids, val_ids = get_fold_indices(graph_list, seed, fold)
+    test_ids = None
+    return graph_list, train_ids, val_ids, test_ids
 
 class TUDataset(InMemoryComplexDataset):
 
@@ -28,12 +52,11 @@ class TUDataset(InMemoryComplexDataset):
             #     to make it more convenient to work with the training pipeline
             self.train_ids = np.loadtxt(train_filename, dtype=int).tolist()
             self.val_ids = np.loadtxt(test_filename, dtype=int).tolist()
-            self.test_ids = None
         else:
             train_ids, val_ids = get_fold_indices(self._data_list, self.seed, self.fold)
             self.train_ids = train_ids
             self.val_ids = val_ids
-
+        self.test_ids = None
         # TODO: Add this later to our zip
         # tune_train_filename = os.path.join(self.raw_dir, 'tests_train_split.txt'.format(fold + 1))
         # self.tune_train_ids = np.loadtxt(tune_train_filename, dtype=int).tolist()
@@ -50,7 +73,7 @@ class TUDataset(InMemoryComplexDataset):
     def raw_file_names(self):
         # The processed graph files are our raw files.
         # They are obtained when running the initial data conversion S2V_to_PyG. 
-        return ['{}_graph_list.pkl'.format(self.name)]
+        return ['{}_graph_list_degree_as_tag_{}.pkl'.format(self.name, self.degree_as_tag)]
     
     def download(self):
         # This will process the raw data into a list of PyG Data objs.
