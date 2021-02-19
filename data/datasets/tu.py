@@ -30,8 +30,7 @@ class TUDataset(InMemoryComplexDataset):
             self.val_ids = np.loadtxt(test_filename, dtype=int).tolist()
             self.test_ids = None
         else:
-            data, num_classes = load_data(self.raw_dir, self.name, self.degree_as_tag)
-            train_ids, val_ids = get_fold_indices(data, self.seed, self.fold)
+            train_ids, val_ids = get_fold_indices(self._data_list, self.seed, self.fold)
             self.train_ids = train_ids
             self.val_ids = val_ids
 
