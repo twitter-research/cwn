@@ -170,3 +170,16 @@ def separate_data_given_split(graph_list, path, fold_idx):
     test_graph_list = [graph_list[i] for i in test_idx]
 
     return train_graph_list, test_graph_list
+
+
+def get_fold_indices(graph_list, seed, fold_idx):
+    assert 0 <= fold_idx and fold_idx < 10, "fold_idx must be from 0 to 9."
+    skf = StratifiedKFold(n_splits=10, shuffle = True, random_state = seed)
+
+    labels = [graph.label for graph in graph_list]
+    idx_list = []
+    for idx in skf.split(np.zeros(len(labels)), labels):
+        idx_list.append(idx)
+    train_idx, test_idx = idx_list[fold_idx]
+
+    return train_idx.tolist(), test_idx.tolist()

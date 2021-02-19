@@ -1,4 +1,5 @@
 import sys
+import os
 import copy
 import time
 import numpy as np
@@ -15,16 +16,11 @@ def print_summary(summary):
     for k, v in summary.items():
         msg += f'Fold {k:1d}:  {v:.3f}\n'
     print(msg)
-
-
-if __name__ == "__main__":
     
-    # standard args
+    
+def exp_main(passed_args):
+    
     parser = get_parser()
-    passed_args = sys.argv[1:]
-    assert 'fold' not in passed_args
-    passed_args += ['--exp_name', str(time.time())]
-
     # run each experiment separately and gather results
     results = list()
     for i in range(__num_folds__):
@@ -70,3 +66,31 @@ if __name__ == "__main__":
         '-------------------------------\n').format(parsed_args.dataset,
                                                     mean_perf, std_perf, best_index)
     print(msg)
+    
+    # additionally write msg and configuration on file
+    for a, arg in enumerate(passed_args):
+        if not arg.startswith('--'):
+            continue
+        key = arg[2:]
+        if key == 'result_folder':
+            result_folder = passed_args[a+1]
+        if key == 'exp_name':
+            exp_name = passed_args[a+1]
+    filename = os.path.join(result_folder, '{}-{}/result.txt'.format(parsed_args.dataset, exp_name))
+    print('Writing results at: {}'.format(filename))
+    with open(filename, 'w') as handle:
+        handle.write(msg)
+        for arg in passed_args:
+            if arg.startswith('--'):
+                handle.write(arg+': ')
+            else:
+                handle.write(arg+'\n')
+
+if __name__ == "__main__":
+    
+    # standard args
+    passed_args = sys.argv[1:]
+    assert 'fold' not in passed_args
+    passed_args += ['--exp_name', str(time.time())]
+
+    exp_main(passed_args)

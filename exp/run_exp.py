@@ -76,7 +76,7 @@ def main(args):
         # data loading
         load_kwargs = {}
         load_kwargs['emb_dim'] = args.emb_dim
-        dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, **load_kwargs)
+        dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, init_method=args.init_method, **load_kwargs)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
