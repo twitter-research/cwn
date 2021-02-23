@@ -101,12 +101,14 @@ def load_data(path, dataset, degree_as_tag):
         edges = [list(pair) for pair in g.g.edges()]
         edges.extend([[i, j] for j, i in edges])
 
-        deg_list = list(dict(g.g.degree(range(len(g.g)))).values())
+        deg_list = list(dict(g.g.degree(range(len(g.g)))).values())  # <- this might not be used...!?
         g.edge_mat = torch.LongTensor(edges).transpose(0,1)
-
+    
     if degree_as_tag:
         for g in g_list:
-            g.node_tags = list(dict(g.g.degree).values())
+            # (!)
+            # g.node_tags = list(dict(g.g.degree).values())
+            g.node_tags = [g.g.degree[node] for node in range(len(g.g))]
 
     #Extracting unique tag labels   
     tagset = set([])
