@@ -84,10 +84,10 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
             fold=fold, degree_as_tag=True, init_method=init_method) 
     elif name == 'REDDITBINARY':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=True, init_method=init_method)
+            fold=fold, degree_as_tag=False, init_method=init_method)
     elif name == 'REDDITMULTI5K':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=5,
-            fold=fold, degree_as_tag=True, init_method=init_method)
+            fold=fold, degree_as_tag=False, init_method=init_method)
     elif name == 'PROTEINS':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
             fold=fold, degree_as_tag=False, init_method=init_method)
@@ -109,10 +109,10 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
         graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
         data = (graph_list, train_ids, val_ids, test_ids, 3)
     elif name == 'REDDITBINARY':
-        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
         data = (graph_list, train_ids, val_ids, test_ids, 2)
     elif name == 'REDDITMULTI5K':
-        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
         data = (graph_list, train_ids, val_ids, test_ids, 5)
     elif name == 'PROTEINS':
         graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
