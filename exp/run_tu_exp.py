@@ -91,6 +91,7 @@ if __name__ == "__main__":
     # standard args
     passed_args = sys.argv[1:]
     assert 'fold' not in passed_args
-    passed_args += ['--exp_name', str(time.time())]
+    if '--exp_name' not in passed_args:
+        passed_args += ['--exp_name', str(time.time())]
 
     exp_main(passed_args)

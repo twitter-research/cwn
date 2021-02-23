@@ -178,7 +178,8 @@ class SparseSIN(torch.nn.Module):
                     msg_faces_nn=lambda x: x, msg_up_nn=lambda x1, x2: x1,
                     inp_update_up_nn=None, inp_update_faces_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
-                    hidden=hidden, act_module=act_module, layer_dim=layer_dim))
+                    hidden=hidden, act_module=act_module, layer_dim=layer_dim,
+                    apply_norm=(num_input_features>1)))  # TODO: turn this into a less hacky trick
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):

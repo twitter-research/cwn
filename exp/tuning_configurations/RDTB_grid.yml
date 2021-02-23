@@ -1,6 +1,6 @@
 dataset: REDDITBINARY
 epochs:
-    - 75
+    - 200
 batch_size:
     - 32
     - 128
@@ -42,3 +42,5 @@ num_layers:
     - 4
 readout:
     - mean
+train_eval_period:
+    - 50

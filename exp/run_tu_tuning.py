@@ -7,7 +7,7 @@ from definitions import ROOT_DIR
 from exp.parser import get_parser
 from exp.run_tu_exp import exp_main
 
-__max_devices__ = 4
+__max_devices__ = 5
 
 if __name__ == "__main__":
     
