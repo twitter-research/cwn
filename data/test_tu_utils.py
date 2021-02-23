@@ -80,11 +80,8 @@ def validate_get_fold_indices(graphs):
                 assert np.any(~np.equal(test_idx_0, prev_test))
             prev_train = train_idx_0
             prev_test = test_idx_0
-            
-            
-# def test_get_fold_indices_on_redditbinary(redditbinary_graphs):
-#     validate_get_fold_indices(redditbinary_graphs)
-    
+        
+
 # def test_degree_as_tag_on_redditbinary(redditbinary_graphs):
 #     validate_degree_as_tag(redditbinary_graphs)
     

@@ -4,6 +4,7 @@ import networkx as nx
 import numpy as np
 import random
 import torch
+import torch_geometric
 from torch_geometric.data import Data
 from sklearn.model_selection import StratifiedKFold
 
@@ -106,9 +107,9 @@ def load_data(path, dataset, degree_as_tag):
     
     if degree_as_tag:
         for g in g_list:
-            # (!)
-            # g.node_tags = list(dict(g.g.degree).values())
-            g.node_tags = [g.g.degree[node] for node in range(len(g.g))]
+            g.node_tags = list(dict(g.g.degree).values())
+            # ^^^ !? it should probably be replaced by the following one:
+            # g.node_tags = [g.g.degree[node] for node in range(len(g.g))]
 
     #Extracting unique tag labels   
     tagset = set([])
@@ -121,7 +122,32 @@ def load_data(path, dataset, degree_as_tag):
     for g in g_list:
         g.node_features = torch.zeros(len(g.node_tags), len(tagset))
         g.node_features[range(len(g.node_tags)), [tag2index[tag] for tag in g.node_tags]] = 1
-
+        
+    # ==================
+    # Here we recompute degree encodings with external code,
+    # as we observed some unexpected behaviors likely due to
+    # incompatibilities w.r.t.  python versions
+    # ==================
+    def get_node_degrees(graph):
+        edge_index = graph.edge_mat
+        if edge_index.shape[1] == 0:  # just isolated nodes
+            degrees = torch.zeros((graph.node_features.shape[0],1))
+        else:
+            degrees = torch_geometric.utils.degree(edge_index[0]).unsqueeze(1)
+        return degrees
+    if degree_as_tag:
+        # 1. cumulate node degrees
+        degs = torch.cat([get_node_degrees(graph) for graph in g_list], 0)
+        # 2. compute unique values
+        uniques, corrs = np.unique(degs, return_inverse=True, axis=0)
+        # 3. encode
+        pointer = 0
+        for graph in g_list:
+            n = graph.node_features.shape[0]
+            hots = torch.LongTensor(corrs[pointer:pointer+n])
+            graph.node_features = torch.nn.functional.one_hot(hots, len(uniques)).float()
+            pointer += n
+    # ====================
 
     print('# classes: %d' % len(label_dict))
     print('# maximum node tag: %d' % len(tagset))
