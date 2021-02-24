@@ -73,7 +73,7 @@ def create_graph_from_triangulation(points, triangles):
             for v1, v2 in itertools.combinations(vertices, 2):
                 if not G.has_edge(v1, v2):
                     G.add_edge(v1, v2, index=edge_idx)
-                    edge_to_tuple[edge_idx] = (v1, v2)
+                    edge_to_tuple[edge_idx] = (min(v1, v2), max(v1, v2))
                     tuple_to_edge[(min(v1, v2), max(v1, v2))] = edge_idx
                     edge_idx += 1
                 assert G.has_edge(v2, v1)
@@ -191,14 +191,14 @@ def generate_trajectory(start_rect, end_rect, ckpt_rect, G: nx.Graph):
 def extract_adj_from_boundary(B):
     A = B.T @ B
 
-    connections = np.count_nonzero(A)
     n = len(A)
+    connections = np.count_nonzero(A) - n
 
-    index = torch.empty((2, connections))
+    index = torch.empty((2, connections), dtype=torch.long)
     orient = torch.empty(connections)
 
     connection = 0
-    for i, j in itertools.combinations(range(n), 2):
+    for i, j in itertools.combinations(list(range(n)), 2):
         assert i != j
         if A[i, j] != 0:
             index[0, connection] = i
@@ -211,6 +211,7 @@ def extract_adj_from_boundary(B):
 
             connection += 2
 
+    assert connection == connections
     return index, orient
 
 
@@ -242,7 +243,16 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200):
     points, triangles = create_hole(points, tri.simplices, hole1)
     points, triangles = create_hole(points, triangles, hole2)
 
+    # Double check each point appears in some triangle.
+    for i in range(len(points)):
+        assert np.sum(triangles == i) > 0
+
+    assert np.min(triangles) == 0
+    assert np.max(triangles) == len(points) - 1
+
     G = create_graph_from_triangulation(points, triangles)
+    assert G.number_of_nodes() == len(points)
+
     B1, B2 = extract_boundary_matrices(G)
 
     lower_index, lower_orient = extract_adj_from_boundary(B1)
