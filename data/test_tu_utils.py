@@ -21,6 +21,11 @@ def imdbbinary_graphs():
     graph_list = [S2V_to_PyG(datum) for datum in data]
     return graph_list
 
+@pytest.fixture
+def imdbbinary_nonattributed_graphs():
+    data, num_classes = load_data(os.path.join(ROOT_DIR, 'datasets', 'IMDBBINARY', 'raw'), 'IMDBBINARY', False)
+    graph_list = [S2V_to_PyG(datum) for datum in data]
+    return graph_list
 
 @pytest.fixture
 def proteins_graphs():
@@ -80,8 +85,17 @@ def validate_get_fold_indices(graphs):
                 assert np.any(~np.equal(test_idx_0, prev_test))
             prev_train = train_idx_0
             prev_test = test_idx_0
-        
 
+
+def validate_constant_scalar_features(graphs):
+    
+    for graph in graphs:
+        feats = graph.x
+        assert feats.shape[1]
+        expected = torch.ones(feats.shape[0], 1)
+        assert torch.equal(feats, expected)
+        
+        
 # def test_degree_as_tag_on_redditbinary(redditbinary_graphs):
 #     validate_degree_as_tag(redditbinary_graphs)
     
@@ -90,6 +104,9 @@ def test_get_fold_indices_on_imdbbinary(imdbbinary_graphs):
     
 def test_degree_as_tag_on_imdbbinary(imdbbinary_graphs):
     validate_degree_as_tag(imdbbinary_graphs)
+    
+def test_constant_scalar_features_on_imdbbinary_without_tags(imdbbinary_nonattributed_graphs):
+    validate_constant_scalar_features(imdbbinary_nonattributed_graphs)
     
 def test_degree_as_tag_on_proteins(proteins_graphs):
     validate_degree_as_tag(proteins_graphs)
