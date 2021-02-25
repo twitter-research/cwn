@@ -9,9 +9,8 @@ from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
-from mp.models import SIN0, Dummy, SparseSIN
 from mp.graph_models import GIN0, GINWithJK
-
+from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient
 from definitions import ROOT_DIR
 
 import time
@@ -151,10 +150,10 @@ def main(args):
                       readout=args.readout,
                      ).to(device)
     elif args.model == 'edge_orient':
-        model = Dummy(dataset.num_features_in_dim(0),
+        model = EdgeOrient(1,
                       dataset.num_classes,
                       args.num_layers,
-                      max_dim=dataset.max_dim,
+                      args.emb_dim,  # hidden
                       readout=args.readout,
                      ).to(device)
         

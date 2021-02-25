@@ -520,29 +520,6 @@ class EdgeOrient(torch.nn.Module):
         self.lin1.reset_parameters()
         self.lin2.reset_parameters()
 
-    def pool_complex(self, xs, data):
-        # All complexes have nodes so we can extract the batch size from chains[0]
-        batch_size = data.chains[0].batch.max() + 1
-        # print(batch_size)
-        # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
-        pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
-            device=batch_size.device)
-        for i in range(len(xs)):
-            # It's very important that size is supplied.
-            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
-
-        new_xs = []
-        for i in range(self.max_dim + 1):
-            new_xs.append(pooled_xs[i])
-        return new_xs
-
-    def jump_complex(self, jump_xs):
-        # Perform JumpingKnowledge at each level of the complex
-        xs = []
-        for jumpx in jump_xs:
-            xs += [self.jump(jumpx)]
-        return xs
-
     def forward(self, data: ChainBatch):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
 

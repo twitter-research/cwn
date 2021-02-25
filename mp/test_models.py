@@ -1,5 +1,6 @@
 import torch
 import itertools
+import numpy as np
 
 from data.complex import ComplexBatch, ChainBatch
 from data.dummy_complexes import get_testing_complex_list
@@ -246,8 +247,6 @@ def test_sparse_sin0_model_with_batching_on_proteins():
 
 
 def test_edge_orient_model_on_flow_dataset():
-    import numpy as np
-
     np.random.seed(4)
     train, _ = load_flow_dataset(num_points=400, num_train=3, num_test=3)
 
