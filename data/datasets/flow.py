@@ -1,5 +1,6 @@
 import torch
 import pickle
+import os.path as osp
 
 from data.datasets import InMemoryComplexDataset
 from data.datasets.flow_utils import load_flow_dataset
@@ -28,6 +29,11 @@ class FlowDataset(InMemoryComplexDataset):
         self.train_ids = list(range(train_samples))
         self.val_ids = list(range(train_samples, train_samples + val_samples))
         self.test_ids = None
+
+    @property
+    def processed_dir(self):
+        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        return osp.join(self.root, f'complex_dim{self._num_points}_{self._num_classes}')
 
     @property
     def processed_file_names(self):

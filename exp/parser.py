@@ -65,4 +65,7 @@ def get_parser():
     parser.add_argument('--train_eval_period', type=int, default=10,
                         help='How often to evaluate on train.')
     parser.add_argument('--tune', action='store_true', help='Use the tuning indexes')
+    parser.add_argument('--flow_points',  type=int, default=400,
+                        help='Number of points to use for the flow experiment')
+
     return parser
