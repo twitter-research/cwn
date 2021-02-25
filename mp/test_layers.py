@@ -91,7 +91,6 @@ def test_sin_conv_training():
 def test_orient_conv_on_flow_dataset():
     import numpy as np
 
-    # TODO: Investigate why it fails on this seed 
     np.random.seed(4)
     update_up = nn.Sequential(nn.Linear(1, 4))
     update_down = nn.Sequential(nn.Linear(1, 4))

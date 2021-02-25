@@ -48,6 +48,13 @@ def create_hole(points, triangles, hole):
 
     # Remove the triangles and points inside the holes
     triangles = triangles[np.array(kept_triangles)]
+
+    # Remove the points that are not part of any triangles anymore.
+    # This can happen in some very rare cases
+    for i in range(len(points)):
+        if np.sum(triangles == i) == 0:
+            removed_vertices.add(i)
+
     points = np.delete(points, list(removed_vertices), axis=0)
 
     # Renumber the indices of the triangles' vertices
@@ -237,10 +244,19 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200):
     points = np.random.uniform(size=(num_points, 2))
     tri = Delaunay(points)
 
+    # Double check each point appears in some triangle.
+    for i in range(len(points)):
+        assert np.sum(tri.simplices == i) > 0
+
     hole1 = np.array([[0.2, 0.2], [0.4, 0.4]])
     hole2 = np.array([[0.6, 0.6], [0.8, 0.8]])
 
     points, triangles = create_hole(points, tri.simplices, hole1)
+
+    # Double check each point appears in some triangle.
+    for i in range(len(points)):
+        assert np.sum(triangles == i) > 0
+
     points, triangles = create_hole(points, triangles, hole2)
 
     # Double check each point appears in some triangle.
