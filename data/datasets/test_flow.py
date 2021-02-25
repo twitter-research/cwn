@@ -107,23 +107,22 @@ def test_visualise_flow_dataset():
         plt.arrow(p1[0], p1[1], p2[0] - p1[0], p2[1] - p1[1], color='red',
             shape='full', lw=3, length_includes_head=True, head_width=.01, zorder=10)
 
-    lower_index = chain.lower_index
-    for i in range(lower_index.size(1)):
-        n1, n2 = lower_index[0, i].item(), lower_index[1, i].item()
-        if n1 == source_edge:
-            source_points = edge_to_tuple[n2]
-            orient = chain.lower_orient[i].item()
-            color = 'green' if orient == 1.0 else 'yellow'
-            plot_arrow(points[source_points[0]], points[source_points[1]], color=color)
-
-    # upper_index = chain.upper_index
-    # for i in range(upper_index.size(1)):
-    #     n1, n2 = upper_index[0, i].item(), upper_index[1, i].item()
+    # lower_index = chain.lower_index
+    # for i in range(lower_index.size(1)):
+    #     n1, n2 = lower_index[0, i].item(), lower_index[1, i].item()
     #     if n1 == source_edge:
     #         source_points = edge_to_tuple[n2]
-    #         orient = chain.upper_orient[i].item()
+    #         orient = chain.lower_orient[i].item()
     #         color = 'green' if orient == 1.0 else 'yellow'
     #         plot_arrow(points[source_points[0]], points[source_points[1]], color=color)
 
+    upper_index = chain.upper_index
+    for i in range(upper_index.size(1)):
+        n1, n2 = upper_index[0, i].item(), upper_index[1, i].item()
+        if n1 == source_edge:
+            source_points = edge_to_tuple[n2]
+            orient = chain.upper_orient[i].item()
+            color = 'green' if orient == 1.0 else 'yellow'
+            plot_arrow(points[source_points[0]], points[source_points[1]], color=color)
 
     plt.show()
