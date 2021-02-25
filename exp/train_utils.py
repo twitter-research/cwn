@@ -111,6 +111,7 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     y_pred = torch.cat(y_pred, dim=0).numpy()
 
     # print(np.unique(y_true, return_counts=True))
+    # print(y_pred.shape)
 
     # # Test the predictions are the same without batching
     # if dataset is not None:

@@ -10,7 +10,8 @@ from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
 from mp.graph_models import GIN0, GINWithJK
-from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient
+from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN
+
 from definitions import ROOT_DIR
 
 import time
@@ -156,6 +157,13 @@ def main(args):
                       args.emb_dim,  # hidden
                       readout=args.readout,
                      ).to(device)
+    elif args.model == 'edge_mpnn':
+        model = EdgeMPNN(1,
+                      dataset.num_classes,
+                      args.num_layers,
+                      args.emb_dim,  # hidden
+                      readout=args.readout,
+                     ).to(device)
         
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
@@ -226,13 +234,13 @@ def main(args):
 
             i = 0
             new_params = []
-            if epoch % 10 == 0:
+            if epoch % 1 == 0:
                 print("====== Slowly changing params ======= ")
             for name, param in model.named_parameters():
                 # print(f"Param {name}: {param.data.view(-1)[0]}")
                 # new_params.append(param.data.detach().clone().view(-1)[0])
                 new_params.append(param.data.detach().mean().item())
-                if len(params) > 0 and epoch % 10 == 0:
+                if len(params) > 0 and epoch % 1 == 0:
                     if abs(params[i] - new_params[i]) < 1e-6:
                         print(f"Param {name}: {params[i] - new_params[i]}")
                 i += 1

@@ -261,7 +261,7 @@ def test_edge_orient_model_on_flow_dataset_with_batching():
     dataset = load_dataset('FLOW')
 
     data_loader = DataLoader(dataset, batch_size=32)
-    model = EdgeOrient(num_input_features=1, num_classes=3, num_layers=2, hidden=10)
+    model = EdgeOrient(num_input_features=1, num_classes=2, num_layers=2, hidden=10)
     # We use the model in eval mode to avoid problems with batch norm.
     model.eval()
 

@@ -282,7 +282,8 @@ class SparseSINConv(torch.nn.Module):
 
 class OrientedConv(ChainMessagePassing):
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
-                 update_up_nn: Callable, update_down_nn: Callable, update_nn: Callable, act_fn):
+                 update_up_nn: Callable, update_down_nn: Callable, update_nn: Callable, act_fn,
+                 orient=True):
         super(OrientedConv, self).__init__(up_msg_size, down_msg_size, use_face_msg=False)
         self.dim = dim
         self.update_up_nn = update_up_nn
@@ -290,6 +291,7 @@ class OrientedConv(ChainMessagePassing):
         self.update_nn = update_nn
         self.reset_parameters()
         self.act_fn = act_fn
+        self.orient = orient
 
     def forward(self, chain: Chain):
         assert len(chain.upper_orient) == chain.upper_index.size(1)
@@ -315,7 +317,11 @@ class OrientedConv(ChainMessagePassing):
 
     # TODO: As a temporary hack, we pass the orientation through the up and down attributes.
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        return up_x_j * up_attr
+        if self.orient:
+            return up_x_j * up_attr
+        return up_x_j
 
     def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
-        return down_x_j * down_attr
+        if self.orient:
+            return down_x_j * down_attr
+        return down_x_j
