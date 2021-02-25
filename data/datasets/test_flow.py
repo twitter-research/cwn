@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 from scipy.spatial import Delaunay
-from data.datasets.flow import load_flow_dataset, create_hole, is_inside_rectangle
+from data.datasets.flow_utils import load_flow_dataset, create_hole, is_inside_rectangle
 
 
 def test_create_hole():
@@ -26,7 +27,7 @@ def test_create_hole():
         assert np.sum(triangles == i) > 0
 
 
-def test_flow_dataset_loading():
+def test_flow_util_dataset_loading():
     # Fix seed for reproducibility
     np.random.seed(0)
     train, test = load_flow_dataset(num_points=300, num_train=200, num_test=20)
