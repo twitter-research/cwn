@@ -231,8 +231,7 @@ def generate_samples(samples, class_id, G, index_dict):
     bot_ckpt_rect = np.array([[0.0, 0.0], [0.2, 0.2]])
     mid_ckpt_rect = np.array([[0.4, 0.4], [0.6, 0.6]])
     top_ckpt_rect = np.array([[0.8, 0.8], [1.0, 1.0]])
-    # ckpts = [bot_ckpt_rect, mid_ckpt_rect, top_ckpt_rect]
-    ckpts = [bot_ckpt_rect, top_ckpt_rect]
+    ckpts = [bot_ckpt_rect, top_ckpt_rect, mid_ckpt_rect]
 
     chains = []
     for i in range(samples):
@@ -243,7 +242,8 @@ def generate_samples(samples, class_id, G, index_dict):
     return chains
 
 
-def load_flow_dataset(num_points=1000, num_train=1000, num_test=200):
+def load_flow_dataset(num_points=1000, num_train=1000, num_test=200, num_classes=2):
+    assert num_classes == 2 or num_classes == 3
     points = np.random.uniform(size=(num_points, 2))
     tri = Delaunay(points)
 
@@ -283,7 +283,7 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200):
         'upper_orient': upper_orient,
     }
 
-    classes = 2
+    classes = num_classes
 
     train_samples = []
     samples_per_class = num_train // classes

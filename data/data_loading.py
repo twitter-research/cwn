@@ -99,7 +99,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
             fold=fold, degree_as_tag=False, init_method=init_method)
     elif name == 'FLOW':
         dataset = FlowDataset(os.path.join(root, name), name, num_points=kwargs['flow_points'],
-            train_samples=1000, val_samples=200)
+            train_samples=1000, val_samples=200, classes=kwargs['flow_classes'])
     else:
         raise NotImplementedError(name)
     return dataset

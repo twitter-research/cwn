@@ -8,9 +8,10 @@ from data.datasets.flow_utils import load_flow_dataset
 
 class FlowDataset(InMemoryComplexDataset):
 
-    def __init__(self, root, name, num_points, train_samples, val_samples, load_graph=False):
+    def __init__(self, root, name, num_points, train_samples, val_samples, classes=2,
+                 load_graph=False):
         self.name = name
-        self._num_classes = 2
+        self._num_classes = classes
         self._num_points = num_points
         self._train_samples = train_samples
         self._val_samples = val_samples
@@ -41,7 +42,8 @@ class FlowDataset(InMemoryComplexDataset):
 
     def process(self):
         train, val, G = load_flow_dataset(num_points=self._num_points,
-            num_train=self._train_samples, num_test=self._val_samples)
+            num_train=self._train_samples, num_test=self._val_samples,
+            num_classes=self._num_classes)
 
         chains = train + val
         path = self.processed_paths[0]

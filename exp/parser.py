@@ -67,5 +67,7 @@ def get_parser():
     parser.add_argument('--tune', action='store_true', help='Use the tuning indexes')
     parser.add_argument('--flow_points',  type=int, default=400,
                         help='Number of points to use for the flow experiment')
+    parser.add_argument('--flow_classes',  type=int, default=3,
+                        help='Number of classes for the flow experiment')
 
     return parser

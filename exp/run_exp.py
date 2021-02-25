@@ -82,6 +82,7 @@ def main(args):
         load_kwargs = {}
         load_kwargs['emb_dim'] = args.emb_dim
         load_kwargs['flow_points'] = args.flow_points
+        load_kwargs['flow_classes'] = args.flow_classes
 
         dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
             init_method=args.init_method, **load_kwargs)
