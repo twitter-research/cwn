@@ -283,13 +283,14 @@ class SparseSINConv(torch.nn.Module):
 class OrientedConv(ChainMessagePassing):
     """This is a SIN Chain layer that operates of faces and upper adjacent simplices."""
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
-                 update_up_nn: Callable, update_down_nn: Callable, update_nn: Callable):
+                 update_up_nn: Callable, update_down_nn: Callable, update_nn: Callable, act_fn):
         super(OrientedConv, self).__init__(up_msg_size, down_msg_size, use_face_msg=False)
         self.dim = dim
         self.update_up_nn = update_up_nn
         self.update_down_nn = update_down_nn
         self.update_nn = update_nn
         self.reset_parameters()
+        self.act_fn = act_fn
 
     def forward(self, chain: Chain):
         assert len(chain.upper_orient) == chain.upper_index.size(1)
@@ -303,7 +304,7 @@ class OrientedConv(ChainMessagePassing):
         out_up = self.update_up_nn(out_up)
         out_down = self.update_down_nn(out_down)
         x = self.update_nn(chain.x)
-        return F.relu(x + out_up + out_down)
+        return self.act_fn(x + out_up + out_down)
 
     def reset_parameters(self):
         reset(self.update_up_nn)

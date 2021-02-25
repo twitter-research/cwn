@@ -7,7 +7,10 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
-from data.datasets import SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset, load_tu_graph_dataset
+from data.datasets import (
+    SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset, FlowDataset,
+    load_tu_graph_dataset)
+
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -94,9 +97,13 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'NCI1':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
             fold=fold, degree_as_tag=False, init_method=init_method)
+    elif name == 'FLOW':
+        dataset = FlowDataset(os.path.join(root, name), name, num_points=600, train_samples=1000,
+            val_samples=250)
     else:
         raise NotImplementedError(name)
     return dataset
+
 
 def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **kwargs):
     if name.startswith('sr'):

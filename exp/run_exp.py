@@ -144,7 +144,13 @@ def main(args):
                      readout=args.readout,                    # readout
                     ).to(device)
     elif args.model == 'dummy':
-        
+        model = Dummy(dataset.num_features_in_dim(0),
+                      dataset.num_classes,
+                      args.num_layers,
+                      max_dim=dataset.max_dim,
+                      readout=args.readout,
+                     ).to(device)
+    elif args.model == 'edge_orient':
         model = Dummy(dataset.num_features_in_dim(0),
                       dataset.num_classes,
                       args.num_layers,

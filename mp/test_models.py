@@ -1,10 +1,11 @@
 import torch
 import itertools
 
-from data.complex import ComplexBatch
+from data.complex import ComplexBatch, ChainBatch
 from data.dummy_complexes import get_testing_complex_list
-from mp.models import SIN0, EdgeSIN0, SparseSIN
+from mp.models import SIN0, EdgeSIN0, SparseSIN, EdgeOrient
 from data.data_loading import DataLoader, load_dataset
+from data.datasets.flow import load_flow_dataset
 
 
 def test_sin_model_with_batching():
@@ -243,5 +244,17 @@ def test_sparse_sin0_model_with_batching_on_proteins():
             assert (torch.allclose(unbatched_res[key], batched_res[key]),
                 print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
+
+def test_edge_orient_model_on_flow_dataset():
+    import numpy as np
+
+    np.random.seed(4)
+    train, _ = load_flow_dataset(num_points=400, num_train=3, num_test=3)
+
+    model = EdgeOrient(num_input_features=1, num_classes=3, num_layers=2, hidden=10)
+    model.eval()
+
+    batch = ChainBatch.from_chain_list(train[:10])
+    model.forward(batch)
 
 
