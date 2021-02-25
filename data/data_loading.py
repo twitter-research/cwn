@@ -98,7 +98,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
             fold=fold, degree_as_tag=False, init_method=init_method)
     elif name == 'FLOW':
-        dataset = FlowDataset(os.path.join(root, name), name, num_points=500, train_samples=500,
+        dataset = FlowDataset(os.path.join(root, name), name, num_points=300, train_samples=500,
             val_samples=100)
     else:
         raise NotImplementedError(name)

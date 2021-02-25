@@ -301,7 +301,7 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200):
         test_samples += generate_samples(samples=samples, class_id=class_id, G=G,
             index_dict=index_dict)
 
-    return train_samples, test_samples
+    return train_samples, test_samples, G
 
 
 
