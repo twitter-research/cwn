@@ -482,10 +482,7 @@ class Dummy(torch.nn.Module):
 
 class EdgeOrient(torch.nn.Module):
     """
-    A simplicial version of GIN.
-
-    This model is based on
-    https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
+    A model for edge-defined signals taking edge orientation into account.
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,

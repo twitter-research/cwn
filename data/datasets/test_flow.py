@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import matplotlib.pyplot as plt
 import os
 
@@ -34,8 +35,30 @@ def test_flow_util_dataset_loading():
     assert len(train) == 200
     assert len(test) == 20
 
+    label_count = {0: 0, 1: 0, 2: 0}
+
     for chain in train + test:
+        assert torch.sum(chain.x == 1) + torch.sum(chain.x == -1) == torch.count_nonzero(chain.x)
+
         assert len(chain.upper_orient) == chain.upper_index.size(1)
         assert len(chain.lower_orient) == chain.lower_index.size(1)
-        assert chain.upper_index.max() < chain.x.size(0), print(chain.upper_index.max(), chain.x.size(0))
+        assert chain.upper_index.max() < chain.x.size(0), print(chain.upper_index.max(),
+            chain.x.size(0))
         assert chain.lower_index.max() < chain.x.size(0)
+
+        assert (torch.sum(chain.upper_orient == 1) > 0)
+        assert (torch.sum(chain.upper_orient == -1) > 0)
+        assert (torch.sum(chain.upper_orient == 1)
+                + torch.sum(chain.upper_orient == -1) == chain.upper_orient.numel())
+
+        assert (torch.sum(chain.lower_orient == 1) > 0)
+        assert (torch.sum(chain.lower_orient == -1) > 0)
+        assert (torch.sum(chain.lower_orient == 1)
+                + torch.sum(chain.lower_orient == -1) == chain.lower_orient.numel())
+
+        label_count[chain.y.item()] += 1
+
+    assert label_count[0] == 200 // 3 + 20 // 3
+    assert label_count[1] == 200 // 3 + 20 // 3
+    assert label_count[2] == 200 - 2 * (200 // 3) + 20 - 2 * (20 // 3)
+

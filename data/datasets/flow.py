@@ -9,12 +9,13 @@ class FlowDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, num_points, train_samples, val_samples):
         self.name = name
-        self._num_classes = 3
+        self._num_classes = 2
         self._num_points = num_points
         self._train_samples = train_samples
         self._val_samples = val_samples
         self._num_points = 600
-        super(FlowDataset, self).__init__(root, max_dim=1, num_classes=3, include_down_adj=True)
+        super(FlowDataset, self).__init__(root, max_dim=1,
+            num_classes=self._num_classes, include_down_adj=True)
 
         with open(self.processed_paths[0], 'rb') as handle:
             self._data_list = pickle.load(handle)

@@ -94,7 +94,7 @@ def extract_boundary_matrices(G: nx.Graph):
     tuple_to_edge = G.graph['tuple_to_edge']
     triangles = G.graph['triangles']
 
-    B1 = np.zeros((G.number_of_nodes(), G.number_of_edges()), dtype=np.int8)
+    B1 = np.zeros((G.number_of_nodes(), G.number_of_edges()), dtype=np.float)
     for edge_id in range(G.number_of_edges()):
         nodes = edge_to_tuple[edge_id]
         min_node = min(nodes)
@@ -103,6 +103,8 @@ def extract_boundary_matrices(G: nx.Graph):
         B1[max_node, edge_id] = 1
 
     assert np.all(np.sum(np.abs(B1), axis=-1) > 0)
+    assert np.all(np.sum(np.abs(B1), axis=0) == 2)
+    assert np.all(np.sum(B1, axis=0) == 0)
 
     def extract_edge_and_orientation(triangle, i):
         assert i <= 2
@@ -119,11 +121,12 @@ def extract_boundary_matrices(G: nx.Graph):
 
         return tuple_to_edge[(min(n1, n2), max(n1, n2))], orientation
 
-    B2 = np.zeros((G.number_of_edges(), len(triangles)), dtype=np.int8)
+    B2 = np.zeros((G.number_of_edges(), len(triangles)), dtype=np.float)
     for i in range(len(triangles)):
         edge1, orientation1 = extract_edge_and_orientation(triangles[i], 0)
         edge2, orientation2 = extract_edge_and_orientation(triangles[i], 1)
         edge3, orientation3 = extract_edge_and_orientation(triangles[i], 2)
+        assert edge1 != edge2 and edge1 != edge3 and edge2 != edge3
 
         B2[edge1, i] = orientation1
         B2[edge2, i] = orientation2
@@ -191,10 +194,11 @@ def generate_trajectory(start_rect, end_rect, ckpt_rect, G: nx.Graph):
     return x, path
 
 
-def extract_adj_from_boundary(B):
+def extract_adj_from_boundary(B, G):
     A = B.T @ B
 
     n = len(A)
+    assert n == G.number_of_edges()
     connections = np.count_nonzero(A) - n
 
     index = torch.empty((2, connections), dtype=torch.long)
@@ -212,6 +216,8 @@ def extract_adj_from_boundary(B):
             index[1, connection + 1] = i
             orient[connection + 1] = np.sign(A[i, j])
 
+            assert np.sign(A[i, j]) == 1 or np.sign(A[i, j]) == -1
+
             connection += 2
 
     assert connection == connections
@@ -225,7 +231,8 @@ def generate_samples(samples, class_id, G, index_dict):
     bot_ckpt_rect = np.array([[0.0, 0.0], [0.2, 0.2]])
     mid_ckpt_rect = np.array([[0.4, 0.4], [0.6, 0.6]])
     top_ckpt_rect = np.array([[0.8, 0.8], [1.0, 1.0]])
-    ckpts = [bot_ckpt_rect, mid_ckpt_rect, top_ckpt_rect]
+    # ckpts = [bot_ckpt_rect, mid_ckpt_rect, top_ckpt_rect]
+    ckpts = [bot_ckpt_rect, top_ckpt_rect]
 
     chains = []
     for i in range(samples):
@@ -267,8 +274,8 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200):
 
     B1, B2 = extract_boundary_matrices(G)
 
-    lower_index, lower_orient = extract_adj_from_boundary(B1)
-    upper_index, upper_orient = extract_adj_from_boundary(B2.T)
+    lower_index, lower_orient = extract_adj_from_boundary(B1, G)
+    upper_index, upper_orient = extract_adj_from_boundary(B2.T, G)
     index_dict = {
         'lower_index': lower_index,
         'lower_orient': lower_orient,
@@ -276,7 +283,7 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200):
         'upper_orient': upper_orient,
     }
 
-    classes = 3
+    classes = 2
 
     train_samples = []
     samples_per_class = num_train // classes

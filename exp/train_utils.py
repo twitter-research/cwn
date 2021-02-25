@@ -55,9 +55,13 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
             loss = loss_fn(pred[is_labeled], batch.y[is_labeled])
         else:
             loss = loss_fn(pred, batch.y.view(-1))
+            # print(np.unique(batch.y.view(-1).cpu().numpy(), return_counts=True))
+            # print(np.argmax(pred.detach().cpu().numpy(), axis=-1))
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
+
+
             
     return curve
 
@@ -105,6 +109,8 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
 
     y_true = torch.cat(y_true, dim=0).numpy()
     y_pred = torch.cat(y_pred, dim=0).numpy()
+
+    # print(np.unique(y_true, return_counts=True))
 
     # # Test the predictions are the same without batching
     # if dataset is not None:
