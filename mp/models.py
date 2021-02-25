@@ -561,8 +561,8 @@ class EdgeMPNN(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             update_up = lambda x: 0
-            update_down = Sequential(Linear(layer_dim, hidden))
-            update = Sequential(Linear(layer_dim, hidden))
+            update_down = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            update = Sequential(Linear(layer_dim, hidden), BN(hidden))
             self.convs.append(
                 OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
