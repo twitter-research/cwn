@@ -244,7 +244,7 @@ def generate_samples(samples, class_id, G, index_dict):
 
 def load_flow_dataset(num_points=1000, num_train=1000, num_test=200, num_classes=2):
     assert num_classes == 2 or num_classes == 3
-    points = np.random.uniform(size=(num_points, 2))
+    points = np.random.uniform(low=-0.05, high=1.05, size=(num_points, 2))
     tri = Delaunay(points)
 
     # Double check each point appears in some triangle.

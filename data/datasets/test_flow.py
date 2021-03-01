@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 
@@ -7,6 +8,9 @@ from scipy.spatial import Delaunay
 from data.datasets.flow_utils import load_flow_dataset, create_hole, is_inside_rectangle
 from data.datasets import FlowDataset
 from definitions import ROOT_DIR
+
+sns.set_style('white')
+sns.color_palette("tab10")
 
 
 def test_create_hole():
@@ -74,7 +78,7 @@ def test_visualise_flow_dataset():
     root = os.path.join(ROOT_DIR, 'datasets')
     name = 'FLOW'
     dataset = FlowDataset(os.path.join(root, name), name, num_points=1000, train_samples=1000,
-            val_samples=200, load_graph=True)
+            val_samples=200, classes=3, load_graph=True)
     G = dataset.G
     edge_to_tuple = G.graph['edge_to_tuple']
     triangles = G.graph['triangles']
@@ -84,11 +88,9 @@ def test_visualise_flow_dataset():
     plt.triplot(points[:, 0], points[:, 1], triangles)
     plt.plot(points[:, 0], points[:, 1], 'o')
 
-    for i, chain in enumerate([dataset[265], dataset[783]]):
-        if i == 0:
-            color = 'red'
-        else:
-            color = 'purple'
+    for i, chain in enumerate([dataset[180], dataset[480]]):
+        colors = ['red', 'navy', 'purple']
+        color = colors[i]
 
         x = chain.x
         #
