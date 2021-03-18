@@ -10,7 +10,7 @@ from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
 from mp.models import SIN0, Dummy, SparseSIN
-from mp.graph_models import GIN0
+from mp.graph_models import GIN0, GINWithJK
 
 from definitions import ROOT_DIR
 
@@ -57,26 +57,31 @@ def main(args):
     
     if args.model.startswith('gin'):  # load graph dataset
         
-        assert args.dataset.startswith('sr')
-        graph_list, train_ids, val_ids, test_ids = load_graph_dataset(args.dataset, emb_dim=args.emb_dim)
+        graph_list, train_ids, val_ids, test_ids, num_classes = load_graph_dataset(args.dataset, fold=args.fold)
         train_graphs = [graph_list[i] for i in train_ids]
         val_graphs = [graph_list[i] for i in val_ids]
-        test_graphs = [graph_list[i] for i in test_ids]
         train_loader = PyGDataLoader(train_graphs, batch_size=args.batch_size,
                                   shuffle=True, num_workers=args.num_workers)
         valid_loader = PyGDataLoader(val_graphs, batch_size=args.batch_size,
                                    shuffle=False, num_workers=args.num_workers)
-        test_loader = PyGDataLoader(test_graphs, batch_size=args.batch_size,
-                                   shuffle=False, num_workers=args.num_workers)
-        num_features = 1
-        num_classes = args.emb_dim
+        if test_ids is not None:
+            test_graphs = [graph_list[i] for i in test_ids]
+            test_loader = PyGDataLoader(test_graphs, batch_size=args.batch_size,
+                                       shuffle=False, num_workers=args.num_workers)
+        else:
+            test_loader = None
+        if args.dataset.startswith('sr'):
+            num_features = 1
+            num_classes = args.emb_dim
+        else:
+            num_features = graph_list[0].x.shape[1]
     
     else:
         
         # data loading
         load_kwargs = {}
         load_kwargs['emb_dim'] = args.emb_dim
-        dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, **load_kwargs)
+        dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, init_method=args.init_method, **load_kwargs)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
@@ -108,7 +113,7 @@ def main(args):
                      readout=args.readout,                    # readout
                     ).to(device)
     elif args.model == 'sparse_sin':
-        model = SparseSIN(dataset.num_features_in_dim(0),    # num_input_features
+        model = SparseSIN(dataset.num_features_in_dim(0),     # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -117,9 +122,20 @@ def main(args):
                      jump_mode=args.jump_mode,                # jump mode
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
+                     final_readout=args.final_readout,        # final readout
+                     apply_dropout_before=args.drop_position, # where to apply dropout
                     ).to(device)
     elif args.model == 'gin':
         model = GIN0(num_features,                            # num_input_features
+                     args.num_layers,                         # num_layers
+                     args.emb_dim,                            # hidden
+                     num_classes,                             # num_classes
+                     dropout_rate=args.drop_rate,             # dropout rate
+                     nonlinearity=args.nonlinearity,          # nonlinearity
+                     readout=args.readout,                    # readout
+                    ).to(device)
+    elif args.model == 'gin_jk':
+        model = GINWithJK(num_features,                       # num_input_features
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
                      num_classes,                             # num_classes
@@ -186,7 +202,7 @@ def main(args):
                 train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
             train_curve.append(train_perf)
             valid_perf, epoch_val_loss = eval(model, device,
-                valid_loader, evaluator, args.task_type, dataset[split_idx["valid"]])
+                valid_loader, evaluator, args.task_type)#, dataset[split_idx["valid"]])
             valid_curve.append(valid_perf)
             if test_loader is not None:
                 test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)

@@ -145,7 +145,7 @@ class SparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
                  train_eps=False, final_hidden_multiplier: int = 2,
-                 readout_dims=(0, 2)):
+                 readout_dims=(0, 2, 3), final_readout='sum', apply_dropout_before='lin2'):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -153,7 +153,9 @@ class SparseSIN(torch.nn.Module):
             self.readout_dims = tuple([dim for dim in readout_dims if dim <= max_dim])
         else:
             self.readout_dims = list(range(max_dim+1))
+        self.final_readout = final_readout
         self.dropout_rate = dropout_rate
+        self.apply_dropout_before = apply_dropout_before
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
@@ -176,7 +178,8 @@ class SparseSIN(torch.nn.Module):
                     msg_faces_nn=lambda x: x, msg_up_nn=lambda x1, x2: x1,
                     inp_update_up_nn=None, inp_update_faces_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
-                    hidden=hidden, act_module=act_module, layer_dim=layer_dim))
+                    hidden=hidden, act_module=act_module, layer_dim=layer_dim,
+                    apply_norm=(num_input_features>1)))  # TODO: turn this into a less hacky trick
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -255,14 +258,25 @@ class SparseSIN(torch.nn.Module):
         if include_partial:
             for k in range(len(xs)):
                 res[f"pool_{k}"] = xs[k]
-
+        
         new_xs = []
         for i, x in enumerate(xs):
+            if self.apply_dropout_before == 'lin1':
+                x = F.dropout(x, p=self.dropout_rate, training=self.training)
             new_xs.append(act(self.lin1s[self.readout_dims[i]](x)))
 
         x = torch.stack(new_xs, dim=0)
-        x = x.sum(0)
-        x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        
+        if self.apply_dropout_before == 'final_readout':
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        if self.final_readout == 'mean':
+            x = x.mean(0)
+        elif self.final_readout == 'sum':
+            x = x.sum(0)
+        else:
+            raise NotImplementedError
+        if self.apply_dropout_before not in ['lin1', 'final_readout']:
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         x = self.lin2(x)
 

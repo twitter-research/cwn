@@ -4,6 +4,7 @@ import networkx as nx
 import numpy as np
 import random
 import torch
+import torch_geometric
 from torch_geometric.data import Data
 from sklearn.model_selection import StratifiedKFold
 
@@ -101,12 +102,14 @@ def load_data(path, dataset, degree_as_tag):
         edges = [list(pair) for pair in g.g.edges()]
         edges.extend([[i, j] for j, i in edges])
 
-        deg_list = list(dict(g.g.degree(range(len(g.g)))).values())
+        deg_list = list(dict(g.g.degree(range(len(g.g)))).values())  # <- this might not be used...!?
         g.edge_mat = torch.LongTensor(edges).transpose(0,1)
-
+    
     if degree_as_tag:
         for g in g_list:
             g.node_tags = list(dict(g.g.degree).values())
+            # ^^^ !? it should probably be replaced by the following one:
+            # g.node_tags = [g.g.degree[node] for node in range(len(g.g))]
 
     #Extracting unique tag labels   
     tagset = set([])
@@ -119,7 +122,32 @@ def load_data(path, dataset, degree_as_tag):
     for g in g_list:
         g.node_features = torch.zeros(len(g.node_tags), len(tagset))
         g.node_features[range(len(g.node_tags)), [tag2index[tag] for tag in g.node_tags]] = 1
-
+        
+    # ==================
+    # Here we recompute degree encodings with external code,
+    # as we observed some unexpected behaviors likely due to
+    # incompatibilities w.r.t.  python versions
+    # ==================
+    def get_node_degrees(graph):
+        edge_index = graph.edge_mat
+        if edge_index.shape[1] == 0:  # just isolated nodes
+            degrees = torch.zeros((graph.node_features.shape[0],1))
+        else:
+            degrees = torch_geometric.utils.degree(edge_index[0]).unsqueeze(1)
+        return degrees
+    if degree_as_tag:
+        # 1. cumulate node degrees
+        degs = torch.cat([get_node_degrees(graph) for graph in g_list], 0)
+        # 2. compute unique values
+        uniques, corrs = np.unique(degs, return_inverse=True, axis=0)
+        # 3. encode
+        pointer = 0
+        for graph in g_list:
+            n = graph.node_features.shape[0]
+            hots = torch.LongTensor(corrs[pointer:pointer+n])
+            graph.node_features = torch.nn.functional.one_hot(hots, len(uniques)).float()
+            pointer += n
+    # ====================
 
     print('# classes: %d' % len(label_dict))
     print('# maximum node tag: %d' % len(tagset))
@@ -170,3 +198,16 @@ def separate_data_given_split(graph_list, path, fold_idx):
     test_graph_list = [graph_list[i] for i in test_idx]
 
     return train_graph_list, test_graph_list
+
+
+def get_fold_indices(complex_list, seed, fold_idx):
+    assert 0 <= fold_idx and fold_idx < 10, "fold_idx must be from 0 to 9."
+    skf = StratifiedKFold(n_splits=10, shuffle = True, random_state = seed)
+
+    labels = [complex.y.item() for complex in complex_list]
+    idx_list = []
+    for idx in skf.split(np.zeros(len(labels)), labels):
+        idx_list.append(idx)
+    train_idx, test_idx = idx_list[fold_idx]
+
+    return train_idx.tolist(), test_idx.tolist()

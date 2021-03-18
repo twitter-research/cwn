@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+import logging
 from tqdm import tqdm
 from sklearn import metrics as met
 from data.complex import ComplexBatch
@@ -39,9 +40,12 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
             # Skip batch if it only comprises one sample (could cause problems with BN)
             num_skips += 1
             if float(num_skips) / len(loader) >= 0.25:
-                import logging
                 logging.warning("Warning! 25% of the batches were skipped this epoch")
             continue
+        
+        # (DEBUG)
+        if num_samples < 10:
+            logging.warning("Warning! BatchNorm applied on a batch with only {} samples".format(num_samples))
 
         optimizer.zero_grad()
         pred = model(batch)
