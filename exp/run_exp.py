@@ -78,25 +78,24 @@ def main(args):
     
     else:
         
-        # data loading
-        load_kwargs = {}
-        load_kwargs['emb_dim'] = args.emb_dim
-        load_kwargs['flow_points'] = args.flow_points
-        load_kwargs['flow_classes'] = args.flow_classes
-
+        # Data loading
         dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
-            init_method=args.init_method, **load_kwargs)
+            init_method=args.init_method, emb_dim=args.emb_dim, flow_points=args.flow_points,
+            flow_classes=args.flow_classes)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
             split_idx = dataset.get_idx_split()
 
-        # instantiate data loaders
-        train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
-        valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
+        # Instantiate data loaders
+        train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size,
+            shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
+        valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size,
+            shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
         test_split = split_idx.get("test", None)
         if test_split is not None:
-            test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
+            test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size,
+                shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
         else:
             test_loader = None
             
