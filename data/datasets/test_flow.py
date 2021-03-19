@@ -43,9 +43,11 @@ def test_flow_util_dataset_loading():
         # in shape with the upper/lower indices
         assert len(chain.upper_orient) == chain.upper_index.size(1)
         assert len(chain.lower_orient) == chain.lower_index.size(1)
+       # checks the upper and lower indices are consistent with the number of edges
         assert chain.upper_index.max() < chain.x.size(0), print(chain.upper_index.max(),
             chain.x.size(0))
-        assert chain.lower_index.max() < chain.x.size(0)
+        assert chain.lower_index.max() < chain.x.size(0), print(chain.lower_index.max(),
+            chain.x.size(0))
 
         assert (torch.sum(chain.upper_orient == 1) > 0)
         assert (torch.sum(chain.upper_orient == -1) > 0)
@@ -62,5 +64,4 @@ def test_flow_util_dataset_loading():
     assert label_count[0] == 200 // 3 + 20 // 3
     assert label_count[1] == 200 // 3 + 20 // 3
     assert label_count[2] == 200 - 2 * (200 // 3) + 20 - 2 * (20 // 3)
-
 
