@@ -39,6 +39,8 @@ def test_flow_util_dataset_loading():
     for chain in train + test:
         assert torch.sum(chain.x == 1) + torch.sum(chain.x == -1) == torch.count_nonzero(chain.x)
 
+        # checks the upper/lower orientation features are consistent
+        # in shape with the upper/lower indices
         assert len(chain.upper_orient) == chain.upper_index.size(1)
         assert len(chain.lower_orient) == chain.lower_index.size(1)
         assert chain.upper_index.max() < chain.x.size(0), print(chain.upper_index.max(),
@@ -60,6 +62,5 @@ def test_flow_util_dataset_loading():
     assert label_count[0] == 200 // 3 + 20 // 3
     assert label_count[1] == 200 // 3 + 20 // 3
     assert label_count[2] == 200 - 2 * (200 // 3) + 20 - 2 * (20 // 3)
-
 
 
