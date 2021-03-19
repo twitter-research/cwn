@@ -15,7 +15,7 @@ class FlowDataset(InMemoryComplexDataset):
         self._num_points = num_points
         self._train_samples = train_samples
         self._val_samples = val_samples
-        self._num_points = num_points
+
         super(FlowDataset, self).__init__(root, max_dim=1,
             num_classes=self._num_classes, include_down_adj=True)
 
