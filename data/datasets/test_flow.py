@@ -30,7 +30,7 @@ def test_create_hole():
 def test_flow_util_dataset_loading():
     # Fix seed for reproducibility
     np.random.seed(0)
-    train, test, _ = load_flow_dataset(num_points=300, num_train=200, num_test=20)
+    train, test, _ = load_flow_dataset(num_points=300, num_train=200, num_test=20, num_classes=3)
     assert len(train) == 200
     assert len(test) == 20
 

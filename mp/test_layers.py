@@ -5,6 +5,7 @@ from mp.layers import DummySimplicialMessagePassing, SINConv, SINChainConv, Orie
 from data.dummy_complexes import get_house_complex, get_square_dot_complex
 from torch import nn
 from data.datasets.flow import load_flow_dataset
+import torch.nn.functional as F
 
 
 def test_dummy_simplicial_message_passing_with_down_msg():
@@ -96,10 +97,10 @@ def test_orient_conv_on_flow_dataset():
     update_down = nn.Sequential(nn.Linear(1, 4))
     update = nn.Sequential(nn.Linear(1, 4))
 
-    train, _ = load_flow_dataset(num_points=400, num_train=3, num_test=3)
+    train, _, _ = load_flow_dataset(num_points=400, num_train=3, num_test=3)
 
     model = OrientedConv(1, 1, 1, update_up_nn=update_up, update_down_nn=update_down,
-        update_nn=update)
+        update_nn=update, act_fn=F.tanh)
     model.eval()
 
     model.forward(train[0])
