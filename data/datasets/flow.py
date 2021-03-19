@@ -10,6 +10,7 @@ class FlowDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, num_points, train_samples, val_samples, classes=2,
                  load_graph=False):
+        assert classes in [2, 3]
         self.name = name
         self._num_classes = classes
         self._num_points = num_points
