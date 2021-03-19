@@ -61,7 +61,7 @@ def test_flow_util_dataset_loading():
 
         label_count[chain.y.item()] += 1
 
+    # checks distribution of labels
     assert label_count[0] == 200 // 3 + 20 // 3
     assert label_count[1] == 200 // 3 + 20 // 3
     assert label_count[2] == 200 - 2 * (200 // 3) + 20 - 2 * (20 // 3)
-
