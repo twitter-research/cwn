@@ -56,6 +56,7 @@ def test_flow_util_dataset_loading():
 
         assert (torch.sum(chain.lower_orient == 1) > 0)
         assert (torch.sum(chain.lower_orient == -1) > 0)
+        # checks the values for lower orientation are either +1 (coherent) or -1 (not coherent)
         assert (torch.sum(chain.lower_orient == 1)
                 + torch.sum(chain.lower_orient == -1) == chain.lower_orient.numel())
 
