@@ -34,7 +34,7 @@ class FlowDataset(InMemoryComplexDataset):
     @property
     def processed_dir(self):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
-        return osp.join(self.root, f'complex_dim{self._num_points}_{self._num_classes}')
+        return osp.join(self.root, f'complex_points{self._num_points}_{self._num_classes}')
 
     @property
     def processed_file_names(self):
