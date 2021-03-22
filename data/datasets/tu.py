@@ -34,9 +34,13 @@ def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_
 class TUDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, max_dim=2, num_classes=2, degree_as_tag=False, fold=0,
-                 init_method='sum', seed=0):
+                 init_method='sum', max_dim_limit=None, randomize_ids=False, max_density=1.0,
+                 seed=0):
         self.name = name
         self.degree_as_tag = degree_as_tag
+        self.max_dim_limit = max_dim_limit
+        self.randomize_ids = randomize_ids
+        self.max_density = max_density
         super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
             init_method=init_method)
 
@@ -64,6 +68,16 @@ class TUDataset(InMemoryComplexDataset):
         # self.tune_val_ids = np.loadtxt(tune_test_filename, dtype=int).tolist()
         # self.tune_test_ids = None
 
+    @property
+    def processed_dir(self):
+        processed_dir = super(TUDataset, self).processed_dir
+        if self.max_dim_limit is not None:
+            processed_dir += f'_max_dim_limit{self.max_dim_limit}'
+        if self.randomize_ids:
+            processed_dir += f'_randomized_ids'
+        if self.max_density < 1.0:
+            processed_dir += f'_max_density{self.max_density}'
+        return processed_dir
             
     @property
     def processed_file_names(self):
@@ -90,7 +104,10 @@ class TUDataset(InMemoryComplexDataset):
         
         print("Converting the dataset with gudhi...")
         complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim,
-                                                           include_down_adj=self.include_down_adj)
+                                                           include_down_adj=self.include_down_adj,
+                                                           max_density=self.max_density,
+                                                           max_dim_limit=self.max_dim_limit,
+                                                           randomize_ids=self.randomize_ids)
         
         with open(self.processed_paths[0], 'wb') as handle:
             pickle.dump(complexes, handle)

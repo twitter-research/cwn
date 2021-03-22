@@ -4,6 +4,8 @@ import itertools as it
 import torch
 import gudhi as gd
 import itertools
+import numpy as np
+import logging
 
 from tqdm import tqdm
 from data.complex import Chain, Complex
@@ -310,7 +312,7 @@ def get_simplex_faces(simplex):
     return [tuple(face) for face in faces]
 
 
-def build_tables(simplex_tree, size, max_dim_limit=None):
+def build_tables(simplex_tree, size, max_dim_limit=None, randomize_ids=False):
     
     assert max_dim_limit is None or (isinstance(max_dim_limit, int) and max_dim_limit > 0)
     
@@ -325,7 +327,14 @@ def build_tables(simplex_tree, size, max_dim_limit=None):
     id_maps[0] = {tuple([v]): v for v in range(size)}
     
     max_dim_count = 0
-    for simplex, _ in simplex_tree.get_simplices():
+    simplex_list = simplex_tree.get_simplices()
+    if randomize_ids:
+        simplex_list = list(simplex_list)
+        rng = np.random.default_rng(seed=42)
+        random_indices = list(range(len(simplex_list)))
+        rng.shuffle(random_indices)  # This should work in place
+        simplex_list = [simplex_list[i] for i in random_indices]
+    for simplex, _ in simplex_list:
         dim = len(simplex) - 1
         if dim == 0:
             continue
@@ -528,7 +537,9 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
                                       expansion_dim: int = 2, y: Tensor = None,
                                       include_down_adj=True,
                                       init_method: str = 'sum',
-                                      max_dim_limit: Optional[int] = None) -> Complex:
+                                      max_density: float = 1.0,
+                                      max_dim_limit: Optional[int] = None,
+                                      randomize_ids: bool = False) -> Complex:
     """Generates a clique complex of a pyG graph via gudhi.
 
     Args:
@@ -539,18 +550,29 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
         y: Labels for the graph nodes or a label for the whole graph.
         include_down_adj: Whether to add down adj in the complex or not
         init_method: How to initialise features at higher levels.
-        max_dim_limit: Optional, upper bound on the number top-lv simplices.
+        max_density: If the graph is denser that this, the complex is expanded up to edges only.
+        max_dim_limit: Upper bound on the number top-lv simplices.
+        randomize_ids: Whether to randomise the list of simplices as computed by gudhi.
     """
     assert x is not None
     assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
 
+    # Computes graph density
+    num_connections = float(edge_index.shape[1])
+    num_nodes = float(x.shape[0])
+    density = num_connections / (num_nodes ** 2)
+    assert density <= 1.0
+    
     # Creates the gudhi-based simplicial complex
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
+    if density > max_density:
+        expansion_dim = 2  # Stop at edges if the graph is too dense
     simplex_tree.expansion(expansion_dim)  # Computes the clique complex up to the desired dim.
     complex_dim = simplex_tree.dimension()  # See what is the dimension of the complex now.
 
     # Builds tables of the simplicial complexes at each level and their IDs
-    simplex_tables, id_maps, removed = build_tables(simplex_tree, size, max_dim_limit=max_dim_limit)
+    simplex_tables, id_maps, removed = build_tables(simplex_tree, size, max_dim_limit=max_dim_limit,
+                                                    randomize_ids=randomize_ids)
 
     # Extracts the faces and cofaces of each simplex in the complex
     faces_tables, faces, co_faces = (
@@ -575,19 +597,25 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
                                      simplex_tables, faces_tables, complex_dim=complex_dim, y=y)
         chains.append(chain)
 
-    return Complex(*chains, y=complex_y, dimension=complex_dim)
+    return Complex(*chains, y=complex_y, dimension=complex_dim), expansion_dim
 
 
-def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True,
-                                     init_method: str = 'sum'):
+def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=False,
+                                     init_method: str = 'sum', max_density: float = 1.0,
+                                     max_dim_limit: Optional[int] = None,
+                                     randomize_ids: bool = False):
     dimension = -1
     complexes = []
     num_features = [None for _ in range(expansion_dim+1)]
-
+    num_dense_graphs = 0
+    
     for data in tqdm(dataset):
-        complex = compute_clique_complex_with_gudhi(data.x, data.edge_index, data.num_nodes,
+        complex, actual_exp_dim = compute_clique_complex_with_gudhi(data.x, data.edge_index, data.num_nodes,
             expansion_dim=expansion_dim, y=data.y, include_down_adj=include_down_adj,
-            init_method=init_method)
+            init_method=init_method, max_density=max_density, max_dim_limit=max_dim_limit,
+            randomize_ids=randomize_ids)
+        if actual_exp_dim < expansion_dim:
+            num_dense_graphs += 1
         if complex.dimension > dimension:
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
@@ -597,4 +625,7 @@ def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_a
                 assert num_features[dim] == complex.chains[dim].num_features
         complexes.append(complex)
 
+    if num_dense_graphs > 0:
+        logging.info('Found {} graphs too dense to expand at a threshold of {}.'.format(num_dense_graphs, mad_density))
+        
     return complexes, dimension, num_features[:dimension+1]

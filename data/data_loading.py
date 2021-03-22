@@ -79,6 +79,9 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
             num_classes=kwargs['emb_dim'])
     elif name == 'CLUSTER':
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
+    elif name == 'COLLAB':
+        dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=3,
+            fold=fold, degree_as_tag=True, init_method=init_method, max_density=0.05)
     elif name == 'IMDBBINARY':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
             fold=fold, degree_as_tag=True, init_method=init_method)
@@ -109,6 +112,9 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
     if name.startswith('sr'):
         graph_list, train_ids, val_ids, test_ids = load_sr_graph_dataset(name, root=root, emb_dim=kwargs['emb_dim'])
         data = (graph_list, train_ids, val_ids, test_ids, None)
+    elif name == 'COLLAB':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 3)
     elif name == 'IMDBBINARY':
         graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
         data = (graph_list, train_ids, val_ids, test_ids, 2)
