@@ -1,10 +1,12 @@
 import torch
 import itertools
+import numpy as np
 
-from data.complex import ComplexBatch
+from data.complex import ComplexBatch, ChainBatch
 from data.dummy_complexes import get_testing_complex_list
-from mp.models import SIN0, EdgeSIN0, SparseSIN
+from mp.models import SIN0, EdgeSIN0, SparseSIN, EdgeOrient
 from data.data_loading import DataLoader, load_dataset
+from data.datasets.flow import load_flow_dataset
 
 
 def test_sin_model_with_batching():
@@ -243,5 +245,30 @@ def test_sparse_sin0_model_with_batching_on_proteins():
             assert (torch.allclose(unbatched_res[key], batched_res[key]),
                 print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
+
+def test_edge_orient_model_on_flow_dataset_with_batching():
+    dataset, _, _ = load_flow_dataset(num_points=300, num_train=50, num_test=2, num_classes=2)
+
+    np.random.seed(4)
+    data_loader = DataLoader(dataset, batch_size=16)
+    model = EdgeOrient(num_input_features=1, num_classes=2, num_layers=2, hidden=5)
+    # We use the model in eval mode to avoid problems with batch norm.
+    model.eval()
+
+    batched_preds = []
+    for batch in data_loader:
+        batched_pred = model.forward(batch)
+        batched_preds.append(batched_pred)
+    batched_preds = torch.cat(batched_preds, dim=0)
+
+    preds = []
+    for complex in dataset:
+        pred = model.forward(ChainBatch.from_chain_list([complex]))
+        preds.append(pred)
+    preds = torch.cat(preds, dim=0)
+
+    # This is flaky when using equal. I suspect it's because of numerical errors.
+    assert (preds.size() == batched_preds.size())
+    assert torch.allclose(preds, batched_preds, atol=1e-6)
 
 

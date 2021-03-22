@@ -25,7 +25,7 @@ class Chain(object):
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 faces: Tensor = None, y=None, **kwargs):
+                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
         """
         Args:
             Constructs a `dim`-chain.
@@ -62,6 +62,8 @@ class Chain(object):
         self.y = y
         self.shared_faces = shared_faces
         self.shared_cofaces = shared_cofaces
+        self.upper_orient = upper_orient
+        self.lower_orient = lower_orient
         self.__oriented = False
         self.__hodge_laplacian = None
         # TODO: Figure out what to do with mapping.

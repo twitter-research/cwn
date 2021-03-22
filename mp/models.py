@@ -3,8 +3,9 @@ import torch.nn.functional as F
 
 from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
 from torch_geometric.nn import global_mean_pool, global_add_pool, JumpingKnowledge
-from mp.layers import SINConv, EdgeSINConv, SparseSINConv, DummySimplicialMessagePassing
-from data.complex import Complex, ComplexBatch
+from mp.layers import (
+    SINConv, EdgeSINConv, SparseSINConv, DummySimplicialMessagePassing, OrientedConv)
+from data.complex import Complex, ComplexBatch, ChainBatch
 
 
 def get_nonlinearity(nonlinearity, return_module=True):
@@ -17,6 +18,12 @@ def get_nonlinearity(nonlinearity, return_module=True):
     elif nonlinearity == 'id':
         module = torch.nn.Identity
         function = lambda x: x
+    elif nonlinearity == 'sigmoid':
+        module = torch.nn.Sigmoid
+        function = F.sigmoid
+    elif nonlinearity == 'tanh':
+        module = torch.nn.Tanh
+        function = F.tanh
     else:
         raise NotImplementError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
     if return_module:
@@ -473,6 +480,125 @@ class Dummy(torch.nn.Module):
         x = pooled_xs.sum(dim=0)
 
         x = self.lin(x)
+        return x
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+
+class EdgeOrient(torch.nn.Module):
+    """
+    A model for edge-defined signals taking edge orientation into account.
+    """
+
+    def __init__(self, num_input_features, num_classes, num_layers, hidden,
+                 dropout_rate: float = 0.5, jump_mode=None, nonlinearity='relu', readout='sum',
+                 final_hidden_multiplier: int = 1):
+        super(EdgeOrient, self).__init__()
+
+        self.max_dim = 1
+        self.dropout_rate = dropout_rate
+        self.jump_mode = jump_mode
+        self.convs = torch.nn.ModuleList()
+        self.nonlinearity = nonlinearity
+        self.pooling_fn = get_pooling_fn(readout)
+        for i in range(num_layers):
+            layer_dim = num_input_features if i == 0 else hidden
+            update_up = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            update_down = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            update = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            self.convs.append(
+                OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
+                    update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
+                    act_fn=get_nonlinearity(nonlinearity, return_module=False)))
+        self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
+        self.lin1 = Linear(hidden, final_hidden_multiplier * hidden)
+        self.lin2 = Linear(final_hidden_multiplier * hidden, num_classes)
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+        if self.jump_mode is not None:
+            self.jump.reset_parameters()
+        self.lin1.reset_parameters()
+        self.lin2.reset_parameters()
+
+    def forward(self, data: ChainBatch):
+        act = get_nonlinearity(self.nonlinearity, return_module=False)
+
+        x, jump_x = data.x, None
+        for i, conv in enumerate(self.convs):
+            x = conv(data)
+            data.x = x
+
+        batch_size = data.batch.max() + 1
+        # To obtain orientation invariance, we take the absolute value of the features.
+        x = torch.abs(x)
+        x = self.pooling_fn(x, data.batch, size=batch_size)
+
+        x = act(self.lin1(x))
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        x = self.lin2(x)
+
+        return x
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+
+class EdgeMPNN(torch.nn.Module):
+    """
+    An MPNN operating in the line graph.
+    """
+
+    def __init__(self, num_input_features, num_classes, num_layers, hidden,
+                 dropout_rate: float = 0.5, jump_mode=None, nonlinearity='relu', readout='sum',
+                 final_hidden_multiplier: int = 1):
+        super(EdgeMPNN, self).__init__()
+
+        self.max_dim = 1
+        self.dropout_rate = dropout_rate
+        self.jump_mode = jump_mode
+        self.convs = torch.nn.ModuleList()
+        self.nonlinearity = nonlinearity
+        self.pooling_fn = get_pooling_fn(readout)
+        for i in range(num_layers):
+            layer_dim = num_input_features if i == 0 else hidden
+            # We pass this lambda function to discard upper adjacencies
+            update_up = lambda x: 0
+            update_down = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            update = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            self.convs.append(
+                OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
+                    update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
+                    act_fn=get_nonlinearity(nonlinearity, return_module=False), orient=False))
+        self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
+        self.lin1 = Linear(hidden, final_hidden_multiplier * hidden)
+        self.lin2 = Linear(final_hidden_multiplier * hidden, num_classes)
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+        if self.jump_mode is not None:
+            self.jump.reset_parameters()
+        self.lin1.reset_parameters()
+        self.lin2.reset_parameters()
+
+    def forward(self, data: ChainBatch):
+        act = get_nonlinearity(self.nonlinearity, return_module=False)
+
+        x, jump_x = data.x, None
+        for i, conv in enumerate(self.convs):
+            x = conv(data)
+            data.x = x
+
+        batch_size = data.batch.max() + 1
+        x = self.pooling_fn(x, data.batch, size=batch_size)
+
+        x = act(self.lin1(x))
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        x = self.lin2(x)
+
         return x
 
     def __repr__(self):

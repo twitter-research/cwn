@@ -9,8 +9,8 @@ from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
-from mp.models import SIN0, Dummy, SparseSIN
 from mp.graph_models import GIN0, GINWithJK
+from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN
 
 from definitions import ROOT_DIR
 
@@ -78,21 +78,24 @@ def main(args):
     
     else:
         
-        # data loading
-        load_kwargs = {}
-        load_kwargs['emb_dim'] = args.emb_dim
-        dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold, init_method=args.init_method, **load_kwargs)
+        # Data loading
+        dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
+            init_method=args.init_method, emb_dim=args.emb_dim, flow_points=args.flow_points,
+            flow_classes=args.flow_classes)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
             split_idx = dataset.get_idx_split()
 
-        # instantiate data loaders
-        train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
-        valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
+        # Instantiate data loaders
+        train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size,
+            shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
+        valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size,
+            shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
         test_split = split_idx.get("test", None)
         if test_split is not None:
-            test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
+            test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size,
+                shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
         else:
             test_loader = None
             
@@ -144,11 +147,24 @@ def main(args):
                      readout=args.readout,                    # readout
                     ).to(device)
     elif args.model == 'dummy':
-        
         model = Dummy(dataset.num_features_in_dim(0),
                       dataset.num_classes,
                       args.num_layers,
                       max_dim=dataset.max_dim,
+                      readout=args.readout,
+                     ).to(device)
+    elif args.model == 'edge_orient':
+        model = EdgeOrient(1,
+                      dataset.num_classes,
+                      args.num_layers,
+                      args.emb_dim,  # hidden
+                      readout=args.readout,
+                     ).to(device)
+    elif args.model == 'edge_mpnn':
+        model = EdgeMPNN(1,
+                      dataset.num_classes,
+                      args.num_layers,
+                      args.emb_dim,  # hidden
                       readout=args.readout,
                      ).to(device)
         
@@ -221,13 +237,13 @@ def main(args):
 
             i = 0
             new_params = []
-            if epoch % 10 == 0:
+            if epoch % args.train_eval_period == 0:
                 print("====== Slowly changing params ======= ")
             for name, param in model.named_parameters():
                 # print(f"Param {name}: {param.data.view(-1)[0]}")
                 # new_params.append(param.data.detach().clone().view(-1)[0])
                 new_params.append(param.data.detach().mean().item())
-                if len(params) > 0 and epoch % 10 == 0:
+                if len(params) > 0 and epoch % args.train_eval_period == 0:
                     if abs(params[i] - new_params[i]) < 1e-6:
                         print(f"Param {name}: {params[i] - new_params[i]}")
                 i += 1

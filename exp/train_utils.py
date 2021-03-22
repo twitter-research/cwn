@@ -6,7 +6,6 @@ from tqdm import tqdm
 from sklearn import metrics as met
 from data.complex import ComplexBatch
 
-# cls_criterion = torch.nn.BCEWithLogitsLoss()
 cls_criterion = torch.nn.CrossEntropyLoss()
 reg_criterion = torch.nn.MSELoss()
 
@@ -45,7 +44,8 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         
         # (DEBUG)
         if num_samples < 10:
-            logging.warning("Warning! BatchNorm applied on a batch with only {} samples".format(num_samples))
+            logging.warning("Warning! BatchNorm applied on a batch "
+                            "with only {} samples".format(num_samples))
 
         optimizer.zero_grad()
         pred = model(batch)
@@ -58,6 +58,8 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
+
+
             
     return curve
 
@@ -105,25 +107,6 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
 
     y_true = torch.cat(y_true, dim=0).numpy()
     y_pred = torch.cat(y_pred, dim=0).numpy()
-
-    # # Test the predictions are the same without batching
-    # if dataset is not None:
-    #     y_true2 = []
-    #     y_pred2 = []
-    #     for step, batch in enumerate(tqdm(dataset, desc="Eval assert iteration")):
-    #         batch = ComplexBatch.from_complex_list([batch])
-    #         batch = batch.to(device)
-    #         with torch.no_grad():
-    #             pred = model(batch)
-    #
-    #         y_true2.append(batch.y.detach().cpu())
-    #         y_pred2.append(pred.detach().cpu())
-    #
-    #     y_true2 = torch.cat(y_true2, dim=0).numpy()
-    #     y_pred2 = torch.cat(y_pred2, dim=0).numpy()
-    #
-    #     assert np.array_equal(y_true, y_true2), print(y_true, y_true2)
-    #     assert np.allclose(y_pred, y_pred2), print(np.abs(y_pred -y_pred2))
 
     input_dict = {'y_pred': y_pred, 'y_true': y_true}
     return evaluator.eval(input_dict), float(np.mean(losses))

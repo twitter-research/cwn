@@ -5,6 +5,8 @@ from torch import Tensor
 from mp.smp import ChainMessagePassing, ChainMessagePassingParams
 from torch_geometric.nn.inits import reset
 from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
+from data.complex import Chain
+import torch.nn.functional as F
 
 
 class DummyChainMessagePassing(ChainMessagePassing):
@@ -276,3 +278,47 @@ class SparseSINConv(torch.nn.Module):
             else:
                 out.append(self.mp_levels[dim].forward(chain_params[dim]))
         return out
+
+
+# TODO(Cris): Add tests on small complexes for orientation equivariance and invariance.
+class OrientedConv(ChainMessagePassing):
+    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
+                 update_up_nn: Callable, update_down_nn: Callable, update_nn: Callable, act_fn,
+                 orient=True):
+        super(OrientedConv, self).__init__(up_msg_size, down_msg_size, use_face_msg=False)
+        self.dim = dim
+        self.update_up_nn = update_up_nn
+        self.update_down_nn = update_down_nn
+        self.update_nn = update_nn
+        self.act_fn = act_fn
+        self.orient = orient
+
+    def forward(self, chain: Chain):
+        assert len(chain.upper_orient) == chain.upper_index.size(1)
+        assert len(chain.lower_orient) == chain.lower_index.size(1)
+        assert chain.upper_index.max() < len(chain.x)
+        assert chain.lower_index.max() < len(chain.x)
+
+        out_up, out_down, _ = self.propagate(chain.upper_index, chain.lower_index, x=chain.x,
+            up_attr=chain.upper_orient.view(-1, 1), down_attr=chain.lower_orient.view(-1, 1))
+
+        out_up = self.update_up_nn(out_up)
+        out_down = self.update_down_nn(out_down)
+        x = self.update_nn(chain.x)
+        return self.act_fn(x + out_up + out_down)
+
+    def reset_parameters(self):
+        reset(self.update_up_nn)
+        reset(self.update_down_nn)
+        reset(self.update_nn)
+
+    # TODO: As a temporary hack, we pass the orientation through the up and down attributes.
+    def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
+        if self.orient:
+            return up_x_j * up_attr
+        return up_x_j
+
+    def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
+        if self.orient:
+            return down_x_j * down_attr
+        return down_x_j
