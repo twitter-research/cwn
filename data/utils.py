@@ -8,7 +8,7 @@ import itertools
 from tqdm import tqdm
 from data.complex import Chain, Complex
 from collections import OrderedDict
-from typing import List, Dict
+from typing import List, Dict, Optional
 from torch import Tensor
 from torch_geometric.typing import Adj
 
@@ -310,7 +310,10 @@ def get_simplex_faces(simplex):
     return [tuple(face) for face in faces]
 
 
-def build_tables(simplex_tree, size):
+def build_tables(simplex_tree, size, max_dim_limit=None):
+    
+    assert max_dim_limit is None or (isinstance(max_dim_limit, int) and max_dim_limit > 0)
+    
     complex_dim = simplex_tree.dimension()
     # Each of these data structures has a separate entry per dimension.
     id_maps = [{} for _ in range(complex_dim+1)] # simplex -> id
@@ -319,10 +322,14 @@ def build_tables(simplex_tree, size):
 
     simplex_tables[0] = [[v] for v in range(size)]
     id_maps[0] = {tuple([v]): v for v in range(size)}
-
+    
+    max_dim_count = 0
     for simplex, _ in simplex_tree.get_simplices():
         dim = len(simplex) - 1
         if dim == 0:
+            continue
+        if max_dim_limit is not None and dim == complex_dim and max_dim_count >= max_dim_limit:
+            # Skip this iteration if already found the desired number of top-level simplices
             continue
 
         # Assign this simplex the next unused ID
@@ -330,6 +337,10 @@ def build_tables(simplex_tree, size):
         id_maps[dim][tuple(simplex)] = next_id
         simplex_tables[dim].append(simplex)
 
+        if dim == complex_dim:
+            # Udpate count of simplices found at the top-level
+            max_dim_count += 1
+            
     return simplex_tables, id_maps
 
 
@@ -345,6 +356,14 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_d
         simplex_dim = len(simplex) - 1
         level_cofaces = cofaces[simplex_dim]
         level_faces = faces[simplex_dim + 1]
+        
+        # Skip this iteration if the simplex was discarded
+        # and, therefore, does not have an associated id
+        if tuple(simplex) not in id_maps[simplex_dim]:
+            # (DEBUG)
+            # print('Skipping simplex {}'.format(simplex))
+            assert simplex_dim == complex_dim
+            continue
 
         # Add the faces of the simplex to the faces table
         if simplex_dim > 0:
@@ -356,7 +375,15 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_d
         simplex_cofaces = simplex_tree.get_cofaces(simplex, codimension=1)
         for coface, _ in simplex_cofaces:
             assert len(coface) == len(simplex) + 1
-
+            
+            # Skip this iteration if the coface was discarded
+            # and, therefore, does not have an associated id
+            if tuple(coface) not in id_maps[simplex_dim+1]:
+                # (DEBUG)
+                # print('Skipping coface {}'.format(coface))
+                assert simplex_dim +1  == complex_dim
+                continue
+            
             if tuple(simplex) not in level_cofaces:
                 level_cofaces[tuple(simplex)] = list()
             level_cofaces[tuple(simplex)].append(tuple(coface))
@@ -492,7 +519,8 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
                                       expansion_dim: int = 2, y: Tensor = None,
                                       include_down_adj=True,
-                                      init_method: str = 'sum') -> Complex:
+                                      init_method: str = 'sum',
+                                      max_dim_limit: Optional[int] = None) -> Complex:
     """Generates a clique complex of a pyG graph via gudhi.
 
     Args:
@@ -503,6 +531,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
         y: Labels for the graph nodes or a label for the whole graph.
         include_down_adj: Whether to add down adj in the complex or not
         init_method: How to initialise features at higher levels.
+        max_dim_limit: Optional, upper bound on the number top-lv simplices.
     """
     assert x is not None
     assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
@@ -513,7 +542,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     complex_dim = simplex_tree.dimension()  # See what is the dimension of the complex now.
 
     # Builds tables of the simplicial complexes at each level and their IDs
-    simplex_tables, id_maps = build_tables(simplex_tree, size)
+    simplex_tables, id_maps = build_tables(simplex_tree, size, max_dim_limit=max_dim_limit)
 
     # Extracts the faces and cofaces of each simplex in the complex
     faces_tables, faces, co_faces = (

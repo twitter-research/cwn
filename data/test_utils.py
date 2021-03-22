@@ -39,6 +39,11 @@ def house_edge_index():
                          [1, 3, 0, 2, 1, 3, 4, 0, 2, 4, 2, 3]], dtype=torch.long)
 
 @pytest.fixture
+def kite_edge_index():
+    return torch.tensor([[0, 1, 0, 2, 1, 2, 1, 3, 2, 3, 3, 4],
+                         [1, 0, 2, 0, 2, 1, 3, 1, 3, 2, 4, 3]], dtype=torch.long)
+
+@pytest.fixture
 def house_node_upper_adjacency():
     expected_node_upper = {
         (0,): {(1,), (3,)},
@@ -272,6 +277,76 @@ def test_gudhi_clique_complex(house_edge_index):
 
     assert torch.equal(house_complex.y, house.y)
 
+    
+def test_gudhi_clique_complex_with_max_dim_limit_on_kite(kite_edge_index):
+    kite = Data(edge_index=kite_edge_index, x=torch.arange(0, 5).view(5, 1).float(), y=torch.tensor([1]))
+    kite.num_nodes = kite_edge_index.max().item() + 1
+
+    kite_complex = compute_clique_complex_with_gudhi(kite.x, kite.edge_index, kite.num_nodes,
+                                                      y=kite.y, max_dim_limit=1)
+    complete_kite_complex = compute_clique_complex_with_gudhi(kite.x, kite.edge_index, kite.num_nodes,
+                                                      y=kite.y)
+
+    # Check the number of simplices
+    
+    assert kite_complex.nodes.num_simplices_down is None
+    assert kite_complex.nodes.num_simplices_up == 6
+    assert kite_complex.nodes.faces is None
+    assert complete_kite_complex.nodes.num_simplices_down is None
+    assert complete_kite_complex.nodes.num_simplices_up == 6
+    assert complete_kite_complex.nodes.faces is None
+    
+    assert kite_complex.edges.shared_cofaces.max() == 0
+    assert kite_complex.edges.num_simplices_down == 5
+    assert kite_complex.edges.num_simplices_up == 1
+    assert list(kite_complex.edges.faces.size()) == [6, 2]
+    assert complete_kite_complex.edges.shared_cofaces.max() == 1
+    assert complete_kite_complex.edges.num_simplices_down == 5
+    assert complete_kite_complex.edges.num_simplices_up == 2
+    assert list(complete_kite_complex.edges.faces.size()) == [6, 2]
+    
+    assert kite_complex.triangles.num_simplices_down == 6
+    assert kite_complex.triangles.num_simplices_up == 0
+    assert list(kite_complex.triangles.faces.size()) == [1, 3]
+    assert complete_kite_complex.triangles.num_simplices_down == 6
+    assert complete_kite_complex.triangles.num_simplices_up == 0
+    assert list(complete_kite_complex.triangles.faces.size()) == [2, 3]
+
+    # Check the returned parameters
+
+    e_params = kite_complex.get_chain_params(dim=1)
+    complete_e_params = complete_kite_complex.get_chain_params(dim=1)
+    expected_e_up_index = torch.tensor([[0, 1, 0, 2, 1, 2],
+                                        [1, 0, 2, 0, 2, 1]], dtype=torch.long)
+    expected_complete_e_up_index = torch.tensor([[0, 1, 0, 2, 1, 2, 2, 3, 2, 4, 3, 4],
+                                                [1, 0, 2, 0, 2, 1, 3, 2, 4, 2, 4, 3]], dtype=torch.long)
+    assert torch.equal(e_params.up_index, expected_e_up_index)
+    assert torch.equal(complete_e_params.up_index, expected_complete_e_up_index)
+
+    expected_e_up_attr = torch.tensor([[3], [3], [3], [3], [3], [3]], dtype=torch.float)
+    complete_expected_e_up_attr = torch.tensor([[3], [3], [3], [3], [3], [3], [6], [6], [6], [6], [6], [6]], dtype=torch.float)
+    assert torch.equal(e_params.kwargs['up_attr'], expected_e_up_attr)
+    assert torch.equal(complete_e_params.kwargs['up_attr'], complete_expected_e_up_attr)
+
+    t_params = kite_complex.get_chain_params(dim=2)
+    complete_t_params = complete_kite_complex.get_chain_params(dim=2)
+    expected_t_x = torch.tensor([[3]], dtype=torch.float)
+    expected_complete_t_x = torch.tensor([[3], [6]], dtype=torch.float)
+    expected_t_face_attr = torch.tensor([[[1], [2], [3]]], dtype=torch.float)
+    expected_complete_t_face_attr = torch.tensor([[[1], [2], [3]], [[3], [4], [5]]], dtype=torch.float)
+    assert torch.equal(t_params.x, expected_t_x)
+    assert t_params.down_index is None
+    assert t_params.up_index is None
+    assert torch.equal(complete_t_params.x, expected_complete_t_x)
+    assert torch.equal(complete_t_params.down_index, torch.tensor([[0, 1],
+                                                                   [1, 0]], dtype=torch.long))
+    assert torch.equal(complete_t_params.kwargs['down_attr'], torch.tensor([[3], [3]], dtype=torch.float))
+    assert complete_t_params.up_index is None
+    assert list(t_params.kwargs['face_attr'].size()) == [1, 3, 1]
+    assert torch.equal(t_params.kwargs['face_attr'], expected_t_face_attr)
+    assert list(complete_t_params.kwargs['face_attr'].size()) == [2, 3, 1]
+    assert torch.equal(complete_t_params.kwargs['face_attr'], expected_complete_t_face_attr)
+    
 
 def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
     house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
