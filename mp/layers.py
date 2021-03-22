@@ -290,7 +290,6 @@ class OrientedConv(ChainMessagePassing):
         self.update_up_nn = update_up_nn
         self.update_down_nn = update_down_nn
         self.update_nn = update_nn
-        self.reset_parameters()
         self.act_fn = act_fn
         self.orient = orient
 
@@ -302,9 +301,6 @@ class OrientedConv(ChainMessagePassing):
 
         out_up, out_down, _ = self.propagate(chain.upper_index, chain.lower_index, x=chain.x,
             up_attr=chain.upper_orient.view(-1, 1), down_attr=chain.lower_orient.view(-1, 1))
-
-        # print("Out up", torch.sum(out_up))
-        # print("Out down", torch.sum(out_down))
 
         out_up = self.update_up_nn(out_up)
         out_down = self.update_down_nn(out_down)

@@ -237,13 +237,13 @@ def main(args):
 
             i = 0
             new_params = []
-            if epoch % 1 == 0:
+            if epoch % args.train_eval_period == 0:
                 print("====== Slowly changing params ======= ")
             for name, param in model.named_parameters():
                 # print(f"Param {name}: {param.data.view(-1)[0]}")
                 # new_params.append(param.data.detach().clone().view(-1)[0])
                 new_params.append(param.data.detach().mean().item())
-                if len(params) > 0 and epoch % 1 == 0:
+                if len(params) > 0 and epoch % args.train_eval_period == 0:
                     if abs(params[i] - new_params[i]) < 1e-6:
                         print(f"Param {name}: {params[i] - new_params[i]}")
                 i += 1

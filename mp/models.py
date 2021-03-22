@@ -21,6 +21,9 @@ def get_nonlinearity(nonlinearity, return_module=True):
     elif nonlinearity == 'sigmoid':
         module = torch.nn.Sigmoid
         function = F.sigmoid
+    elif nonlinearity == 'tanh':
+        module = torch.nn.Tanh
+        function = F.tanh
     else:
         raise NotImplementError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
     if return_module:
@@ -529,6 +532,7 @@ class EdgeOrient(torch.nn.Module):
             data.x = x
 
         batch_size = data.batch.max() + 1
+        # To obtain orientation invariance, we take the absolute value of the features.
         x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
@@ -560,6 +564,7 @@ class EdgeMPNN(torch.nn.Module):
         self.pooling_fn = get_pooling_fn(readout)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
+            # We pass this lambda function to discard upper adjacencies
             update_up = lambda x: 0
             update_down = Sequential(Linear(layer_dim, hidden), BN(hidden))
             update = Sequential(Linear(layer_dim, hidden), BN(hidden))
