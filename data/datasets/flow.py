@@ -6,6 +6,7 @@ from data.datasets import InMemoryComplexDataset
 from data.datasets.flow_utils import load_flow_dataset
 
 
+# TODO: Set up a chain dataset structure or make complex dataset better support chain-only data.
 class FlowDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, num_points, train_samples, val_samples, classes=2,

@@ -199,6 +199,7 @@ def extract_adj_from_boundary(B, G):
 
     n = len(A)
     assert n == G.number_of_edges()
+    # Subtract self-loops, which we do not count.
     connections = np.count_nonzero(A) - n
 
     index = torch.empty((2, connections), dtype=torch.long)
