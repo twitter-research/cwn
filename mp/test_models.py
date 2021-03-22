@@ -247,10 +247,10 @@ def test_sparse_sin0_model_with_batching_on_proteins():
 
 
 def test_edge_orient_model_on_flow_dataset_with_batching():
-    dataset = load_dataset('FLOW', flow_points=400, flow_classes=2)
+    dataset, _, _ = load_flow_dataset(num_points=300, num_train=50, num_test=2, num_classes=2)
 
     np.random.seed(4)
-    data_loader = DataLoader(dataset, batch_size=32)
+    data_loader = DataLoader(dataset, batch_size=16)
     model = EdgeOrient(num_input_features=1, num_classes=2, num_layers=2, hidden=5)
     # We use the model in eval mode to avoid problems with batch norm.
     model.eval()
