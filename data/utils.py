@@ -319,6 +319,7 @@ def build_tables(simplex_tree, size, max_dim_limit=None):
     id_maps = [{} for _ in range(complex_dim+1)] # simplex -> id
     simplex_tables = [[] for _ in range(complex_dim+1)] # matrix of simplices
     faces_tables = [[] for _ in range(complex_dim+1)]
+    removed = set()  # set of removed simplices, in case we drop some
 
     simplex_tables[0] = [[v] for v in range(size)]
     id_maps[0] = {tuple([v]): v for v in range(size)}
@@ -330,6 +331,7 @@ def build_tables(simplex_tree, size, max_dim_limit=None):
             continue
         if max_dim_limit is not None and dim == complex_dim and max_dim_count >= max_dim_limit:
             # Skip this iteration if already found the desired number of top-level simplices
+            removed.add(tuple(simplex))
             continue
 
         # Assign this simplex the next unused ID
@@ -341,11 +343,13 @@ def build_tables(simplex_tree, size, max_dim_limit=None):
             # Udpate count of simplices found at the top-level
             max_dim_count += 1
             
-    return simplex_tables, id_maps
+    return simplex_tables, id_maps, removed
 
 
-def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_dim: int):
-    """Build two maps simplex -> its cofaces and simplex -> its faces"""
+def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_dim: int, 
+                                                removed: Optional[set] = None):
+    """
+    two maps simplex -> its cofaces and simplex -> its faces"""
     # The extra dimension is added just for convenience to avoid treating it as a special case.
     faces = [{} for _ in range(complex_dim+2)]  # simplex -> faces
     cofaces = [{} for _ in range(complex_dim+2)]  # simplex -> cofaces
@@ -359,10 +363,12 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_d
         
         # Skip this iteration if the simplex was discarded
         # and, therefore, does not have an associated id
+        # Additionally check it is in the set of removed ones
         if tuple(simplex) not in id_maps[simplex_dim]:
             # (DEBUG)
             # print('Skipping simplex {}'.format(simplex))
             assert simplex_dim == complex_dim
+            assert removed is not None and tuple(simplex) in removed
             continue
 
         # Add the faces of the simplex to the faces table
@@ -378,10 +384,12 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_d
             
             # Skip this iteration if the coface was discarded
             # and, therefore, does not have an associated id
+            # Additionally check it is in the set of removed ones
             if tuple(coface) not in id_maps[simplex_dim+1]:
                 # (DEBUG)
                 # print('Skipping coface {}'.format(coface))
                 assert simplex_dim +1  == complex_dim
+                assert removed is not None and tuple(coface) in removed
                 continue
             
             if tuple(simplex) not in level_cofaces:
@@ -542,11 +550,11 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     complex_dim = simplex_tree.dimension()  # See what is the dimension of the complex now.
 
     # Builds tables of the simplicial complexes at each level and their IDs
-    simplex_tables, id_maps = build_tables(simplex_tree, size, max_dim_limit=max_dim_limit)
+    simplex_tables, id_maps, removed = build_tables(simplex_tree, size, max_dim_limit=max_dim_limit)
 
     # Extracts the faces and cofaces of each simplex in the complex
     faces_tables, faces, co_faces = (
-        extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_dim))
+        extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_dim, removed))
 
     # Computes the adjacencies between all the simplexes in the complex
     shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps,
