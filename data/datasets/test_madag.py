@@ -1,5 +1,5 @@
-from data.datasets.madag_utils import generate_dataset
+from data.datasets.madag_utils import load_madagascar_dataset
 
 
 def test_madag_generation():
-    generate_dataset()
+    load_madagascar_dataset()

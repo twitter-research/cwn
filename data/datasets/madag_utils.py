@@ -8,7 +8,9 @@ import h5py
 import os.path as osp
 
 from data.datasets.scone_utils import *
+from data.datasets.flow_utils import *
 from definitions import ROOT_DIR
+
 
 def strip_paths(paths):
     """
@@ -35,6 +37,7 @@ def color_faces(G, V, coords, faces, filename='graph_faces.pdf', paths=None):
     """
     Saves a plot of the graph, with faces colored in
     """
+    plt.figure()
     for f in np.array(faces):
         plt.gca().add_patch(plt.Polygon(coords[f], facecolor=(173/256,216/256,240/256, 0.4), ec='k', linewidth=0.3))
 
@@ -48,14 +51,43 @@ def color_faces(G, V, coords, faces, filename='graph_faces.pdf', paths=None):
             edges = [(path[i], path[i+1]) for i in range(len(path) - 1)]
             nx.draw_networkx_edges(G.to_directed(), pos=coords_dict, edgelist=edges, edge_color='black', width=1.5,
                                    arrows=True, arrowsize=7, node_size=3)
+
+    plt.scatter(x=[np.mean(coords[:, 0]) - 0.03], y=[np.mean(coords[:, 1])])
+
     plt.savefig(filename)
 
 
-def generate_dataset():
-    dataset_folder = 'buoy'
-    raw_path = osp.join(ROOT_DIR, 'datasets', 'MADAG', 'raw', 'dataBuoys.jld2')
+def orientation(p1, p2, p3):
+    # to find the orientation of
+    # an ordered triplet (p1,p2,p3)
+    # function returns the following values:
+    # 0 : Colinear points
+    # 1 : Clockwise points
+    # 2 : Counterclockwise
+    val = (float(p2[1] - p1[1]) * (p3[0] - p2[0])) - (float(p2[0] - p1[0]) * (p3[1] - p2[1]))
+    if val > 0:
+        # Clockwise orientation
+        return 0
+    elif val < 0:
+        # Counterclockwise orientation
+        return 1
+    else:
+        print(p1, p2, p3)
+        raise ValueError('Points should not be collinear')
 
-    f = h5py.File(raw_path, 'r')
+
+def extract_label(path, coords):
+    # This is the center of madagascar. We will use it to compute the clockwise orientation
+    # of the flow.
+    center = [np.mean(coords[:, 0]) - 0.03, np.mean(coords[:, 1])]
+    return orientation(center, coords[path[0]], coords[path[-1]])
+
+
+def load_madagascar_dataset():
+    raw_dir = osp.join(ROOT_DIR, 'datasets', 'OCEAN', 'raw')
+    raw_filename = osp.join(raw_dir, 'dataBuoys.jld2')
+
+    f = h5py.File(raw_filename, 'r')
     print(f.keys())
 
     ### Load arrays from file
@@ -67,6 +99,8 @@ def generate_dataset():
 
     # tlist (triangle list)
     face_list = f['tlist'][:] - 1
+
+    print("Faces", np.shape(face_list))
 
     # NodeToHex (map node id <-> hex coords) # nodes are 1-indexed in data source
     node_hex_map = [tuple(f[x][()]) for x in f['NodeToHex'][:]]
@@ -100,17 +134,22 @@ def generate_dataset():
     # Trajectories
     G_undir = G.to_undirected()
     stripped_paths = strip_paths(traj_nodes)
-    paths = [path[-10:] for path in stripped_paths if len(path) >= 5]
+    paths = [path for path in stripped_paths if len(path) >= 5]
+    new_paths = []
+    for path in paths:
+        new_path = path if path[-1] != path[0] else path[:-1]
+        new_paths.append(new_path)
+    paths = new_paths
+    print("Max length path", max([len(path) for path in paths]))
 
     # Print graph info
     print(np.mean([len(G[i]) for i in V]))
     print('# nodes: {}, # edges: {}, # faces: {}'.format(*B1.shape, B2.shape[1]))
     print('# paths: {}, # paths with prefix length >= 3: {}'.format(len(traj_nodes), len(paths)))
 
-    rev_paths = [path[::-1] for path in paths]
-
     # Save graph image to file
-    color_faces(G, V, coords, faces_from_B2(B2, E), filename='madagascar_graph_faces_paths.pdf', paths=[paths[1], paths[48], paths[125]])
+    filename = osp.join(raw_dir, 'madagascar_graph_faces_paths.pdf')
+    color_faces(G, V, coords, faces_from_B2(B2, E), filename=filename, paths=[paths[100]])
 
     # train / test masks
     np.random.seed(1)
@@ -118,15 +157,41 @@ def generate_dataset():
     np.random.shuffle(train_mask)
     test_mask = 1 - train_mask
 
-    max_degree = np.max([deg for n, deg in G_undir.degree()])
+    flows = np.array([path_to_flow(p, edge_to_idx, len(E)) for p in paths])
+    labels = np.array([extract_label(p, coords) for p in paths], dtype=np.int)
+    print("Label 14", labels[100])
 
-    ## Consolidate dataset
+    # avg_clock = np.array([coords[i] for i, _ in enumerate(paths) if labels[i] == 0])
+    # print("Average clockwise position", np.mean(avg_clock[:, 0]), np.mean(avg_clock[:, 1]))
 
-    # forward
-    prefix_flows_1hop, targets_1hop, last_nodes_1hop, suffixes_1hop, \
-        prefix_flows_2hop, targets_2hop, last_nodes_2hop, suffixes_2hop = path_dataset(G_undir, E, edge_to_idx,
-                                                                                    paths, max_degree, include_2hop=True,
-                                                                                    truncate_paths=False)
-
+    print('Flows', np.shape(flows))
     print('Train samples:', sum(train_mask))
     print('Test samples:', sum(test_mask))
+
+    assert len(labels) == len(train_mask)
+
+    print('Train Clockwise', sum(1 - labels[train_mask.astype(np.bool)]))
+    print('Train Anticlockwise', sum(labels[train_mask.astype(np.bool)]))
+    print('Test Clockwise', sum(1 - labels[test_mask.astype(np.bool)]))
+    print('Test Anticlockwise', sum(labels[test_mask.astype(np.bool)]))
+
+    lower_index, lower_orient = extract_adj_from_boundary(B1, G_undir)
+    upper_index, upper_orient = extract_adj_from_boundary(B2.T, G_undir)
+    index_dict = {
+        'lower_index': lower_index,
+        'lower_orient': lower_orient,
+        'upper_index': upper_index,
+        'upper_orient': upper_orient,
+    }
+    flows = torch.tensor(flows, dtype=torch.float32)
+
+    train_chains, test_chains = [], []
+    for i in range(len(flows)):
+        chain = Chain(dim=1, x=flows[i], **index_dict, y=torch.tensor([labels[i]]))
+        if train_mask[i] == 1:
+            train_chains.append(chain)
+        else:
+            test_chains.append(chain)
+
+    return train_chains, test_chains, G_undir
+
