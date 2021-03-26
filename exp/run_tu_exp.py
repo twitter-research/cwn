@@ -3,6 +3,7 @@ import os
 import copy
 import time
 import numpy as np
+from definitions import ROOT_DIR
 from exp.parser import get_parser
 from exp.run_exp import main
 
@@ -68,6 +69,8 @@ def exp_main(passed_args):
     print(msg)
     
     # additionally write msg and configuration on file
+    exp_name = None
+    result_folder = None
     for a, arg in enumerate(passed_args):
         if not arg.startswith('--'):
             continue
@@ -76,6 +79,10 @@ def exp_main(passed_args):
             result_folder = passed_args[a+1]
         if key == 'exp_name':
             exp_name = passed_args[a+1]
+    if exp_name is None:
+        exp_name = str(time.time())
+    if result_folder is None:
+        result_folder = os.path.join(ROOT_DIR, 'exp', 'results')
     filename = os.path.join(result_folder, '{}-{}/result.txt'.format(parsed_args.dataset, exp_name))
     print('Writing results at: {}'.format(filename))
     with open(filename, 'w') as handle:
@@ -91,6 +98,9 @@ if __name__ == "__main__":
     # standard args
     passed_args = sys.argv[1:]
     assert 'fold' not in passed_args
+    if '--result_folder' not in passed_args:
+        result_folder = os.path.join(ROOT_DIR, 'exp', 'results')
+        passed_args += ['--result_folder', result_folder]
     if '--exp_name' not in passed_args:
         passed_args += ['--exp_name', str(time.time())]
 

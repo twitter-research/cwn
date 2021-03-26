@@ -566,7 +566,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # Creates the gudhi-based simplicial complex
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
     if density > max_density:
-        expansion_dim = 2  # Stop at edges if the graph is too dense
+        expansion_dim = 1  # Stop at edges if the graph is too dense
     simplex_tree.expansion(expansion_dim)  # Computes the clique complex up to the desired dim.
     complex_dim = simplex_tree.dimension()  # See what is the dimension of the complex now.
 
@@ -600,7 +600,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     return Complex(*chains, y=complex_y, dimension=complex_dim), expansion_dim
 
 
-def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=False,
+def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True,
                                      init_method: str = 'sum', max_density: float = 1.0,
                                      max_dim_limit: Optional[int] = None,
                                      randomize_ids: bool = False):
@@ -626,6 +626,6 @@ def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_a
         complexes.append(complex)
 
     if num_dense_graphs > 0:
-        logging.info('Found {} graphs too dense to expand at a threshold of {}.'.format(num_dense_graphs, mad_density))
+        print('Found {} graphs too dense to expand at a threshold of {}.'.format(num_dense_graphs, max_density))
         
     return complexes, dimension, num_features[:dimension+1]
