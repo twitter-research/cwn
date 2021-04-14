@@ -1,7 +1,6 @@
 """
-Author: Nicholas Glaze, Rice ECE (nkg2 at rice.edu)
-
-Code for converting ocean drifter data from Schaub's format to ours.
+Most functions are adapted from Nicholas Glaze, Rice ECE (nkg2 at rice.edu)
+and the original can be found at https://github.com/nglaze00/SCoNe_GCN/tree/master/ocean_drifters_data
 """
 
 import h5py
