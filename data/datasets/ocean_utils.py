@@ -7,9 +7,69 @@ Code for converting ocean drifter data from Schaub's format to ours.
 import h5py
 import os.path as osp
 
-from data.datasets.scone_utils import *
 from data.datasets.flow_utils import *
 from definitions import ROOT_DIR
+
+
+def faces_from_B2(B2, E):
+    """
+    Given a B2 matrix, returns the list of faces.
+    """
+    faces_B2 = []
+    for j in range(B2.shape[1]):
+        edge_idxs = np.where(B2[:, j] != 0)
+        edges = E[edge_idxs]
+        nodes = set()
+        for e in edges:
+            for n in e:
+                nodes.add(n)
+        faces_B2.append(tuple(sorted(nodes)))
+    return faces_B2
+
+
+def path_to_flow(path, edge_to_idx, m):
+    '''
+    path: list of nodes
+    E_lookup: dictionary mapping edge tuples to indices
+    m: number of edges
+    '''
+    l = len(path)
+    f = np.zeros([m,1])
+    for j in range(l-1):
+        v0 = path[j]
+        v1 = path[j+1]
+        if v0 < v1:
+            k = edge_to_idx[(v0,v1)]
+            f[k] += 1
+        else:
+            k = edge_to_idx[(v1,v0)]
+            f[k] -= 1
+    return f
+
+
+def incidence_matrices(G, V, E, faces, edge_to_idx):
+    """
+    Returns incidence matrices B1 and B2
+
+    :param G: NetworkX DiGraph
+    :param V: list of nodes
+    :param E: list of edges
+    :param faces: list of faces in G
+
+    Returns B1 (|V| x |E|) and B2 (|E| x |faces|)
+    B1[i][j]: -1 if node is is tail of edge j, 1 if node is head of edge j, else 0 (tail -> head) (smaller -> larger)
+    B2[i][j]: 1 if edge i appears sorted in face j, -1 if edge i appears reversed in face j, else 0; given faces with sorted node order
+    """
+    B1 = np.array(nx.incidence_matrix(G, nodelist=V, edgelist=E, oriented=True).todense())
+    B2 = np.zeros([len(E),len(faces)])
+
+    for f_idx, face in enumerate(faces): # face is sorted
+        edges = [face[:-1], face[1:], [face[0], face[2]]]
+        e_idxs = [edge_to_idx[tuple(e)] for e in edges]
+
+        B2[e_idxs[:-1], f_idx] = 1
+        B2[e_idxs[-1], f_idx] = -1
+    return B1, B2
 
 
 def strip_paths(paths):
@@ -83,7 +143,7 @@ def extract_label(path, coords):
     return orientation(center, coords[path[0]], coords[path[-1]])
 
 
-def load_madagascar_dataset():
+def load_ocean_dataset():
     raw_dir = osp.join(ROOT_DIR, 'datasets', 'OCEAN', 'raw')
     raw_filename = osp.join(raw_dir, 'dataBuoys.jld2')
 
@@ -148,8 +208,8 @@ def load_madagascar_dataset():
     print('# paths: {}, # paths with prefix length >= 3: {}'.format(len(traj_nodes), len(paths)))
 
     # Save graph image to file
-    filename = osp.join(raw_dir, 'madagascar_graph_faces_paths.pdf')
-    color_faces(G, V, coords, faces_from_B2(B2, E), filename=filename, paths=[paths[100]])
+    # filename = osp.join(raw_dir, 'madagascar_graph_faces_paths.pdf')
+    # color_faces(G, V, coords, faces_from_B2(B2, E), filename=filename, paths=[paths[100]])
 
     # train / test masks
     np.random.seed(1)

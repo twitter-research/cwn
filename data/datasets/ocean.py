@@ -2,17 +2,17 @@ import pickle
 import os.path as osp
 
 from data.datasets import InMemoryComplexDataset
-from data.datasets.madag_utils import load_madagascar_dataset
+from data.datasets.ocean_utils import load_ocean_dataset
 
 
 # TODO: Set up a chain dataset structure or make complex dataset better support chain-only data.
-class MadagascarDataset(InMemoryComplexDataset):
+class OceanDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, load_graph=False):
         self.name = name
         self._num_classes = 2
 
-        super(MadagascarDataset, self).__init__(root, max_dim=1,
+        super(OceanDataset, self).__init__(root, max_dim=1,
             num_classes=self._num_classes, include_down_adj=True)
 
         with open(self.processed_paths[0], 'rb') as handle:
@@ -44,7 +44,7 @@ class MadagascarDataset(InMemoryComplexDataset):
                 '{}_graph.pkl'.format(self.name)]
 
     def process(self):
-        train, val, G = load_madagascar_dataset()
+        train, val, G = load_ocean_dataset()
 
         train_path = self.processed_paths[0]
         with open(train_path, 'wb') as handle:
