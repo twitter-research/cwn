@@ -27,7 +27,7 @@ def faces_from_B2(B2, E):
 
 
 def path_to_flow(path, edge_to_idx, m):
-    '''
+    '''Instantiates a 1-chain from a path, accounting for the edge orientation.
     path: list of nodes
     E_lookup: dictionary mapping edge tuples to indices
     m: number of edges
@@ -253,4 +253,3 @@ def load_ocean_dataset():
             test_chains.append(chain)
 
     return train_chains, test_chains, G_undir
-
