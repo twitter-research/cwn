@@ -1,5 +1,4 @@
-/raw/*
-!/raw/10fold_idx
-!/raw/IMDBBINARY.txt
+/*
+!/raw
 !/.gitignore
 
