@@ -73,7 +73,7 @@ def incidence_matrices(G, V, E, faces, edge_to_idx):
 
 def strip_paths(paths):
     """
-    Remove repeated edges
+    Remove edges which are sequentially repeated in a path, e.g. [a, b, c, d, c, d, e, f] -> [a, b, c, d, e, f]
     """
     res_all = []
     for path in paths:
