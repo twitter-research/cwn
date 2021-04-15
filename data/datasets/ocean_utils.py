@@ -56,7 +56,7 @@ def incidence_matrices(G, V, E, faces, edge_to_idx):
     :param faces: list of faces in G
 
     Returns B1 (|V| x |E|) and B2 (|E| x |faces|)
-    B1[i][j]: -1 if node is is tail of edge j, 1 if node is head of edge j, else 0 (tail -> head) (smaller -> larger)
+    B1[i][j]: -1 if node i is tail of edge j, 1 if node i is head of edge j, else 0 (tail -> head) (smaller -> larger)
     B2[i][j]: 1 if edge i appears sorted in face j, -1 if edge i appears reversed in face j, else 0; given faces with sorted node order
     """
     B1 = np.array(nx.incidence_matrix(G, nodelist=V, edgelist=E, oriented=True).todense())
