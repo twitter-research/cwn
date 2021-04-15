@@ -9,7 +9,7 @@ from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset, FlowDataset,
-    load_tu_graph_dataset)
+    load_tu_graph_dataset, OceanDataset)
 
 
 class Collater(object):
@@ -100,6 +100,8 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'FLOW':
         dataset = FlowDataset(os.path.join(root, name), name, num_points=kwargs['flow_points'],
             train_samples=1000, val_samples=200, classes=kwargs['flow_classes'])
+    elif name == 'OCEAN':
+        dataset = OceanDataset(os.path.join(root, name), name)
     else:
         raise NotImplementedError(name)
     return dataset

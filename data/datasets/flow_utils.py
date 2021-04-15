@@ -198,17 +198,22 @@ def extract_adj_from_boundary(B, G):
     A = B.T @ B
 
     n = len(A)
+    # assert np.all(np.diag(A) != 0)
+    assert np.all((A - A.T) == 0)
     assert n == G.number_of_edges()
+
     # Subtract self-loops, which we do not count.
-    connections = np.count_nonzero(A) - n
+    connections = np.count_nonzero(A) - np.sum(np.diag(A) != 0)
 
     index = torch.empty((2, connections), dtype=torch.long)
     orient = torch.empty(connections)
 
     connection = 0
     for i, j in itertools.combinations(list(range(n)), 2):
-        assert i != j
-        if A[i, j] != 0:
+        assert i < j
+        if A[i, j] != 0.0:
+            assert np.sign(A[i, j]) == 1 or np.sign(A[i, j]) == -1
+
             index[0, connection] = i
             index[1, connection] = j
             orient[connection] = np.sign(A[i, j])
@@ -216,8 +221,6 @@ def extract_adj_from_boundary(B, G):
             index[0, connection + 1] = j
             index[1, connection + 1] = i
             orient[connection + 1] = np.sign(A[i, j])
-
-            assert np.sign(A[i, j]) == 1 or np.sign(A[i, j]) == -1
 
             connection += 2
 

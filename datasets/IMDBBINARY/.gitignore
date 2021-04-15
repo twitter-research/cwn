@@ -1,3 +1,4 @@
 /*
-!/raw/10fold_idx
-!/raw/*.txt
+!/raw
+!/.gitignore
+

@@ -18,9 +18,6 @@ import time
 import numpy as np
 import copy
 
-# run isomorphism test on sr251256:
-# python3 -m exp.run_exp --model dummy --num_layers 1 --dataset sr251256 --eval_metric isomorphism --task_type isomorphism --emb_dim 16 --max_dim  4 --untrained
-
 
 def main(args):
 
