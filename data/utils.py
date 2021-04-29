@@ -448,7 +448,7 @@ def extract_labels(y, size):
 
 def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                          all_shared_faces, all_shared_cofaces, simplex_tables, faces_tables,
-                         complex_dim, y=None):
+                         complex_dim, y=None, cells=False):
     """Builds a Chain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
@@ -465,11 +465,49 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                       if len(all_shared_cofaces[dim]) > 0 else None)
     shared_faces = (torch.tensor(all_shared_faces[dim], dtype=torch.long)
                     if len(all_shared_faces[dim]) > 0 else None)
-    simplices = (torch.tensor(simplex_tables[dim], dtype=torch.long)
-                  if len(simplex_tables[dim]) > 0 else None)
+    if len(simplex_tables[dim]) > 0:
+        simplex_lengths = list(map(lambda x: len(x), simplex_tables[dim]))
+        if max(simplex_lengths) == min(simplex_lengths):
+            simplices = torch.tensor(simplex_tables[dim], dtype=torch.long)
+        else:
+            # In the case of top-level objects of different lengths, then
+            # we must be working with rings and cell complexes; we pad with
+            # -1 indices to accommodate this scenario.
+            assert dim == complex_dim
+            assert cells
+            max_length = max(simplex_lengths)
+            simplices = []
+            for s, simplex in enumerate(simplex_tables[dim]):
+                if simplex_lengths[s] < max_length:
+                    simplices.append(simplex+[-1]*(max_length-simplex_lengths[s]))
+                else:
+                    simplices.append(simplex)
+            simplices = torch.tensor(simplices, dtype=torch.long)
+    else:
+        simplices = None
     # TODO: Do we need simplicies / mapping anymore in Chain?
-    faces = (torch.tensor(faces_tables[dim], dtype=torch.long)
-             if len(faces_tables[dim]) > 0 else None)
+    if len(faces_tables[dim]) > 0:
+        faces_lengths = list(map(lambda x: len(x), faces_tables[dim]))
+        if max(faces_lengths) == min(faces_lengths):
+            faces = torch.tensor(faces_tables[dim], dtype=torch.long)
+        else:
+            # In the case of top-level objects of different lengths, then
+            # we must be working with rings and cell complexes; we pad with
+            # -1 indices to accommodate this scenario for now. However,
+            # this will require proper handling when performing index_select
+            # operations and face message passing. (!)
+            assert dim == complex_dim
+            assert cells
+            max_length = max(faces_lengths)
+            faces = []
+            for f, face in enumerate(faces_tables[dim]):
+                if faces_lengths[f] < max_length:
+                    faces.append(face+[-1]*(max_length-faces_lengths[f]))
+                else:
+                    faces.append(face)
+            faces = torch.tensor(faces, dtype=torch.long)
+    else:
+        faces = None
 
     if num_simplices_down is None:
         assert shared_faces is None
@@ -486,7 +524,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
     return Chain(dim=dim, x=x, upper_index=up_index,
                  lower_index=down_index, shared_cofaces=shared_cofaces, shared_faces=shared_faces,
                  mapping=simplices, y=y, num_simplices_down=num_simplices_down,
-                 num_simplices_up=num_simplices_up, faces=faces)
+                 num_simplices_up=num_simplices_up, faces=faces, cells=cells)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -574,12 +612,15 @@ import networkx as nx
 
 def get_rings(edge_index, max_k=7):
  
-#     edge_list = edge_index.numpy().T
-    edge_list = edge_index
+    edge_list = edge_index.numpy().T
+    # Note: the line above was/is for convenient testing.
+    # edge_list = edge_index
     graph_gt = gt.Graph(directed=False)
     graph_gt.add_edge_list(edge_list)
     gt.stats.remove_self_loops(graph_gt)
     gt.stats.remove_parallel_edges(graph_gt)
+    # We represent rings with their original node ordering
+    # so that we can easily read out the faces
     rings = set()
     sorted_rings = set()
     for k in range(3, max_k+1):
@@ -587,7 +628,8 @@ def get_rings(edge_index, max_k=7):
         pattern_edge_list = list(pattern.edges)
         pattern_gt = gt.Graph(directed=False)
         pattern_gt.add_edge_list(pattern_edge_list)
-        sub_iso = top.subgraph_isomorphism(pattern_gt, graph_gt, induced=True, subgraph=True, generator=True)
+        sub_iso = top.subgraph_isomorphism(pattern_gt, graph_gt, induced=True, subgraph=True, 
+                                           generator=True)
         sub_iso_sets = map(lambda x: tuple(x.a), sub_iso)
         for iso in sub_iso_sets:
             if tuple(sorted(iso)) not in sorted_rings:
@@ -604,25 +646,27 @@ def build_tables_with_rings(edge_index, simplex_tree, size, max_k):
     
     # Extend the tables with rings
     id_maps += [{}]
-    simplex_tables += []
-    assert len(simplex_tables) == 3
+    simplex_tables += [[]]
+    assert len(simplex_tables) == 3, simplex_tables
  
     for cell in rings:
         next_id = len(simplex_tables[2])
         id_maps[2][cell] = next_id
-        simplex_tables[2].append(cell)
+        simplex_tables[2].append(list(cell))
 
     return simplex_tables, id_maps
 
 
 def get_ring_faces(ring):
     faces = list()
-    for n in len(ring):
+    for n in range(len(ring)):
         a = n
         if n == len(ring):
             b = 0
         else:
             b = n + 1
+        # We represent the faces in lexicographic order
+        # so to be compatible with gudhi
         faces.append(tuple(sorted([a,b])))
     return faces
 
@@ -637,20 +681,44 @@ def extract_faces_and_cofaces_from_simplex_tree_with_rings(simplex_tree, id_maps
     complex_dim = 2
     faces += [{}]
     cofaces += [{}]
-    faces_tables += []
+    faces_tables += [[]]
     
     for cell in id_maps[2]:
         cell_faces = get_ring_faces(cell)
         faces[2][cell] = list()
+        faces_tables[2].append([])
         for face in cell_faces:
             assert face in id_maps[1]
             faces[2][cell].append(face)
             if face not in cofaces[1]:
                 cofaces[1][face] = list()
             cofaces[1][face].append(cell)
-            faces_table[2].append(id_maps[1][face])
+            faces_tables[2][-1].append(id_maps[1][face])
     
     return faces_tables, faces, cofaces
+
+
+def construct_features_with_rings(vx: Tensor, simplex_tables, init_method: str):
+    """Combines the features of the component vertices to initialise the simplex features"""
+    assert len(simplex_tables) == 3
+    features = construct_features(vx, simplex_tables[:2], init_method)
+    ring_features = []
+    for cell in simplex_tables[2]:
+        nodes = torch.tensor([cell], dtype=torch.long).view(-1,)
+        # This has shape [1 * ring_length, node_feature_dim]
+        node_features = torch.index_select(vx, 0, nodes)
+        # Reshape to [1, ring_length, node_feature_dim]
+        node_features = node_features.view(1, len(cell), -1)
+        # Reduce along the simplex dimension containing the features of the vertices of the simplex
+        if init_method == 'sum':
+            ring_features.append(node_features.sum(dim=1))
+        elif init_method == 'mean':
+            ring_features.append(node_features.mean(dim=1))
+        else:
+            raise ValueError(f'Init method {init_method} is not supported now.')
+    features.append(torch.cat(ring_features, 0))
+
+    return features
 
 
 def compute_ring_2complex_with_graphtool_and_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -689,16 +757,16 @@ def compute_ring_2complex_with_graphtool_and_gudhi(x: Tensor, edge_index: Adj, s
 
     # Construct features for the higher dimensions
     # TODO: Make this handle edge features as well and add alternative options to compute this.
-    xs = construct_features(x, simplex_tables, init_method)
+    xs = construct_features_with_rings(x, simplex_tables, init_method)
 
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
 
     chains = []
-    for i in range(complex_dim+1):
+    for i in range(3):
         y = v_y if i == 0 else None
         chain = generate_chain_gudhi(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                     simplex_tables, faces_tables, complex_dim=2, y=y)
+                                     simplex_tables, faces_tables, complex_dim=2, y=y, cells=(i==2))
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=2)
