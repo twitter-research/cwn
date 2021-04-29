@@ -25,7 +25,7 @@ class Chain(object):
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, cells=False, **kwargs):
+                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, cellular=False, **kwargs):
         """
         Args:
             Constructs a `dim`-chain.
@@ -42,14 +42,14 @@ class Chain(object):
                 dimensional faces of each simplex
             y: labels over simplices in the chain, shape [num_simplices,]
         """
-        if cells:
+        if cellular:
             assert dim == 2
         if dim == 0:
             assert lower_index is None
             assert shared_faces is None
             assert faces is None
         if faces is not None:
-            if not cells:
+            if not cellular:
                 assert faces.size(1) == dim+1
             else:
                 assert faces.size(1) >= dim+1
@@ -73,7 +73,7 @@ class Chain(object):
         self.__hodge_laplacian = None
         # TODO: Figure out what to do with mapping.
         self.__mapping = mapping
-        self.cells = cells
+        self.__cellular = torch.LongTensor([[cellular]])
         for key, item in kwargs.items():
             if key == 'num_simplices':
                 self.__num_simplices__ = item
@@ -88,7 +88,11 @@ class Chain(object):
     def dim(self):
         """This field should not have a setter. The dimension of a chain cannot be changed"""
         return self.__dim__
-
+    
+    @property
+    def cellular(self):
+        return self.__cellular
+    
     @property
     def x(self):
         return self.__x
@@ -576,6 +580,7 @@ class Complex(object):
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
             assert chain.dim == dim
+            assert torch.all(chain.cellular == 0) or torch.all(chain.cellular == 1)
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
                 num_simplices_up = upper_chain.num_simplices
@@ -586,7 +591,7 @@ class Complex(object):
                     chain.num_simplices_up = num_simplices_up
             if dim > 0:
                 if chain.faces is not None:
-                    if not chain.cells:
+                    if chain.cellular.sum().item() == 0:
                         assert list(chain.faces.size()) == [chain.num_simplices, dim+1]
                     else:
                         assert chain.faces.size(0) == chain.num_simplices and chain.faces.size(1) >= dim+1

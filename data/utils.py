@@ -448,7 +448,7 @@ def extract_labels(y, size):
 
 def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                          all_shared_faces, all_shared_cofaces, simplex_tables, faces_tables,
-                         complex_dim, y=None, cells=False):
+                         complex_dim, y=None, cellular=False):
     """Builds a Chain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
@@ -474,7 +474,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
             # we must be working with rings and cell complexes; we pad with
             # -1 indices to accommodate this scenario.
             assert dim == complex_dim
-            assert cells
+            assert cellular
             max_length = max(simplex_lengths)
             simplices = []
             for s, simplex in enumerate(simplex_tables[dim]):
@@ -497,7 +497,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
             # this will require proper handling when performing index_select
             # operations and face message passing. (!)
             assert dim == complex_dim
-            assert cells
+            assert cellular
             max_length = max(faces_lengths)
             faces = []
             for f, face in enumerate(faces_tables[dim]):
@@ -524,7 +524,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
     return Chain(dim=dim, x=x, upper_index=up_index,
                  lower_index=down_index, shared_cofaces=shared_cofaces, shared_faces=shared_faces,
                  mapping=simplices, y=y, num_simplices_down=num_simplices_down,
-                 num_simplices_up=num_simplices_up, faces=faces, cells=cells)
+                 num_simplices_up=num_simplices_up, faces=faces, cellular=cellular)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -766,7 +766,7 @@ def compute_ring_2complex_with_graphtool_and_gudhi(x: Tensor, edge_index: Adj, s
     for i in range(3):
         y = v_y if i == 0 else None
         chain = generate_chain_gudhi(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                     simplex_tables, faces_tables, complex_dim=2, y=y, cells=(i==2))
+                                     simplex_tables, faces_tables, complex_dim=2, y=y, cellular=(i==2))
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=2)
