@@ -661,14 +661,14 @@ def get_ring_faces(ring):
     faces = list()
     for n in range(len(ring)):
         a = n
-        if n == len(ring):
+        if n + 1 == len(ring):
             b = 0
         else:
             b = n + 1
         # We represent the faces in lexicographic order
         # so to be compatible with gudhi
-        faces.append(tuple(sorted([a,b])))
-    return faces
+        faces.append(tuple(sorted([ring[a], ring[b]])))
+    return sorted(faces)
 
 
 def extract_faces_and_cofaces_from_simplex_tree_with_rings(simplex_tree, id_maps):
