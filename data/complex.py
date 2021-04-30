@@ -25,7 +25,7 @@ class Chain(object):
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, cellular=False, **kwargs):
+                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, cell_size=None, **kwargs):
         """
         Args:
             Constructs a `dim`-chain.
@@ -42,17 +42,18 @@ class Chain(object):
                 dimensional faces of each simplex
             y: labels over simplices in the chain, shape [num_simplices,]
         """
-        if cellular:
+        if cell_size is not None:
             assert dim == 2
+            assert cell_size >= 3
         if dim == 0:
             assert lower_index is None
             assert shared_faces is None
             assert faces is None
         if faces is not None:
-            if not cellular:
+            if cell_size is None:
                 assert faces.size(1) == dim+1
             else:
-                assert faces.size(1) >= dim+1
+                assert faces.size(1) == cell_size
             if x is not None:
                 assert x.size(0) == faces.size(0)
 
@@ -73,7 +74,7 @@ class Chain(object):
         self.__hodge_laplacian = None
         # TODO: Figure out what to do with mapping.
         self.__mapping = mapping
-        self.__cellular = torch.LongTensor([[cellular]])
+        self.cell_size = cell_size
         for key, item in kwargs.items():
             if key == 'num_simplices':
                 self.__num_simplices__ = item
@@ -88,10 +89,6 @@ class Chain(object):
     def dim(self):
         """This field should not have a setter. The dimension of a chain cannot be changed"""
         return self.__dim__
-    
-    @property
-    def cellular(self):
-        return self.__cellular
     
     @property
     def x(self):
@@ -387,9 +384,24 @@ class ChainBatch(Chain):
             Additionally, creates assignment batch vectors for each key in
             :obj:`follow_batch`.
         """
-
-        keys = [set(data.keys) for data in data_list]
-        keys = list(set.union(*keys))
+        key_list = list()
+        cellular = False
+        cell_size = None
+        for d, data in enumerate(data_list):
+            key_set = set(data.keys)
+            key_list.append(key_set)
+            # Here we check whether chains are cellular chains
+            # and, if yes, if they all have the same max size
+            if d == 0:
+                if 'cell_size' in key_set:
+                    cellular = True
+                    cell_size = data.cell_size
+            else:
+                assert ('cell_size' in key_set) == cellular
+                if cellular:
+                    assert cell_size == data.cell_size
+        
+        keys = list(set.union(*key_list))
 
         assert 'batch' not in keys and 'ptr' not in keys
 
@@ -510,6 +522,7 @@ class ChainBatch(Chain):
             items = batch[key]
             item = items[0]
             if isinstance(item, Tensor):
+                print(key, len(items), '\n-----')
                 batch[key] = torch.cat(items, ref_data.__cat_dim__(key, item))
             elif isinstance(item, SparseTensor):
                 batch[key] = torch.cat(items, ref_data.__cat_dim__(key, item))
@@ -562,6 +575,12 @@ class Complex(object):
             dimension = len(chains) - 1
         if len(chains) < dimension + 1:
             raise ValueError('Not enough chains passed (expected {}, received {})'.format(dimension + 1, len(chains)))
+        if len(chains) >= 3 and 'cell_size' in chains[2]:
+            assert len(chains) == 3 and dimension == 2
+            self.cell_size = chains[2].cell_size
+        else:
+            self.cell_size = None
+            
         
         # TODO: This needs some data checking to check that these chains are consistent together
         # ^^^ see `_consolidate`
@@ -569,7 +588,7 @@ class Complex(object):
         self.chains = {i: chains[i] for i in range(dimension + 1)}
         self.nodes = chains[0]
         self.edges = chains[1] if dimension >= 1 else None
-        self.triangles = chains[2] if dimension >= 2 else None
+        self.triangles = chains[2] if (dimension >= 2 and 'cell_size' not in chains[2]) else None
 
         self.y = y  # complex-wise label for complex-level tasks
         
@@ -580,7 +599,6 @@ class Complex(object):
         for dim in range(self.dimension+1):
             chain = self.chains[dim]
             assert chain.dim == dim
-            assert torch.all(chain.cellular == 0) or torch.all(chain.cellular == 1)
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
                 num_simplices_up = upper_chain.num_simplices
@@ -591,10 +609,13 @@ class Complex(object):
                     chain.num_simplices_up = num_simplices_up
             if dim > 0:
                 if chain.faces is not None:
-                    if chain.cellular.sum().item() == 0:
+                    if 'cell_size' not in chain:
                         assert list(chain.faces.size()) == [chain.num_simplices, dim+1]
                     else:
-                        assert chain.faces.size(0) == chain.num_simplices and chain.faces.size(1) >= dim+1
+                        assert dim == 2
+                        assert chain.faces.size(0) == chain.num_simplices
+                        assert chain.faces.size(1) == chain.cell_size
+                        assert chain.faces.size(1) == self.cell_size
 
                 lower_chain = self.chains[dim - 1]
                 num_simplices_down = lower_chain.num_simplices
@@ -714,6 +735,34 @@ class Complex(object):
         assert (self.dimension + 1) >= len(xs)
         for i, x in enumerate(xs):
             self.chains[i].x = x
+            
+    @property
+    def keys(self):
+        """
+            Returns all names of complex attributes.
+        """
+        keys = [key for key in self.__dict__.keys() if self[key] is not None]
+        keys = [key for key in keys if key[:2] != '__' and key[-2:] != '__']
+        return keys
+    
+    def __getitem__(self, key):
+        """
+            Gets the data of the attribute :obj:`key`.
+        """
+        return getattr(self, key, None)
+
+    def __setitem__(self, key, value):
+        """
+            Sets the attribute :obj:`key` to :obj:`value`.
+        """
+        setattr(self, key, value)
+    
+    def __contains__(self, key):
+        """
+            Returns :obj:`True`, if the attribute :obj:`key` is present in the
+            data.
+        """
+        return key in self.keys
 
 
 class ComplexBatch(Complex):
@@ -728,7 +777,26 @@ class ComplexBatch(Complex):
 
     @classmethod
     def from_complex_list(cls, data_list: List[Complex], follow_batch=[], max_dim: int = 2):
-        dimension = max([complex.dimension for complex in data_list])
+        
+        
+        dims = list()
+        cellular = False
+        cell_size = None
+        for d, data in enumerate(data_list):
+            dims.append(data.dimension)
+            # Here we check whether complexes are cellular ones
+            # and, if yes, if they all have the same max size
+            if d == 0:
+                if 'cell_size' in data:
+                    assert dims[-1] == 2
+                    cellular = True
+                    cell_size = data.cell_size
+            else:
+                assert ('cell_size' in data) == cellular
+                if cellular:
+                    assert cell_size == data.cell_size
+        
+        dimension = max(dims)
         dimension = min(dimension, max_dim)
         chains = [list() for _ in range(dimension + 1)]
         label_list = list()
@@ -737,7 +805,10 @@ class ComplexBatch(Complex):
             for dim in range(dimension+1):
                 if dim not in comp.chains:
                     # If a dim-chain is not present for the current complex, we instantiate one.
-                    chains[dim].append(Chain(dim=dim))
+                    if dim == 2 and cellular:
+                        chains[dim].append(Chain(dim=dim, cell_size=cell_size))
+                    else:
+                        chains[dim].append(Chain(dim=dim))
                     if dim-1 in comp.chains:
                         # If the chain below exists in the complex, we need to add the number of
                         # faces to the newly initialised complex, otherwise batching will not work.
