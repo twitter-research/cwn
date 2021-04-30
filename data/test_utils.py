@@ -420,14 +420,18 @@ def test_graphtool_and_gudhi_cell_complex(house_edge_index):
     assert list(e_params.kwargs['face_attr'].size()) == [6, 2, 1]
     assert torch.equal(e_params.kwargs['face_attr'], expected_e_face_attr)
 
-#     t_params = house_complex.get_chain_params(dim=2)
-#     expected_t_x = torch.tensor([[9]], dtype=torch.float)
-#     assert torch.equal(t_params.x, expected_t_x)
-#     assert t_params.down_index is None
-#     assert t_params.up_index is None
-
-#     expected_t_face_attr = torch.tensor([[[5], [6], [7]]], dtype=torch.float)
-#     assert list(t_params.kwargs['face_attr'].size()) == [1, 3, 1]
-#     assert torch.equal(t_params.kwargs['face_attr'], expected_t_face_attr)
-
-#     assert torch.equal(house_complex.y, house.y)
+    t_params = house_complex.get_chain_params(dim=2, include_face_features=False, include_face_index_and_features=True)
+    expected_t_x = torch.tensor([[6], [9]], dtype=torch.float)
+    assert torch.equal(t_params.x, expected_t_x)
+    expected_t_down_index = torch.tensor([[0, 1],
+                                          [1, 0]],
+                                         dtype=torch.long)
+    assert torch.equal(t_params.down_index, expected_t_down_index)
+    assert t_params.up_index is None
+    assert t_params.kwargs['face_attr'] is None
+    expected_t_boundary_feats = torch.tensor([[1], [3], [3], [5], [5], [6], [7]], dtype=torch.float)
+    assert torch.equal(t_params.kwargs['boundary_features'], expected_t_boundary_feats)
+    expected_t_face_index = torch.tensor([[0, 0, 0, 0, 1, 1, 1],
+                                          [0, 1, 2, 3, 3, 4, 5]], dtype=torch.long)
+    assert torch.equal(t_params.kwargs['face_index'], expected_t_face_index)
+    assert torch.equal(house_complex.y, house.y)

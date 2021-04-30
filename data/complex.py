@@ -25,7 +25,8 @@ class Chain(object):
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, cell_size=None, **kwargs):
+                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, cell_size=None, 
+                 face_index: Adj = None, **kwargs):
         """
         Args:
             Constructs a `dim`-chain.
@@ -65,6 +66,7 @@ class Chain(object):
         self.upper_index = upper_index
         self.lower_index = lower_index
         self.faces = faces
+        self.face_index = face_index
         self.y = y
         self.shared_faces = shared_faces
         self.shared_cofaces = shared_cofaces
@@ -150,6 +152,8 @@ class Chain(object):
             inc = self.num_simplices_down
         elif key == 'shared_cofaces':
             inc = self.num_simplices_up
+        elif key == 'face_index':
+            inc = (self.num_simplices, self.num_simplices_down)
         else:
             inc = 0
         if inc is None:
@@ -207,7 +211,8 @@ class Chain(object):
     @property
     def num_simplices_up(self):
         """
-            Returns or sets the number of simplices in the upper chain. In fact, this correspond to the overall number of cofaces in the current chain.
+            Returns or sets the number of simplices in the upper chain.
+            In fact, this correspond to the overall number of cofaces in the current chain.
         """
         if hasattr(self, '__num_simplices_up__'):
             return self.__num_simplices_up__
@@ -640,7 +645,8 @@ class Complex(object):
     def get_chain_params(self, dim, max_dim=2,
                          include_top_features=True,
                          include_down_features=True,
-                         include_face_features=True) -> ChainMessagePassingParams:
+                         include_face_features=True,
+                         include_face_index_and_features=False) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim
             neural message passing at the specified `dim`.
@@ -683,10 +689,23 @@ class Complex(object):
                     # Flatten the face features of shape [num_simplices, dim+1, feature_dim]
                     face_features = torch.index_select(self.chains[dim - 1].x, 0, faces.view(-1))
                     face_features = face_features.view(simplices.num_simplices, dim+1, -1)
+            
+            # Add face index
+            # NB: this should allow to seamlessly work on cell complexes; in fact in could
+            # replace completely the "face features"
+            # TODO: is it needed to also include face_index[:,0] in the params? We have already used
+            # that here, while face_index[:,0] is needed to scatter-aggregate the boundary feats
+            face_index = None
+            boundary_features = None  # TODO: not a great name but we already have the "face features"
+            if include_face_index_and_features and simplices.face_index is not None:
+                face_index = simplices.face_index
+                if dim > 0 and self.chains[dim - 1].x is not None:
+                    boundary_features = torch.index_select(self.chains[dim - 1].x, 0, face_index[1,:])
 
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
                                                up_attr=upper_features, down_attr=lower_features,
-                                               face_attr=face_features)
+                                               face_attr=face_features, face_index=face_index,
+                                               boundary_features=boundary_features)
         else:
             raise NotImplementedError(
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
@@ -695,7 +714,8 @@ class Complex(object):
     def get_all_chain_params(self, max_dim=2,
                              include_top_features=True,
                              include_down_features=True,
-                             include_face_features=True):
+                             include_face_features=True,
+                             include_face_index_and_features=False):
         """Gets the chain parameters for message passing at all layers.
 
         Args:
@@ -710,7 +730,8 @@ class Complex(object):
             all_params.append(self.get_chain_params(dim, max_dim=max_dim,
                                                     include_top_features=include_top_features,
                                                     include_down_features=include_down_features,
-                                                    include_face_features=include_face_features))
+                                                    include_face_features=include_face_features,
+                                                    include_face_index_and_features=include_face_index_and_features))
         return all_params
 
     def get_labels(self, dim=None):
@@ -777,7 +798,6 @@ class ComplexBatch(Complex):
 
     @classmethod
     def from_complex_list(cls, data_list: List[Complex], follow_batch=[], max_dim: int = 2):
-        
         
         dims = list()
         cellular = False

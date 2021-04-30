@@ -448,7 +448,7 @@ def extract_labels(y, size):
 
 def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                          all_shared_faces, all_shared_cofaces, simplex_tables, faces_tables,
-                         complex_dim, y=None, cell_size=None):
+                         complex_dim, y=None, cell_size=None, inject_face_index=False):
     """Builds a Chain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
@@ -508,6 +508,12 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
             faces = torch.tensor(faces, dtype=torch.long)
     else:
         faces = None
+        
+    if inject_face_index and faces is not None:
+        valid_faces = torch.where(faces>=0)
+        face_index = torch.stack([valid_faces[0], faces[valid_faces]], 0)
+    else:
+        face_index = None
 
     if num_simplices_down is None:
         assert shared_faces is None
@@ -522,9 +528,11 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
         assert num_simplices_down >= shared_faces.max() + 1
 
     return Chain(dim=dim, x=x, upper_index=up_index,
-                 lower_index=down_index, shared_cofaces=shared_cofaces, shared_faces=shared_faces,
-                 mapping=simplices, y=y, num_simplices_down=num_simplices_down,
-                 num_simplices_up=num_simplices_up, faces=faces, cell_size=cell_size)
+                 lower_index=down_index, shared_cofaces=shared_cofaces,
+                 shared_faces=shared_faces, mapping=simplices, y=y,
+                 num_simplices_down=num_simplices_down,
+                 num_simplices_up=num_simplices_up, faces=faces,
+                 cell_size=cell_size, face_index=face_index)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -754,7 +762,7 @@ def compute_ring_2complex_with_graphtool_and_gudhi(x: Tensor, edge_index: Adj, s
     # Computes the adjacencies between all the simplexes in the complex
     shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps,
                                                                          2, include_down_adj)
-
+    
     # Construct features for the higher dimensions
     # TODO: Make this handle edge features as well and add alternative options to compute this.
     xs = construct_features_with_rings(x, simplex_tables, init_method)
@@ -767,7 +775,8 @@ def compute_ring_2complex_with_graphtool_and_gudhi(x: Tensor, edge_index: Adj, s
         y = v_y if i == 0 else None
         cell_size = max_k if i == 2 else None
         chain = generate_chain_gudhi(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                     simplex_tables, faces_tables, complex_dim=2, y=y, cell_size=cell_size)
+                                     simplex_tables, faces_tables, complex_dim=2, y=y, cell_size=cell_size,
+                                     inject_face_index=True)
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=2)
