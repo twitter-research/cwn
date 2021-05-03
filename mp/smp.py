@@ -46,6 +46,7 @@ class ChainMessagePassing(torch.nn.Module):
                  up_msg_size, down_msg_size,
                  aggr_up: Optional[str] = "add",
                  aggr_down: Optional[str] = "add",
+                 aggr_face: Optional[str] = "add",
                  flow: str = "source_to_target", node_dim: int = -2,
                  face_msg_size=None, use_down_msg=True, use_face_msg=True):
 
@@ -59,6 +60,7 @@ class ChainMessagePassing(torch.nn.Module):
         self.face_msg_size = down_msg_size if face_msg_size is None else face_msg_size
         self.aggr_up = aggr_up
         self.aggr_down = aggr_down
+        self.aggr_face = aggr_face
         assert self.aggr_up in ['add', 'mean', 'max', None]
         assert self.aggr_down in ['add', 'mean', 'max', None]
 
@@ -432,10 +434,10 @@ class ChainMessagePassing(torch.nn.Module):
         """
         if face_ptr is not None:
             down_ptr = expand_left(face_ptr, dim=self.node_dim, dims=inputs.dim())
-            return segment_csr(inputs, down_ptr, reduce=self.aggr_down)
+            return segment_csr(inputs, down_ptr, reduce=self.aggr_face)
         else:
             return scatter(inputs, face_index, dim=self.node_dim, dim_size=face_dim_size,
-                           reduce=self.aggr_down)
+                           reduce=self.aggr_face)
 
     def message_and_aggregate_up(self, up_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
