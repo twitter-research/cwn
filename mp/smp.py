@@ -87,12 +87,14 @@ class ChainMessagePassing(torch.nn.Module):
         self.inspector.inspect(self.update, pop_first_n=3)
 
         # Return the parameter name for these functions minus those specified in special_args
+        # TODO(Cris): Split user args by type of adjacency to make sure no bugs are introduced.
         self.__user_args__ = self.inspector.keys(
-            ['message_up', 'message_down', 'aggregate_up',
-             'aggregate_down']).difference(self.special_args)
+            ['message_up', 'message_down', 'message_face', 'aggregate_up',
+             'aggregate_down', 'aggregate_face']).difference(self.special_args)
         self.__fused_user_args__ = self.inspector.keys(
             ['message_and_aggregate_up',
-             'message_and_aggregate_down']).difference(self.special_args)
+             'message_and_aggregate_down',
+             'message_and_aggregate_face']).difference(self.special_args)
         self.__update_user_args__ = self.inspector.keys(
             ['update']).difference(self.special_args)
 
@@ -311,12 +313,14 @@ class ChainMessagePassing(torch.nn.Module):
                   face_index: Optional[Adj],
                   up_size: Size = None,
                   down_size: Size = None,
+                  face_size: Size = None,
                   **kwargs):
         r"""The initial call to start propagating messages.
 
         """
         up_size = self.__check_input_separately__(up_index, up_size)
         down_size = self.__check_input_separately__(down_index, down_size)
+        face_size = self.__check_input_separately__(face_index, face_size)
         self.__check_input_together__(up_index, down_index, up_size, down_size)
 
         up_out, down_out = None, None
@@ -331,7 +335,7 @@ class ChainMessagePassing(torch.nn.Module):
         # Face messaging and aggregation
         face_out = None
         if self.use_face_msg and 'face_attr' in kwargs and kwargs['face_attr'] is not None:
-            face_out = self.__message_and_aggregate__(face_index, 'face', down_size, **kwargs)
+            face_out = self.__message_and_aggregate__(face_index, 'face', face_size, **kwargs)
 
         coll_dict = {}
         up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
