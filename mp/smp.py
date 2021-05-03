@@ -30,7 +30,7 @@ class ChainMessagePassing(torch.nn.Module):
         aggr (string, optional): The aggregation scheme to use
             (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"` or :obj:`None`).
             (default: :obj:`"add"`)
-        flow (string, optional): The flow direction of message passing
+        flow (string, optional): The flow adjacency of message passing
             (:obj:`"source_to_target"` or :obj:`"target_to_source"`).
             (default: :obj:`"source_to_target"`)
         node_dim (int, optional): The axis along which to propagate.
@@ -75,10 +75,13 @@ class ChainMessagePassing(torch.nn.Module):
         # I presume this doesn't pop first to avoid including the self parameter multiple times.
         self.inspector.inspect(self.message_up)
         self.inspector.inspect(self.message_down)
+        self.inspector.inspect(self.message_face)
         self.inspector.inspect(self.aggregate_up, pop_first_n=1)
         self.inspector.inspect(self.aggregate_down, pop_first_n=1)
+        self.inspector.inspect(self.aggregate_face, pop_first_n=1)
         self.inspector.inspect(self.message_and_aggregate_up, pop_first_n=1)
         self.inspector.inspect(self.message_and_aggregate_down, pop_first_n=1)
+        self.inspector.inspect(self.message_and_aggregate_face, pop_first_n=1)
         self.inspector.inspect(self.update, pop_first_n=3)
 
         # Return the parameter name for these functions minus those specified in special_args
@@ -118,7 +121,7 @@ class ChainMessagePassing(torch.nn.Module):
         elif isinstance(index, SparseTensor):
             if self.flow == 'target_to_source':
                 raise ValueError(
-                    ('Flow direction "target_to_source" is invalid for '
+                    ('Flow adjacency "target_to_source" is invalid for '
                      'message propagation via `torch_sparse.SparseTensor`. If '
                      'you really want to make use of a reverse message '
                      'passing flow, pass in the transposed sparse tensor to '
@@ -160,7 +163,7 @@ class ChainMessagePassing(torch.nn.Module):
 
     def __collect__(self, args, index, size, direction, kwargs):
         i, j = (1, 0) if self.flow == 'source_to_target' else (0, 1)
-        assert direction == 'up' or direction == 'down'
+        assert direction in ['up', 'down', 'face']
 
         out = {}
         for arg in args:
@@ -175,6 +178,13 @@ class ChainMessagePassing(torch.nn.Module):
                     data = kwargs.get(arg[3:-2], Parameter.empty)
                 elif direction == 'down' and arg.startswith('down_'):
                     data = kwargs.get(arg[5:-2], Parameter.empty)
+                elif direction == 'face' and arg.startswith('face_'):
+                    if dim == 0:
+                        # We need to use the face attribute matrix (i.e. face_attr)
+                        data = kwargs.get('face_attr', Parameter.empty)
+                    else:
+                        # We need to use the matrix of features at the current dimension (i.e. x).
+                        data = kwargs.get(arg[5:-2], Parameter.empty)
                 else:
                     continue
 
@@ -221,41 +231,71 @@ class ChainMessagePassing(torch.nn.Module):
 
         return out
 
+    def get_msg_and_agg_func(self, adjacency):
+        if adjacency == 'up':
+            return self.message_and_aggregate_up
+        if adjacency == 'down':
+            return self.message_and_aggregate_down
+        elif adjacency == 'face':
+            return self.message_and_aggregate_faces
+        else:
+            return None
+
+    def get_msg_func(self, adjacency):
+        if adjacency == 'up':
+            return self.message_up
+        elif adjacency == 'down':
+            return self.message_down
+        elif adjacency == 'face':
+            return self.message_face
+        else:
+            return None
+
+    def get_agg_func(self, adjacency):
+        if adjacency == 'up':
+            return self.aggregate_up
+        elif adjacency == 'down':
+            return self.aggregate_down
+        elif adjacency == 'face':
+            return self.aggregate_face
+        else:
+            return None
+
     def __message_and_aggregate__(self, index: Adj,
-                                  direction: str,
+                                  adjacency: str,
                                   size: List[Optional[int]] = None,
                                   **kwargs):
-        assert direction == 'up' or direction == 'down'
+        assert adjacency in ['up', 'down', 'face']
 
         # Fused message and aggregation
-        fuse = self.fuse_up if direction == 'up' else self.fuse_down
+        fuse = self.fuse_up if adjacency == 'up' else self.fuse_down
         if isinstance(index, SparseTensor) and fuse:
             # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__fused_user_args__, index, size, direction, kwargs)
+            coll_dict = self.__collect__(self.__fused_user_args__, index, size, adjacency, kwargs)
 
             # message and aggregation are fused in a single function
             msg_aggr_kwargs = self.inspector.distribute(
-                f'message_and_aggregate_{direction}', coll_dict)
-            message_and_aggregate = (self.message_and_aggregate_up if direction == 'up'
-                                     else self.message_and_aggregate_down)
+                f'message_and_aggregate_{adjacency}', coll_dict)
+            message_and_aggregate = self.get_msg_and_agg_func(adjacency)
             return message_and_aggregate(index, **msg_aggr_kwargs)
 
         # Otherwise, run message and aggregation in separation.
         elif isinstance(index, Tensor) or not fuse:
             # Collect the objects to pass to the function params in __user_arg.
-            coll_dict = self.__collect__(self.__user_args__, index, size, direction, kwargs)
+            coll_dict = self.__collect__(self.__user_args__, index, size, adjacency, kwargs)
 
             # Up message and aggregation
-            msg_kwargs = self.inspector.distribute(f'message_{direction}', coll_dict)
-            message = self.message_up if direction == 'up' else self.message_down
+            msg_kwargs = self.inspector.distribute(f'message_{adjacency}', coll_dict)
+            message = self.get_msg_func(adjacency)
             out = message(**msg_kwargs)
 
-            aggr_kwargs = self.inspector.distribute(f'aggregate_{direction}', coll_dict)
-            aggregate = self.aggregate_up if direction == 'up' else self.aggregate_down
+            aggr_kwargs = self.inspector.distribute(f'aggregate_{adjacency}', coll_dict)
+            aggregate = self.get_agg_func(adjacency)
             return aggregate(out, **aggr_kwargs)
 
     def propagate(self, up_index: Optional[Adj],
                   down_index: Optional[Adj],
+                  face_index: Optional[Adj],
                   up_size: Size = None,
                   down_size: Size = None,
                   **kwargs):
@@ -278,9 +318,7 @@ class ChainMessagePassing(torch.nn.Module):
         # Face messaging and aggregation
         face_out = None
         if self.use_face_msg and 'face_attr' in kwargs and kwargs['face_attr'] is not None:
-            # TODO: Add parameter collection like for the other calls later.
-            # This collection should not be needed for now.
-            face_out = self.message_and_aggregate_faces(kwargs['face_attr'])
+            face_out = self.__message_and_aggregate__(face_index, 'face', down_size, **kwargs)
 
         coll_dict = {}
         up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
@@ -316,16 +354,17 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return down_x_j
 
-    def message_and_aggregate_faces(self, face_attr: Tensor) -> Tensor:
+    def message_face(self, face_x_j: Tensor):
+        r"""Constructs messages from node :math:`j` to node :math:`i`
+        in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
+        :obj:`edge_index`.
+        This function can take any argument as input which was initially
+        passed to :meth:`propagate`.
+        Furthermore, tensors passed to :meth:`propagate` can be mapped to the
+        respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
+        :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
         """
-        Args:
-            face_attr: A tensor of shape (num_simplices, num_faces, face_feature_dim)
-                containing the features of the faces of each simplex.
-        Returns:
-            face_msg: A tensor of shape (num_simplices, out_feature_dim) containing the aggregated
-                message from the faces to the simplex.
-        """
-        return face_attr.sum(dim=1)
+        return face_x_j
 
     def aggregate_up(self, inputs: Tensor, up_index: Tensor,
                      up_ptr: Optional[Tensor] = None,
@@ -367,6 +406,26 @@ class ChainMessagePassing(torch.nn.Module):
             return scatter(inputs, down_index, dim=self.node_dim, dim_size=down_dim_size,
                            reduce=self.aggr_down)
 
+    def aggregate_face(self, inputs: Tensor, face_index: Tensor,
+                       face_ptr: Optional[Tensor] = None,
+                       face_dim_size: Optional[int] = None) -> Tensor:
+        r"""Aggregates messages from neighbors as
+        :math:`\square_{j \in \mathcal{N}(i)}`.
+
+        Takes in the output of message computation as first argument and any
+        argument which was initially passed to :meth:`propagate`.
+
+        By default, this function will delegate its call to scatter functions
+        that support "add", "mean" and "max" operations as specified in
+        :meth:`__init__` by the :obj:`aggr` argument.
+        """
+        if face_ptr is not None:
+            down_ptr = expand_left(face_ptr, dim=self.node_dim, dims=inputs.dim())
+            return segment_csr(inputs, down_ptr, reduce=self.aggr_down)
+        else:
+            return scatter(inputs, face_index, dim=self.node_dim, dim_size=face_dim_size,
+                           reduce=self.aggr_down)
+
     def message_and_aggregate_up(self, up_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
@@ -378,6 +437,16 @@ class ChainMessagePassing(torch.nn.Module):
         raise NotImplementedError
 
     def message_and_aggregate_down(self, down_adj_t: SparseTensor) -> Tensor:
+        r"""Fuses computations of :func:`message` and :func:`aggregate` into a
+        single function.
+        If applicable, this saves both time and memory since messages do not
+        explicitly need to be materialized.
+        This function will only gets called in case it is implemented and
+        propagation takes place based on a :obj:`torch_sparse.SparseTensor`.
+        """
+        raise NotImplementedError
+
+    def message_and_aggregate_face(self, face_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not

@@ -39,7 +39,7 @@ def test_flow_util_dataset_loading():
         label_count = {0: 0, 1: 0, 2: 0}
 
         for chain in train + test:
-            # checks x values (flow direction) are either +1 or -1
+            # checks x values (flow adjacency) are either +1 or -1
             assert (torch.sum(chain.x == 1) + torch.sum(chain.x == -1)
                     == torch.count_nonzero(chain.x))
 
