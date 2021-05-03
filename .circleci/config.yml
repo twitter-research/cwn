@@ -6,10 +6,15 @@ orbs:
 jobs:
   build-and-test:
     docker:
-      - image: circleci/python:3.8
+      - image: continuumio/miniconda3
     executor: python/default
     steps:
       - checkout
+      - run:
+          name: setup conda
+          command: |
+            conda create -n scn python=3.8
+            source activate scn
       - python/load-cache
       - run:
           command: pip install torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
@@ -19,6 +24,9 @@ jobs:
           command: ./pyG_install.sh
           name: DepPyG
       - python/save-cache
+      - run:
+          command: ./graph-tool_install.sh
+          name: graph tool
       - run:
           command: python -m pytest -v ./
           name: Test
