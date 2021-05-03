@@ -25,7 +25,7 @@ jobs:
           name: DepPyG
       - python/save-cache
       - run:
-          command: ./graph-tool_install.sh
+          command: conda install -c conda-forge graph-tool==2.29
           name: graph tool
       - run:
           command: python -m pytest -v ./
