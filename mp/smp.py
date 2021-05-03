@@ -97,6 +97,7 @@ class ChainMessagePassing(torch.nn.Module):
         # Support for "fused" message passing.
         self.fuse_up = self.inspector.implements('message_and_aggregate_up')
         self.fuse_down = self.inspector.implements('message_and_aggregate_down')
+        self.fuse_faces = self.inspector.implements('message_and_aggregate_face')
 
     def __check_input_together__(self, index_up, index_down, size_up, size_down):
         # If we have both up and down adjacency, then check the sizes agree.
@@ -261,6 +262,16 @@ class ChainMessagePassing(torch.nn.Module):
         else:
             return None
 
+    def get_fuse_boolean(self, adjacency):
+        if adjacency == 'up':
+            return self.fuse_up
+        elif adjacency == 'down':
+            return self.fuse_down
+        elif adjacency == 'face':
+            return self.fuse_face
+        else:
+            return None
+
     def __message_and_aggregate__(self, index: Adj,
                                   adjacency: str,
                                   size: List[Optional[int]] = None,
@@ -268,7 +279,7 @@ class ChainMessagePassing(torch.nn.Module):
         assert adjacency in ['up', 'down', 'face']
 
         # Fused message and aggregation
-        fuse = self.fuse_up if adjacency == 'up' else self.fuse_down
+        fuse = self.get_fuse_boolean(adjacency)
         if isinstance(index, SparseTensor) and fuse:
             # Collect the objects to pass to the function params in __user_arg.
             coll_dict = self.__collect__(self.__fused_user_args__, index, size, adjacency, kwargs)
