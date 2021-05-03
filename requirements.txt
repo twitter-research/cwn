@@ -6,7 +6,7 @@
 # torch-geometric==1.6.3
 
 # Use command graph-tool_install script to install this
-graph-tool==2.29
+# graph-tool==2.29
 
 # Other packages
 pytest==6.2.1
