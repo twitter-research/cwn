@@ -101,7 +101,7 @@ class ChainMessagePassing(torch.nn.Module):
         # Support for "fused" message passing.
         self.fuse_up = self.inspector.implements('message_and_aggregate_up')
         self.fuse_down = self.inspector.implements('message_and_aggregate_down')
-        self.fuse_faces = self.inspector.implements('message_and_aggregate_face')
+        self.fuse_face = self.inspector.implements('message_and_aggregate_face')
 
     def __check_input_together__(self, index_up, index_down, size_up, size_down):
         # If we have both up and down adjacency, then check the sizes agree.
