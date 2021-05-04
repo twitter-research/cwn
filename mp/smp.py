@@ -232,7 +232,8 @@ class ChainMessagePassing(torch.nn.Module):
         out[f'{direction}_size'] = size
         out[f'{direction}_size_i'] = size[1] or size[0]
         out[f'{direction}_size_j'] = size[0] or size[1]
-        out[f'{direction}_dim_size'] = out[f'{direction}_size_i']
+        # Here we need to set face_dim_size based on face_size_j (the faces not the parent cell).
+        out[f'{direction}_dim_size'] = out[f'{direction}_size_j']
 
         return out
 
