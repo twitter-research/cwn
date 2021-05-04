@@ -17,7 +17,7 @@ def test_edge_propagate_in_cmp():
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
     up_msg, down_msg, face_msg = cmp.propagate(e.up_index, e.down_index, 
-                                               e.kwargs['face_index'], x=e.x,
+                                               e.face_index, x=e.x,
                                                up_attr=e.kwargs['up_attr'],
                                                down_attr=e.kwargs['down_attr'],
                                                face_attr=e.kwargs['face_attr'])
@@ -42,7 +42,8 @@ def test_propagate_at_vertex_level_in_cmp():
 
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, face_msg = cmp.propagate(v.up_index, v.down_index, x=v.x,
+    up_msg, down_msg, face_msg = cmp.propagate(v.up_index, v.down_index,
+                                               v.face_index, x=v.x,
                                                up_attr=v.kwargs['up_attr'],
                                                down_attr=v.kwargs['down_attr'],
                                                face_attr=v.kwargs['face_attr'])
@@ -67,7 +68,8 @@ def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one():
 
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, face_msg = cmp.propagate(t.up_index, t.down_index, x=t.x,
+    up_msg, down_msg, face_msg = cmp.propagate(t.up_index, t.down_index,
+                                               t.face_index, x=t.x,
                                                up_attr=t.kwargs['up_attr'],
                                                down_attr=t.kwargs['down_attr'],
                                                face_attr=t.kwargs['face_attr'])
@@ -99,7 +101,7 @@ def test_propagate_at_triangle_level_in_cmp():
 
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, _ = cmp.propagate(up_index, down_index, x=x, down_attr=down_attr)
+    up_msg, down_msg, _ = cmp.propagate(up_index, down_index, None, x=x, down_attr=down_attr)
     expected_updated_x = torch.tensor([[17], [32]], dtype=torch.float)
 
     assert torch.equal(up_msg + down_msg, expected_updated_x)
@@ -122,6 +124,7 @@ def test_smp_messaging_with_isolated_nodes():
         assert not torch.equal(out[i], torch.zeros_like(out[i]))
 
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, _ = cmp.propagate(up_index=params.up_index, down_index=None, x=params.x, up_attr=None)
+    up_msg, down_msg, _ = cmp.propagate(up_index=params.up_index, down_index=None, face_index=None, 
+                                        x=params.x, up_attr=None)
     assert torch.equal(out, up_msg)
     assert torch.equal(down_msg, torch.zeros_like(down_msg))

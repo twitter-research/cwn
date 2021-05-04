@@ -142,7 +142,9 @@ class Chain(object):
         elif key == 'shared_cofaces':
             inc = self.num_simplices_up
         elif key == 'face_index':
-            inc = [[self.num_simplices], [self.num_simplices_down]]
+            top_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
+            bottom_inc = self.num_simplices if self.num_simplices is not None else 0
+            inc = [[top_inc], [bottom_inc]]
         else:
             inc = 0
         if inc is None:

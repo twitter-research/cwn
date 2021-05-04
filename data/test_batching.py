@@ -880,7 +880,17 @@ def test_batching_returns_the_same_face_attr_on_proteins():
             assert len(xs[i]) == len(batched_xs[i])
             assert torch.equal(xs[i], batched_xs[i])
 
-
+# ---- (!) These two tests here are to be rewritten
+# The thing is that now face_attrs are simply the features at the level
+# below. Say that a complex have simplices at dim == k-1 but not k.
+# When we collect face_attrs on unbatched complexes we would skip the 
+# k-chain of such complex according to the tests below.
+# That was ok with the previous implementation of the face_attrs, but now it's
+# not: face_attrs of a batched k-chain should include all feats at the lv k-1,
+# also including those for complexes with no k-simplices. This is because the 
+# index-select operation happens later. The second of these tests fail due to
+# this discrepancy.
+            
 def test_batching_returns_the_same_face_attr():
     data_list = get_testing_complex_list()
 
@@ -921,9 +931,11 @@ def test_batching_returns_the_same_face_attr():
             if xs[i] is None or batched_xs[i] is None:
                 assert xs[i] == batched_xs[i]
             else:
+                # import pdb; pdb.set_trace()
                 assert len(xs[i]) == len(batched_xs[i])
                 assert torch.equal(xs[i], batched_xs[i])
 
+# ---------------------------------------------------------------------
 
 def test_data_loader_shuffling():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')

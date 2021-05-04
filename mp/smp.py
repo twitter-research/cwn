@@ -314,7 +314,7 @@ class ChainMessagePassing(torch.nn.Module):
 
     def propagate(self, up_index: Optional[Adj],
                   down_index: Optional[Adj],
-                  face_index=None,#: Optional[Adj],  # The None default does not work here!
+                  face_index: Optional[Adj],  # The None default does not work here!
                   up_size: Size = None,
                   down_size: Size = None,
                   face_size: Size = None,
@@ -502,3 +502,11 @@ class ChainMessagePassingParams:
         self.up_index = up_index
         self.down_index = down_index
         self.kwargs = kwargs
+        if 'face_index' in self.kwargs:
+            self.face_index = self.kwargs['face_index']
+        else:
+            self.face_index = None
+        if 'face_attr' in self.kwargs:
+            self.face_attr = self.kwargs['face_attr']
+        else:
+            self.face_attr = None
