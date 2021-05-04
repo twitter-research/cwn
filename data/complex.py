@@ -24,39 +24,29 @@ class Chain(object):
         Class representing a chain of k-dim simplices.
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
-                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, cell_size=None, 
-                 face_index: Adj = None, **kwargs):
+                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None, 
+                 face_index: Adj = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
         """
         Args:
             Constructs a `dim`-chain.
             dim: dim of the simplices in the chain
             x: feature matrix, shape [num_simplices, num_features]; may not be available
             upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
-            lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
                 may not be available, e.g. when `dim` is the top level dim of a complex
+            lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
+                may not be available, e.g. when `dim` is 0
             shared_faces: a tensor of shape (num_lower_adjacencies,) specifying the indices of
                 the shared face for each lower adjacency
             shared_cofaces: a tensor of shape (num_upper_adjacencies,) specifying the indices of
                 the shared coface for each upper adjacency
-            faces: a tensor of shape (simplices, dim+1) specifying the indices of the dim-1
-                dimensional faces of each simplex
+            face_index: face adjacency, matrix, shape [2, num_faces_connections];
+                may not be available, e.g. when `dim` is 0
             y: labels over simplices in the chain, shape [num_simplices,]
         """
-        if cell_size is not None:
-            assert dim == 2
-            assert cell_size >= 3
         if dim == 0:
             assert lower_index is None
             assert shared_faces is None
-            assert faces is None
-        if faces is not None:
-            if cell_size is None:
-                assert faces.size(1) == dim+1
-            else:
-                assert faces.size(1) == cell_size
-            if x is not None:
-                assert x.size(0) == faces.size(0)
+            assert face_index is None
 
         # Note, everything that is not of form __smth__ is made None during batching
         # So dim must be stored like this.
@@ -65,7 +55,6 @@ class Chain(object):
         self.__x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
-        self.faces = faces
         self.face_index = face_index
         self.y = y
         self.shared_faces = shared_faces
@@ -76,7 +65,6 @@ class Chain(object):
         self.__hodge_laplacian = None
         # TODO: Figure out what to do with mapping.
         self.__mapping = mapping
-        self.cell_size = cell_size
         for key, item in kwargs.items():
             if key == 'num_simplices':
                 self.__num_simplices__ = item
@@ -134,7 +122,8 @@ class Chain(object):
             Returns the dimension for which :obj:`value` of attribute
             :obj:`key` will get concatenated when creating batches.
         """
-        if key in ['upper_index', 'lower_index', 'shared_faces', 'shared_cofaces']:
+        if key in ['upper_index', 'lower_index', 'shared_faces', 
+                   'shared_cofaces', 'face_index']:
             return -1
         # by default, concatenate sparse matrices diagonally.
         elif isinstance(value, SparseTensor):
@@ -148,12 +137,12 @@ class Chain(object):
         """
         if key in ['upper_index', 'lower_index']:
             inc = self.num_simplices
-        elif key in ['shared_faces', 'faces']:
+        elif key in ['shared_faces']:
             inc = self.num_simplices_down
         elif key == 'shared_cofaces':
             inc = self.num_simplices_up
         elif key == 'face_index':
-            inc = (self.num_simplices, self.num_simplices_down)
+            inc = [[self.num_simplices], [self.num_simplices_down]]
         else:
             inc = 0
         if inc is None:
@@ -194,14 +183,15 @@ class Chain(object):
             return self.__num_simplices__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
-        if self.faces is not None:
-            return self.faces.size(0)
         if self.upper_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
             return int(self.upper_index.max()) + 1
         if self.lower_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'lower_index'))
             return int(self.lower_index.max()) + 1
+        if self.face_index is not None:
+            logging.warning(__num_warn_msg__.format('simplices', 'face_index'))
+            return int(self.face_index[0,:].max()) + 1
         return None
 
     @num_simplices.setter
@@ -237,16 +227,20 @@ class Chain(object):
             return self.__num_simplices_down__
         if self.lower_index is None:
             return 0
-        if self.faces is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'faces'))
-            return int(self.faces.max()) + 1
         if self.shared_faces is not None:
             logging.warning(__num_warn_msg__.format('faces', 'shared_faces'))
             return int(self.shared_faces.max()) + 1
+        if self.face_index is not None:
+            logging.warning(__num_warn_msg__.format('faces', 'face_index'))
+            return int(self.face_index[1,:].max()) + 1
+        #
+        #    |||    This is not correct anymore once we introduce cells.
+        #    vvv    ok to remove?
+        #
         # TODO: better to swap these two?
-        if self.num_simplices is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'num_simplices'))
-            return (self.dim + 1) * self.num_simplices
+        # if self.num_simplices is not None:
+        #     logging.warning(__num_warn_msg__.format('faces', 'num_simplices'))
+        #     return (self.dim + 1) * self.num_simplices
         return None
 
     @num_simplices_down.setter
@@ -389,25 +383,7 @@ class ChainBatch(Chain):
             Additionally, creates assignment batch vectors for each key in
             :obj:`follow_batch`.
         """
-        key_list = list()
-        cellular = False
-        cell_size = None
-        for d, data in enumerate(data_list):
-            key_set = set(data.keys)
-            key_list.append(key_set)
-            # Here we check whether chains are cellular chains
-            # and, if yes, if they all have the same max size
-            if d == 0:
-                if 'cell_size' in key_set:
-                    cellular = True
-                    cell_size = data.cell_size
-            else:
-                assert ('cell_size' in key_set) == cellular
-                if cellular:
-                    assert cell_size == data.cell_size
-        
-        keys = list(set.union(*key_list))
-
+        keys = list(set.union(*[set(data.keys) for data in data_list]))
         assert 'batch' not in keys and 'ptr' not in keys
 
         batch = cls(data_list[0].dim)
@@ -527,7 +503,6 @@ class ChainBatch(Chain):
             items = batch[key]
             item = items[0]
             if isinstance(item, Tensor):
-                print(key, len(items), '\n-----')
                 batch[key] = torch.cat(items, ref_data.__cat_dim__(key, item))
             elif isinstance(item, SparseTensor):
                 batch[key] = torch.cat(items, ref_data.__cat_dim__(key, item))
@@ -580,12 +555,6 @@ class Complex(object):
             dimension = len(chains) - 1
         if len(chains) < dimension + 1:
             raise ValueError('Not enough chains passed (expected {}, received {})'.format(dimension + 1, len(chains)))
-        if len(chains) >= 3 and 'cell_size' in chains[2]:
-            assert len(chains) == 3 and dimension == 2
-            self.cell_size = chains[2].cell_size
-        else:
-            self.cell_size = None
-            
         
         # TODO: This needs some data checking to check that these chains are consistent together
         # ^^^ see `_consolidate`
@@ -593,7 +562,7 @@ class Complex(object):
         self.chains = {i: chains[i] for i in range(dimension + 1)}
         self.nodes = chains[0]
         self.edges = chains[1] if dimension >= 1 else None
-        self.triangles = chains[2] if (dimension >= 2 and 'cell_size' not in chains[2]) else None
+        self.triangles = chains[2] if dimension >= 2 else None
 
         self.y = y  # complex-wise label for complex-level tasks
         
@@ -613,15 +582,6 @@ class Complex(object):
                 else:
                     chain.num_simplices_up = num_simplices_up
             if dim > 0:
-                if chain.faces is not None:
-                    if 'cell_size' not in chain:
-                        assert list(chain.faces.size()) == [chain.num_simplices, dim+1]
-                    else:
-                        assert dim == 2
-                        assert chain.faces.size(0) == chain.num_simplices
-                        assert chain.faces.size(1) == chain.cell_size
-                        assert chain.faces.size(1) == self.cell_size
-
                 lower_chain = self.chains[dim - 1]
                 num_simplices_down = lower_chain.num_simplices
                 assert num_simplices_down is not None
@@ -645,8 +605,7 @@ class Complex(object):
     def get_chain_params(self, dim, max_dim=2,
                          include_top_features=True,
                          include_down_features=True,
-                         include_face_features=True,
-                         include_face_index_and_features=False) -> ChainMessagePassingParams:
+                         include_face_features=True) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim
             neural message passing at the specified `dim`.
@@ -679,33 +638,17 @@ class Complex(object):
                 lower_index = simplices.lower_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
-                                                        self.chains[dim].shared_faces)
-
+                                                        self.chains[dim].shared_faces)            
             # Add face features
-            face_features = None
-            if include_face_features and simplices.faces is not None:
-                faces = simplices.faces
-                if dim > 0 and self.chains[dim - 1].x is not None:
-                    # Flatten the face features of shape [num_simplices, dim+1, feature_dim]
-                    face_features = torch.index_select(self.chains[dim - 1].x, 0, faces.view(-1))
-                    face_features = face_features.view(simplices.num_simplices, dim+1, -1)
-            
-            # Add face index
-            # NB: this should allow to seamlessly work on cell complexes; in fact in could
-            # replace completely the "face features"
-            # TODO: is it needed to also include face_index[:,0] in the params? We have already used
-            # that here, while face_index[:,0] is needed to scatter-aggregate the boundary feats
-            face_index = None
-            boundary_features = None  # TODO: not a great name but we already have the "face features"
-            if include_face_index_and_features and simplices.face_index is not None:
+            face_index, face_features = None, None
+            if include_face_features and simplices.face_index is not None:
                 face_index = simplices.face_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
-                    boundary_features = torch.index_select(self.chains[dim - 1].x, 0, face_index[1,:])
+                    face_features = self.chains[dim - 1].x
 
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
                                                up_attr=upper_features, down_attr=lower_features,
-                                               face_attr=face_features, face_index=face_index,
-                                               boundary_features=boundary_features)
+                                               face_attr=face_features, face_index=face_index)
         else:
             raise NotImplementedError(
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
@@ -714,8 +657,7 @@ class Complex(object):
     def get_all_chain_params(self, max_dim=2,
                              include_top_features=True,
                              include_down_features=True,
-                             include_face_features=True,
-                             include_face_index_and_features=False):
+                             include_face_features=True):
         """Gets the chain parameters for message passing at all layers.
 
         Args:
@@ -730,8 +672,7 @@ class Complex(object):
             all_params.append(self.get_chain_params(dim, max_dim=max_dim,
                                                     include_top_features=include_top_features,
                                                     include_down_features=include_down_features,
-                                                    include_face_features=include_face_features,
-                                                    include_face_index_and_features=include_face_index_and_features))
+                                                    include_face_features=include_face_features))
         return all_params
 
     def get_labels(self, dim=None):
@@ -799,24 +740,7 @@ class ComplexBatch(Complex):
     @classmethod
     def from_complex_list(cls, data_list: List[Complex], follow_batch=[], max_dim: int = 2):
         
-        dims = list()
-        cellular = False
-        cell_size = None
-        for d, data in enumerate(data_list):
-            dims.append(data.dimension)
-            # Here we check whether complexes are cellular ones
-            # and, if yes, if they all have the same max size
-            if d == 0:
-                if 'cell_size' in data:
-                    assert dims[-1] == 2
-                    cellular = True
-                    cell_size = data.cell_size
-            else:
-                assert ('cell_size' in data) == cellular
-                if cellular:
-                    assert cell_size == data.cell_size
-        
-        dimension = max(dims)
+        dimension = max([data.dimension for data in data_list])
         dimension = min(dimension, max_dim)
         chains = [list() for _ in range(dimension + 1)]
         label_list = list()
@@ -825,10 +749,7 @@ class ComplexBatch(Complex):
             for dim in range(dimension+1):
                 if dim not in comp.chains:
                     # If a dim-chain is not present for the current complex, we instantiate one.
-                    if dim == 2 and cellular:
-                        chains[dim].append(Chain(dim=dim, cell_size=cell_size))
-                    else:
-                        chains[dim].append(Chain(dim=dim))
+                    chains[dim].append(Chain(dim=dim))
                     if dim-1 in comp.chains:
                         # If the chain below exists in the complex, we need to add the number of
                         # faces to the newly initialised complex, otherwise batching will not work.

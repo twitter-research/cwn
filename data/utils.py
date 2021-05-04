@@ -448,7 +448,7 @@ def extract_labels(y, size):
 
 def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                          all_shared_faces, all_shared_cofaces, simplex_tables, faces_tables,
-                         complex_dim, y=None, cell_size=None, inject_face_index=False):
+                         complex_dim, y=None):
     """Builds a Chain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
@@ -467,54 +467,32 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                     if len(all_shared_faces[dim]) > 0 else None)
     if len(simplex_tables[dim]) > 0:
         simplex_lengths = list(map(lambda x: len(x), simplex_tables[dim]))
-        if cell_size is None:
-            assert max(simplex_lengths) == min(simplex_lengths)
+        if max(simplex_lengths) == min(simplex_lengths):
             simplices = torch.tensor(simplex_tables[dim], dtype=torch.long)
         else:
             # In the case of top-level objects of different lengths, then
-            # we must be working with rings and cell complexes; we pad with
+            # we must be working with (rings and) cell complexes; we pad with
             # -1 indices to accommodate this scenario.
-            assert dim == complex_dim
-            assert max(simplex_lengths) <= cell_size
             simplices = []
             for s, simplex in enumerate(simplex_tables[dim]):
-                if simplex_lengths[s] < cell_size:
-                    simplices.append(simplex+[-1]*(cell_size-simplex_lengths[s]))
+                if simplex_lengths[s] < max(simplex_lengths):
+                    simplices.append(simplex+[-1]*(max(simplex_lengths)-simplex_lengths[s]))
                 else:
                     simplices.append(simplex)
             simplices = torch.tensor(simplices, dtype=torch.long)
     else:
         simplices = None
-    # TODO: Do we need simplicies / mapping anymore in Chain?
+    # TODO: Do we need simplices / mapping anymore in Chain?
     if len(faces_tables[dim]) > 0:
-        faces_lengths = list(map(lambda x: len(x), faces_tables[dim]))
-        if cell_size is None:
-            assert max(faces_lengths) == min(faces_lengths)
-            faces = torch.tensor(faces_tables[dim], dtype=torch.long)
-        else:
-            # In the case of top-level objects of different lengths, then
-            # we must be working with rings and cell complexes; we pad with
-            # -1 indices to accommodate this scenario for now. However,
-            # this will require proper handling when performing index_select
-            # operations and face message passing. (!)
-            assert dim == complex_dim
-            assert max(faces_lengths) <= cell_size
-            faces = []
-            for f, face in enumerate(faces_tables[dim]):
-                if faces_lengths[f] < cell_size:
-                    faces.append(face+[-1]*(cell_size-faces_lengths[f]))
-                else:
-                    faces.append(face)
-            faces = torch.tensor(faces, dtype=torch.long)
-    else:
-        faces = None
-        
-    if inject_face_index and faces is not None:
-        valid_faces = torch.where(faces>=0)
-        face_index = torch.stack([valid_faces[0], faces[valid_faces]], 0)
+        face_index = [list(), list()]
+        for s, simplex in enumerate(faces_tables[dim]):
+            for face in simplex:
+                face_index[0].append(s)
+                face_index[1].append(face)
+        face_index = torch.LongTensor(face_index)
     else:
         face_index = None
-
+    
     if num_simplices_down is None:
         assert shared_faces is None
     if num_simplices_up == 0:
@@ -531,8 +509,7 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
                  lower_index=down_index, shared_cofaces=shared_cofaces,
                  shared_faces=shared_faces, mapping=simplices, y=y,
                  num_simplices_down=num_simplices_down,
-                 num_simplices_up=num_simplices_up, faces=faces,
-                 cell_size=cell_size, face_index=face_index)
+                 num_simplices_up=num_simplices_up, face_index=face_index)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -773,10 +750,8 @@ def compute_ring_2complex_with_graphtool_and_gudhi(x: Tensor, edge_index: Adj, s
     chains = []
     for i in range(3):
         y = v_y if i == 0 else None
-        cell_size = max_k if i == 2 else None
         chain = generate_chain_gudhi(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                                     simplex_tables, faces_tables, complex_dim=2, y=y, cell_size=cell_size,
-                                     inject_face_index=True)
+                                     simplex_tables, faces_tables, complex_dim=2, y=y)
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=2)

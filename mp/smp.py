@@ -310,7 +310,7 @@ class ChainMessagePassing(torch.nn.Module):
 
     def propagate(self, up_index: Optional[Adj],
                   down_index: Optional[Adj],
-                  face_index: Optional[Adj],
+                  face_index=None,#: Optional[Adj],  # The None default does not work here!
                   up_size: Size = None,
                   down_size: Size = None,
                   face_size: Size = None,

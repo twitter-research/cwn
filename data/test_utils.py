@@ -203,6 +203,25 @@ def test_clique_complex(house_edge_index, house_node_upper_adjacency, house_edge
 
 
 def test_gudhi_clique_complex(house_edge_index):
+    '''
+        4
+       / \
+      3---2
+      |   |
+      0---1 
+    
+        .
+       5 4
+      . 3 .
+      1   2
+      . 0 . 
+     
+        .
+       /0\
+      .---.
+      |   |
+      .---. 
+    '''
     house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
@@ -212,13 +231,10 @@ def test_gudhi_clique_complex(house_edge_index):
     # Check the number of simplices
     assert house_complex.nodes.num_simplices_down is None
     assert house_complex.nodes.num_simplices_up == 6
-    assert house_complex.nodes.faces is None
     assert house_complex.edges.num_simplices_down == 5
     assert house_complex.edges.num_simplices_up == 1
-    assert list(house_complex.edges.faces.size()) == [6, 2]
     assert house_complex.triangles.num_simplices_down == 6
     assert house_complex.triangles.num_simplices_up == 0
-    assert list(house_complex.triangles.faces.size()) == [1, 3]
 
     # Check the returned parameters
     v_params = house_complex.get_chain_params(dim=0)
@@ -255,20 +271,20 @@ def test_gudhi_clique_complex(house_edge_index):
                                         dtype=torch.float)
     assert torch.equal(e_params.kwargs['down_attr'], expected_e_down_attr)
 
-    expected_e_face_attr = torch.tensor([[[0], [1]], [[0], [3]], [[1], [2]], [[2], [3]],
-                                         [[2], [4]], [[3], [4]]], dtype=torch.float)
-    assert list(e_params.kwargs['face_attr'].size()) == [6, 2, 1]
-    assert torch.equal(e_params.kwargs['face_attr'], expected_e_face_attr)
+    assert torch.equal(e_params.kwargs['face_attr'], house.x)
+    assert list(e_params.kwargs['face_index'].size()) == [2, 2*house_complex.edges.num_simplices]
+    assert torch.equal(e_params.kwargs['face_index'][0], torch.LongTensor([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]))
+    assert torch.equal(e_params.kwargs['face_index'][1], torch.LongTensor([0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4]))
 
     t_params = house_complex.get_chain_params(dim=2)
     expected_t_x = torch.tensor([[9]], dtype=torch.float)
     assert torch.equal(t_params.x, expected_t_x)
     assert t_params.down_index is None
     assert t_params.up_index is None
-
-    expected_t_face_attr = torch.tensor([[[5], [6], [7]]], dtype=torch.float)
-    assert list(t_params.kwargs['face_attr'].size()) == [1, 3, 1]
-    assert torch.equal(t_params.kwargs['face_attr'], expected_t_face_attr)
+    assert torch.equal(t_params.kwargs['face_attr'], expected_e_x)
+    assert list(t_params.kwargs['face_index'].size()) == [2, 3*house_complex.triangles.num_simplices]
+    assert torch.equal(t_params.kwargs['face_index'][0], torch.LongTensor([0, 0, 0])) 
+    assert torch.equal(t_params.kwargs['face_index'][1], torch.LongTensor([3, 4, 5])) 
 
     assert torch.equal(house_complex.y, house.y)
 
@@ -288,9 +304,9 @@ def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
     for i in range(len(complexes)):
         # Do some basic checks for each complex.
         assert complexes[i].dimension == 2
-        assert complexes[i].nodes.faces is None
-        assert list(complexes[i].edges.faces.size()) == [6, 2]
-        assert list(complexes[i].triangles.faces.size()) == [1, 3]
+        assert complexes[i].nodes.face_index is None
+        assert list(complexes[i].edges.face_index.size()) == [2, 2*6]
+        assert list(complexes[i].triangles.face_index.size()) == [2, 3*1]
         assert complexes[i].edges.lower_index.size(1) == 18
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].y, house1.y)
@@ -312,9 +328,9 @@ def test_gudhi_clique_complex_dataset_conversion_with_down_adj_excluded(house_ed
     for i in range(len(complexes)):
         # Do some basic checks for each complex.
         assert complexes[i].dimension == 2
-        assert complexes[i].nodes.faces is None
-        assert list(complexes[i].edges.faces.size()) == [6, 2]
-        assert list(complexes[i].triangles.faces.size()) == [1, 3]
+        assert complexes[i].nodes.face_index is None
+        assert list(complexes[i].edges.face_index.size()) == [2, 2*6]
+        assert list(complexes[i].triangles.face_index.size()) == [2, 3*1]
         assert complexes[i].edges.lower_index is None
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].y, house1.y)
@@ -336,9 +352,9 @@ def test_gudhi_integration_with_batching_without_adj(house_edge_index):
     batch = ComplexBatch.from_complex_list(complexes)
     assert batch.dimension == 2
     assert batch.edges.lower_index is None
-    assert batch.nodes.faces is None
-    assert list(batch.edges.faces.size()) == [6*3, 2]
-    assert list(batch.triangles.faces.size()) == [1*3, 3]
+    assert batch.nodes.face_index is None
+    assert list(batch.edges.face_index.size()) == [2, 3*2*6]
+    assert list(batch.triangles.face_index.size()) == [2, 1*3*3]
 
 
 def test_gudhi_integration_with_batching_with_adj(house_edge_index):
@@ -357,8 +373,8 @@ def test_gudhi_integration_with_batching_with_adj(house_edge_index):
     batch = ComplexBatch.from_complex_list(complexes)
     assert batch.dimension == 2
     assert batch.edges.lower_index.size(1) == 18*3
-    assert list(batch.edges.faces.size()) == [6*3, 2]
-    assert list(batch.triangles.faces.size()) == [1*3, 3]
+    assert list(batch.edges.face_index.size()) == [2, 3*2*6]
+    assert list(batch.triangles.face_index.size()) == [2, 1*3*3]
 
 
 def test_graphtool_and_gudhi_cell_complex(house_edge_index):
@@ -371,14 +387,14 @@ def test_graphtool_and_gudhi_cell_complex(house_edge_index):
     # Check the number of simplices
     assert house_complex.nodes.num_simplices_down is None
     assert house_complex.nodes.num_simplices_up == 6
-    assert house_complex.nodes.faces is None
+    assert house_complex.nodes.face_index is None
     assert house_complex.edges.num_simplices_down == 5
     assert house_complex.edges.num_simplices_up == 2
-    assert list(house_complex.edges.faces.size()) == [6, 2]
+    assert list(house_complex.edges.face_index.size()) == [2, 2*6]
     assert house_complex.chains[2].num_simplices == 2
     assert house_complex.chains[2].num_simplices_down == 6
     assert house_complex.chains[2].num_simplices_up == 0
-    assert list(house_complex.chains[2].faces.size()) == [2, 4]
+    assert list(house_complex.chains[2].face_index.size()) == [2, 3+4]
 
     # Check the returned parameters
     v_params = house_complex.get_chain_params(dim=0)
@@ -415,12 +431,12 @@ def test_graphtool_and_gudhi_cell_complex(house_edge_index):
                                         dtype=torch.float)
     assert torch.equal(e_params.kwargs['down_attr'], expected_e_down_attr)
 
-    expected_e_face_attr = torch.tensor([[[0], [1]], [[0], [3]], [[1], [2]], [[2], [3]],
-                                         [[2], [4]], [[3], [4]]], dtype=torch.float)
-    assert list(e_params.kwargs['face_attr'].size()) == [6, 2, 1]
-    assert torch.equal(e_params.kwargs['face_attr'], expected_e_face_attr)
+    assert torch.equal(e_params.kwargs['face_attr'], house.x)
+    assert list(e_params.kwargs['face_index'].size()) == [2, 2*house_complex.edges.num_simplices]
+    assert torch.equal(e_params.kwargs['face_index'][0], torch.LongTensor([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]))
+    assert torch.equal(e_params.kwargs['face_index'][1], torch.LongTensor([0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4]))
 
-    t_params = house_complex.get_chain_params(dim=2, include_face_features=False, include_face_index_and_features=True)
+    t_params = house_complex.get_chain_params(dim=2)
     expected_t_x = torch.tensor([[6], [9]], dtype=torch.float)
     assert torch.equal(t_params.x, expected_t_x)
     expected_t_down_index = torch.tensor([[0, 1],
@@ -428,9 +444,7 @@ def test_graphtool_and_gudhi_cell_complex(house_edge_index):
                                          dtype=torch.long)
     assert torch.equal(t_params.down_index, expected_t_down_index)
     assert t_params.up_index is None
-    assert t_params.kwargs['face_attr'] is None
-    expected_t_boundary_feats = torch.tensor([[1], [3], [3], [5], [5], [6], [7]], dtype=torch.float)
-    assert torch.equal(t_params.kwargs['boundary_features'], expected_t_boundary_feats)
+    assert torch.equal(t_params.kwargs['face_attr'], expected_e_x)
     expected_t_face_index = torch.tensor([[0, 0, 0, 0, 1, 1, 1],
                                           [0, 1, 2, 3, 3, 4, 5]], dtype=torch.long)
     assert torch.equal(t_params.kwargs['face_index'], expected_t_face_index)
