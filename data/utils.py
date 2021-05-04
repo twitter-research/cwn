@@ -487,8 +487,8 @@ def generate_chain_gudhi(dim, x, all_upper_index, all_lower_index,
         face_index = [list(), list()]
         for s, simplex in enumerate(faces_tables[dim]):
             for face in simplex:
-                face_index[0].append(s)
-                face_index[1].append(face)
+                face_index[1].append(s)
+                face_index[0].append(face)
         face_index = torch.LongTensor(face_index)
     else:
         face_index = None

@@ -233,14 +233,6 @@ class Chain(object):
         if self.face_index is not None:
             logging.warning(__num_warn_msg__.format('faces', 'face_index'))
             return int(self.face_index[1,:].max()) + 1
-        #
-        #    |||    This is not correct anymore once we introduce cells.
-        #    vvv    ok to remove?
-        #
-        # TODO: better to swap these two?
-        # if self.num_simplices is not None:
-        #     logging.warning(__num_warn_msg__.format('faces', 'num_simplices'))
-        #     return (self.dim + 1) * self.num_simplices
         return None
 
     @num_simplices_down.setter

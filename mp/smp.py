@@ -303,7 +303,8 @@ class ChainMessagePassing(torch.nn.Module):
             msg_kwargs = self.inspector.distribute(f'message_{adjacency}', coll_dict)
             message = self.get_msg_func(adjacency)
             out = message(**msg_kwargs)
-
+            
+            import pdb; pdb.set_trace()
             aggr_kwargs = self.inspector.distribute(f'aggregate_{adjacency}', coll_dict)
             aggregate = self.get_agg_func(adjacency)
             return aggregate(out, **aggr_kwargs)
@@ -436,6 +437,7 @@ class ChainMessagePassing(torch.nn.Module):
         that support "add", "mean" and "max" operations as specified in
         :meth:`__init__` by the :obj:`aggr` argument.
         """
+        import pdb; pdb.set_trace()
         if face_ptr is not None:
             down_ptr = expand_left(face_ptr, dim=self.node_dim, dims=inputs.dim())
             return segment_csr(inputs, down_ptr, reduce=self.aggr_face)

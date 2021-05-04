@@ -12,10 +12,12 @@ def test_edge_propagate_in_cmp():
 
     house_complex = get_house_complex()
     e = house_complex.get_chain_params(dim=1)
+    assert e.kwargs['face_index'] is not None, e.kwargs['face_index']
 
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, face_msg = cmp.propagate(e.up_index, e.down_index, x=e.x,
+    up_msg, down_msg, face_msg = cmp.propagate(e.up_index, e.down_index, 
+                                               e.kwargs['face_index'], x=e.x,
                                                up_attr=e.kwargs['up_attr'],
                                                down_attr=e.kwargs['down_attr'],
                                                face_attr=e.kwargs['face_attr'])
