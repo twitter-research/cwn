@@ -181,15 +181,19 @@ class ChainMessagePassing(torch.nn.Module):
                 # Extract any part up to _j or _i. So for x_j extract x
                 if direction == 'up' and arg.startswith('up_'):
                     data = kwargs.get(arg[3:-2], Parameter.empty)
+                    size_data = data
                 elif direction == 'down' and arg.startswith('down_'):
                     data = kwargs.get(arg[5:-2], Parameter.empty)
+                    size_data = data
                 elif direction == 'face' and arg.startswith('face_'):
                     if dim == 0:
-                        # We need to use the face attribute matrix (i.e. face_attr)
+                        # We need to use the face attribute matrix (i.e. face_attr) for the features
+                        # And we need to use the x matrix to extract the number of parent cells
                         data = kwargs.get('face_attr', Parameter.empty)
+                        size_data = kwargs.get(arg[5:-2], Parameter.empty)
                     else:
-                        # We need to use the matrix of features at the current dimension (i.e. x).
                         data = kwargs.get(arg[5:-2], Parameter.empty)
+                        size_data = data
                 else:
                     continue
 
@@ -202,7 +206,7 @@ class ChainMessagePassing(torch.nn.Module):
                 # This is the usual case when we get a feature matrix of shape [N, in_channels]
                 if isinstance(data, Tensor):
                     # Same size checks as above.
-                    self.__set_size__(size, dim, data)
+                    self.__set_size__(size, dim, size_data)
                     # Select the features of the nodes indexed by i or j from the data matrix
                     data = self.__lift__(data, index, j if arg[-2:] == '_j' else i)
 
@@ -232,9 +236,7 @@ class ChainMessagePassing(torch.nn.Module):
         out[f'{direction}_size'] = size
         out[f'{direction}_size_i'] = size[1] or size[0]
         out[f'{direction}_size_j'] = size[0] or size[1]
-        # Here we need to set face_dim_size based on face_size_j (the faces not the parent cell).
-        out[f'{direction}_dim_size'] = out[f'{direction}_size_j']
-
+        out[f'{direction}_dim_size'] = out[f'{direction}_size_i']
         return out
 
     def get_msg_and_agg_func(self, adjacency):
@@ -305,7 +307,7 @@ class ChainMessagePassing(torch.nn.Module):
             message = self.get_msg_func(adjacency)
             out = message(**msg_kwargs)
             
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             aggr_kwargs = self.inspector.distribute(f'aggregate_{adjacency}', coll_dict)
             aggregate = self.get_agg_func(adjacency)
             return aggregate(out, **aggr_kwargs)
@@ -438,7 +440,7 @@ class ChainMessagePassing(torch.nn.Module):
         that support "add", "mean" and "max" operations as specified in
         :meth:`__init__` by the :obj:`aggr` argument.
         """
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if face_ptr is not None:
             down_ptr = expand_left(face_ptr, dim=self.node_dim, dims=inputs.dim())
             return segment_csr(inputs, down_ptr, reduce=self.aggr_face)
