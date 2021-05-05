@@ -142,9 +142,9 @@ class Chain(object):
         elif key == 'shared_cofaces':
             inc = self.num_simplices_up
         elif key == 'face_index':
-            top_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
-            bottom_inc = self.num_simplices if self.num_simplices is not None else 0
-            inc = [[top_inc], [bottom_inc]]
+            face_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
+            simplex_inc = self.num_simplices if self.num_simplices is not None else 0
+            inc = [[face_inc], [simplex_inc]]
         else:
             inc = 0
         if inc is None:
@@ -193,7 +193,7 @@ class Chain(object):
             return int(self.lower_index.max()) + 1
         if self.face_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'face_index'))
-            return int(self.face_index[0,:].max()) + 1
+            return int(self.face_index[1,:].max()) + 1
         return None
 
     @num_simplices.setter
@@ -234,7 +234,7 @@ class Chain(object):
             return int(self.shared_faces.max()) + 1
         if self.face_index is not None:
             logging.warning(__num_warn_msg__.format('faces', 'face_index'))
-            return int(self.face_index[1,:].max()) + 1
+            return int(self.face_index[0,:].max()) + 1
         return None
 
     @num_simplices_down.setter
