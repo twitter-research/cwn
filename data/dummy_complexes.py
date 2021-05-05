@@ -418,6 +418,11 @@ def get_molecular_complex():
          [0, 0, 0, 0, 1, 1, 1, 1, 1]]
     )
     c_x = torch.tensor([[1], [2]], dtype=torch.float)
+    c_down_index = torch.tensor([[0, 1],
+                                 [1, 0]], dtype=torch.long)
+    c_shared_faces = torch.tensor([1, 1],  dtype=torch.long)
+
     yc = torch.tensor([2, 2], dtype=torch.long)
-    c_chain = Chain(dim=2, x=c_x, y=yc, face_index=c_face_index)
+    c_chain = Chain(dim=2, x=c_x, y=yc, face_index=c_face_index, lower_index=c_down_index,
+        shared_faces=c_shared_faces)
     return Complex(v_chain, e_chain, c_chain)
