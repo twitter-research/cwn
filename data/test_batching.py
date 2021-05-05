@@ -835,9 +835,9 @@ def test_batching_returns_the_same_down_attr():
             else:
                 assert len(xs[i]) == len(batched_xs[i])
                 assert torch.equal(xs[i], batched_xs[i])
+                
 
-
-def test_batching_returns_the_same_face_attr_on_proteins():
+def test_batching_of_face_index_on_proteins():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113
     split_idx = dataset.get_idx_split()
@@ -847,41 +847,64 @@ def test_batching_returns_the_same_face_attr_on_proteins():
     batch_max_dim = 3
     data_loader = DataLoader(dataset, batch_size=32, max_dim=batch_max_dim)
 
-    batched_x = [[] for _ in range(batch_max_dim+1)]
+    batched_x_faces = [[] for _ in range(batch_max_dim+1)]
+    batched_x_simplices = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
         params = batch.get_all_chain_params()
         assert len(params) <= batch_max_dim+1
         for dim in range(len(params)):
             if params[dim].kwargs['face_attr'] is not None:
-                batched_x[dim].append(params[dim].kwargs['face_attr'])
+                assert params[dim].face_index is not None
+                face_attrs = params[dim].kwargs['face_attr']
+                batched_x_faces[dim].append(
+                    torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+                batched_x_simplices[dim].append(
+                    torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
 
-    batched_xs = [None for _ in range(batch_max_dim+1)]
+    batched_xs_faces = [None for _ in range(batch_max_dim+1)]
+    batched_xs_simplices = [None for _ in range(batch_max_dim+1)]
     for i in range(batch_max_dim+1):
-        if len(batched_x[i]) > 0:
-            batched_xs[i] = torch.cat(batched_x[i], dim=0)
+        if len(batched_x_faces[i]) > 0:
+            batched_xs_faces[i] = torch.cat(batched_x_faces[i], dim=0)
+        if len(batched_x_simplices[i]) > 0:
+            batched_xs_simplices[i] = torch.cat(batched_x_simplices[i], dim=0)
 
     # Un-batched
-    x = [[] for _ in range(batch_max_dim+1)]
+    x_faces = [[] for _ in range(batch_max_dim+1)]
+    x_simplices = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
         params = complex.get_all_chain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
             if params[dim].kwargs['face_attr'] is not None:
-                x[dim].append(params[dim].kwargs['face_attr'])
+                assert params[dim].face_index is not None
+                face_attrs = params[dim].kwargs['face_attr']
+                x_faces[dim].append(
+                    torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+                x_simplices[dim].append(
+                    torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
 
-    xs = [None for _ in range(batch_max_dim+1)]
+    xs_faces = [None for _ in range(batch_max_dim+1)]
+    xs_simplices = [None for _ in range(batch_max_dim+1)]
     for i in range(batch_max_dim+1):
-        if len(x[i]) > 0:
-            xs[i] = torch.cat(x[i], dim=0)
+        if len(x_faces[i]) > 0:
+            xs_faces[i] = torch.cat(x_faces[i], dim=0)
+            xs_simplices[i] = torch.cat(x_simplices[i], dim=0)
 
     for i in range(batch_max_dim+1):
-        if xs[i] is None or batched_xs[i] is None:
-            assert xs[i] == batched_xs[i]
+        if xs_faces[i] is None or batched_xs_faces[i] is None:
+            assert xs_faces[i] == batched_xs_faces[i]
         else:
-            assert len(xs[i]) == len(batched_xs[i])
-            assert torch.equal(xs[i], batched_xs[i])
+            assert len(xs_faces[i]) == len(batched_xs_faces[i])
+            assert torch.equal(xs_faces[i], batched_xs_faces[i])
+        if xs_simplices[i] is None or batched_xs_simplices[i] is None:
+            assert xs_simplices[i] == batched_xs_simplices[i]
+        else:
+            assert len(xs_simplices[i]) == len(batched_xs_simplices[i])
+            assert torch.equal(xs_simplices[i], batched_xs_simplices[i])
+                
 
 
-def test_batching_returns_the_same_face_attr():
+def test_batching_of_face_index():
     data_list = get_testing_complex_list()
 
     # Try multiple parameters
@@ -891,39 +914,61 @@ def test_batching_returns_the_same_face_attr():
     for batch_size, batch_max_dim, in params:
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
 
-        batched_x = [[] for _ in range(batch_max_dim+1)]
+        batched_x_faces = [[] for _ in range(batch_max_dim+1)]
+        batched_x_simplices = [[] for _ in range(batch_max_dim+1)]
         for batch in data_loader:
             params = batch.get_all_chain_params()
             assert len(params) <= batch_max_dim+1
             for dim in range(len(params)):
                 if params[dim].kwargs['face_attr'] is not None:
-                    batched_x[dim].append(params[dim].kwargs['face_attr'])
+                    assert params[dim].face_index is not None
+                    face_attrs = params[dim].kwargs['face_attr']
+                    batched_x_faces[dim].append(
+                        torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+                    batched_x_simplices[dim].append(
+                        torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
 
-        batched_xs = [None for _ in range(batch_max_dim+1)]
+        batched_xs_faces = [None for _ in range(batch_max_dim+1)]
+        batched_xs_simplices = [None for _ in range(batch_max_dim+1)]
         for i in range(batch_max_dim+1):
-            if len(batched_x[i]) > 0:
-                batched_xs[i] = torch.cat(batched_x[i], dim=0)
+            if len(batched_x_faces[i]) > 0:
+                batched_xs_faces[i] = torch.cat(batched_x_faces[i], dim=0)
+            if len(batched_x_simplices[i]) > 0:
+                batched_xs_simplices[i] = torch.cat(batched_x_simplices[i], dim=0)
 
         # Un-batched
-        x = [[] for _ in range(batch_max_dim+1)]
+        x_faces = [[] for _ in range(batch_max_dim+1)]
+        x_simplices = [[] for _ in range(batch_max_dim+1)]
         for complex in data_list:
             params = complex.get_all_chain_params()
             for dim in range(min(len(params), batch_max_dim+1)):
                 if params[dim].kwargs['face_attr'] is not None:
-                    x[dim].append(params[dim].kwargs['face_attr'])
+                    assert params[dim].face_index is not None
+                    face_attrs = params[dim].kwargs['face_attr']
+                    x_faces[dim].append(
+                        torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+                    x_simplices[dim].append(
+                        torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
 
-        xs = [None for _ in range(batch_max_dim+1)]
+        xs_faces = [None for _ in range(batch_max_dim+1)]
+        xs_simplices = [None for _ in range(batch_max_dim+1)]
         for i in range(batch_max_dim+1):
-            if len(x[i]) > 0:
-                xs[i] = torch.cat(x[i], dim=0)
+            if len(x_faces[i]) > 0:
+                xs_faces[i] = torch.cat(x_faces[i], dim=0)
+                xs_simplices[i] = torch.cat(x_simplices[i], dim=0)
 
         for i in range(batch_max_dim+1):
-            if xs[i] is None or batched_xs[i] is None:
-                assert xs[i] == batched_xs[i]
+            if xs_faces[i] is None or batched_xs_faces[i] is None:
+                assert xs_faces[i] == batched_xs_faces[i]
             else:
-                assert len(xs[i]) == len(batched_xs[i])
-                assert torch.equal(xs[i], batched_xs[i])
-
+                assert len(xs_faces[i]) == len(batched_xs_faces[i])
+                assert torch.equal(xs_faces[i], batched_xs_faces[i])
+            if xs_simplices[i] is None or batched_xs_simplices[i] is None:
+                assert xs_simplices[i] == batched_xs_simplices[i]
+            else:
+                assert len(xs_simplices[i]) == len(batched_xs_simplices[i])
+                assert torch.equal(xs_simplices[i], batched_xs_simplices[i])
+                
 
 def test_data_loader_shuffling():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')

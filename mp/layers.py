@@ -1,6 +1,6 @@
 import torch
 
-from typing import Callable
+from typing import Callable, Optional
 from torch import Tensor
 from mp.smp import ChainMessagePassing, ChainMessagePassingParams
 from torch_geometric.nn.inits import reset
@@ -11,8 +11,10 @@ import torch.nn.functional as F
 
 class DummyChainMessagePassing(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
-    def __init__(self, up_msg_size, down_msg_size, use_face_msg=False, use_down_msg=True):
+    def __init__(self, up_msg_size, down_msg_size, face_msg_size=None,
+                 use_face_msg=False, use_down_msg=True):
         super(DummyChainMessagePassing, self).__init__(up_msg_size, down_msg_size,
+                                                       face_msg_size=face_msg_size,
                                                        use_face_msg=use_face_msg,
                                                        use_down_msg=use_down_msg)
 
@@ -27,7 +29,8 @@ class DummyChainMessagePassing(ChainMessagePassing):
         return down_x_j + down_attr
 
     def forward(self, chain: ChainMessagePassingParams):
-        up_out, down_out, face_out = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+        up_out, down_out, face_out = self.propagate(chain.up_index, chain.down_index, 
+                                                    chain.face_index, x=chain.x,
                                                     up_attr=chain.kwargs['up_attr'],
                                                     down_attr=chain.kwargs['down_attr'],
                                                     face_attr=chain.kwargs['face_attr'])
@@ -41,8 +44,8 @@ class DummySimplicialMessagePassing(torch.nn.Module):
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = DummyChainMessagePassing(input_dim, input_dim, use_face_msg=use_face_msg,
-                                          use_down_msg=use_down_msg)
+            mp = DummyChainMessagePassing(input_dim, input_dim, face_msg_size=input_dim,
+                                          use_face_msg=use_face_msg, use_down_msg=use_down_msg)
             self.mp_levels.append(mp)
     
     def forward(self, *chain_params: ChainMessagePassingParams):
@@ -71,7 +74,8 @@ class SINChainConv(ChainMessagePassing):
         self.reset_parameters()
 
     def forward(self, chain: ChainMessagePassingParams):
-        out_up, out_down, _ = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+        out_up, out_down, _ = self.propagate(chain.up_index, chain.down_index, 
+                                             None, x=chain.x,
                                              up_attr=chain.kwargs['up_attr'],
                                              down_attr=chain.kwargs['down_attr'])
 
@@ -148,10 +152,11 @@ class EdgeSINConv(torch.nn.Module):
 
 class SparseSINChainConv(ChainMessagePassing):
     """This is a SIN Chain layer that operates of faces and upper adjacent simplices."""
-    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
+    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable, update_faces_nn,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False):
-        super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, use_down_msg=False)
+        super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, face_msg_size=face_msg_size,
+                                                 use_down_msg=False)
         self.dim = dim
         self.msg_up_nn = msg_up_nn
         self.msg_faces_nn = msg_faces_nn
@@ -168,7 +173,8 @@ class SparseSINChainConv(ChainMessagePassing):
         self.reset_parameters()
 
     def forward(self, chain: ChainMessagePassingParams):
-        out_up, _, out_faces = self.propagate(chain.up_index, chain.down_index, x=chain.x,
+        out_up, _, out_faces = self.propagate(chain.up_index, chain.down_index, 
+                                              chain.face_index, x=chain.x,
                                               up_attr=chain.kwargs['up_attr'],
                                               face_attr=chain.kwargs['face_attr'])
 
@@ -207,7 +213,7 @@ class SparseSINConv(torch.nn.Module):
     neighbors and faces, but not from lower neighbors (hence why "Sparse")
     """
 
-    def __init__(self, up_msg_size: int, down_msg_size: int,
+    def __init__(self, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_faces_nn: Callable, inp_update_up_nn: Callable,
                  inp_update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
                  max_dim: int = 2, apply_norm=True, **kwargs):
@@ -262,7 +268,7 @@ class SparseSINConv(torch.nn.Module):
                 combine_nn = Sequential(
                     Linear(kwargs['hidden']*2, kwargs['hidden']),
                     kwargs['act_module']())
-            mp = SparseSINChainConv(dim, up_msg_size, down_msg_size,
+            mp = SparseSINChainConv(dim, up_msg_size, down_msg_size, face_msg_size=face_msg_size,
                 msg_up_nn=msg_up_nn, msg_faces_nn=msg_faces_nn, update_up_nn=update_up_nn,
                 update_faces_nn=update_faces_nn, combine_nn=combine_nn, eps=eps,
                 train_eps=train_eps)
@@ -299,7 +305,7 @@ class OrientedConv(ChainMessagePassing):
         assert chain.upper_index.max() < len(chain.x)
         assert chain.lower_index.max() < len(chain.x)
 
-        out_up, out_down, _ = self.propagate(chain.upper_index, chain.lower_index, x=chain.x,
+        out_up, out_down, _ = self.propagate(chain.upper_index, chain.lower_index, None, x=chain.x,
             up_attr=chain.upper_orient.view(-1, 1), down_attr=chain.lower_orient.view(-1, 1))
 
         out_up = self.update_up_nn(out_up)

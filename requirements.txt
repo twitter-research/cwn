@@ -5,6 +5,9 @@
 # torch-spline-conv==1.2.0
 # torch-geometric==1.6.3
 
+# Use command graph-tool_install script to install this
+# graph-tool==2.29
+
 # Other packages
 pytest==6.2.1
 gudhi==3.4.0

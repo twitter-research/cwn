@@ -24,32 +24,29 @@ class Chain(object):
         Class representing a chain of k-dim simplices.
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
-                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None,
-                 faces: Tensor = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
+                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None, 
+                 face_index: Adj = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
         """
         Args:
             Constructs a `dim`-chain.
             dim: dim of the simplices in the chain
             x: feature matrix, shape [num_simplices, num_features]; may not be available
             upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
-            lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
                 may not be available, e.g. when `dim` is the top level dim of a complex
+            lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
+                may not be available, e.g. when `dim` is 0
             shared_faces: a tensor of shape (num_lower_adjacencies,) specifying the indices of
                 the shared face for each lower adjacency
             shared_cofaces: a tensor of shape (num_upper_adjacencies,) specifying the indices of
                 the shared coface for each upper adjacency
-            faces: a tensor of shape (simplices, dim+1) specifying the indices of the dim-1
-                dimensional faces of each simplex
+            face_index: face adjacency, matrix, shape [2, num_faces_connections];
+                may not be available, e.g. when `dim` is 0
             y: labels over simplices in the chain, shape [num_simplices,]
         """
         if dim == 0:
             assert lower_index is None
             assert shared_faces is None
-            assert faces is None
-        if faces is not None:
-            assert faces.size(1) == dim+1
-            if x is not None:
-                assert x.size(0) == faces.size(0)
+            assert face_index is None
 
         # Note, everything that is not of form __smth__ is made None during batching
         # So dim must be stored like this.
@@ -58,7 +55,7 @@ class Chain(object):
         self.__x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
-        self.faces = faces
+        self.face_index = face_index
         self.y = y
         self.shared_faces = shared_faces
         self.shared_cofaces = shared_cofaces
@@ -82,7 +79,7 @@ class Chain(object):
     def dim(self):
         """This field should not have a setter. The dimension of a chain cannot be changed"""
         return self.__dim__
-
+    
     @property
     def x(self):
         return self.__x
@@ -125,7 +122,8 @@ class Chain(object):
             Returns the dimension for which :obj:`value` of attribute
             :obj:`key` will get concatenated when creating batches.
         """
-        if key in ['upper_index', 'lower_index', 'shared_faces', 'shared_cofaces']:
+        if key in ['upper_index', 'lower_index', 'shared_faces', 
+                   'shared_cofaces', 'face_index']:
             return -1
         # by default, concatenate sparse matrices diagonally.
         elif isinstance(value, SparseTensor):
@@ -139,10 +137,14 @@ class Chain(object):
         """
         if key in ['upper_index', 'lower_index']:
             inc = self.num_simplices
-        elif key in ['shared_faces', 'faces']:
+        elif key in ['shared_faces']:
             inc = self.num_simplices_down
         elif key == 'shared_cofaces':
             inc = self.num_simplices_up
+        elif key == 'face_index':
+            face_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
+            simplex_inc = self.num_simplices if self.num_simplices is not None else 0
+            inc = [[face_inc], [simplex_inc]]
         else:
             inc = 0
         if inc is None:
@@ -183,14 +185,15 @@ class Chain(object):
             return self.__num_simplices__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
-        if self.faces is not None:
-            return self.faces.size(0)
         if self.upper_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
             return int(self.upper_index.max()) + 1
         if self.lower_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'lower_index'))
             return int(self.lower_index.max()) + 1
+        if self.face_index is not None:
+            logging.warning(__num_warn_msg__.format('simplices', 'face_index'))
+            return int(self.face_index[1,:].max()) + 1
         return None
 
     @num_simplices.setter
@@ -200,7 +203,8 @@ class Chain(object):
     @property
     def num_simplices_up(self):
         """
-            Returns or sets the number of simplices in the upper chain. In fact, this correspond to the overall number of cofaces in the current chain.
+            Returns or sets the number of simplices in the upper chain.
+            In fact, this correspond to the overall number of cofaces in the current chain.
         """
         if hasattr(self, '__num_simplices_up__'):
             return self.__num_simplices_up__
@@ -225,16 +229,12 @@ class Chain(object):
             return self.__num_simplices_down__
         if self.lower_index is None:
             return 0
-        if self.faces is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'faces'))
-            return int(self.faces.max()) + 1
         if self.shared_faces is not None:
             logging.warning(__num_warn_msg__.format('faces', 'shared_faces'))
             return int(self.shared_faces.max()) + 1
-        # TODO: better to swap these two?
-        if self.num_simplices is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'num_simplices'))
-            return (self.dim + 1) * self.num_simplices
+        if self.face_index is not None:
+            logging.warning(__num_warn_msg__.format('faces', 'face_index'))
+            return int(self.face_index[0,:].max()) + 1
         return None
 
     @num_simplices_down.setter
@@ -377,10 +377,7 @@ class ChainBatch(Chain):
             Additionally, creates assignment batch vectors for each key in
             :obj:`follow_batch`.
         """
-
-        keys = [set(data.keys) for data in data_list]
-        keys = list(set.union(*keys))
-
+        keys = list(set.union(*[set(data.keys) for data in data_list]))
         assert 'batch' not in keys and 'ptr' not in keys
 
         batch = cls(data_list[0].dim)
@@ -579,9 +576,6 @@ class Complex(object):
                 else:
                     chain.num_simplices_up = num_simplices_up
             if dim > 0:
-                if chain.faces is not None:
-                    assert list(chain.faces.size()) == [chain.num_simplices, dim+1]
-
                 lower_chain = self.chains[dim - 1]
                 num_simplices_down = lower_chain.num_simplices
                 assert num_simplices_down is not None
@@ -638,20 +632,17 @@ class Complex(object):
                 lower_index = simplices.lower_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
-                                                        self.chains[dim].shared_faces)
-
+                                                        self.chains[dim].shared_faces)            
             # Add face features
-            face_features = None
-            if include_face_features and simplices.faces is not None:
-                faces = simplices.faces
+            face_index, face_features = None, None
+            if include_face_features and simplices.face_index is not None:
+                face_index = simplices.face_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
-                    # Flatten the face features of shape [num_simplices, dim+1, feature_dim]
-                    face_features = torch.index_select(self.chains[dim - 1].x, 0, faces.view(-1))
-                    face_features = face_features.view(simplices.num_simplices, dim+1, -1)
+                    face_features = self.chains[dim - 1].x
 
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
                                                up_attr=upper_features, down_attr=lower_features,
-                                               face_attr=face_features)
+                                               face_attr=face_features, face_index=face_index)
         else:
             raise NotImplementedError(
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
@@ -700,6 +691,34 @@ class Complex(object):
         assert (self.dimension + 1) >= len(xs)
         for i, x in enumerate(xs):
             self.chains[i].x = x
+            
+    @property
+    def keys(self):
+        """
+            Returns all names of complex attributes.
+        """
+        keys = [key for key in self.__dict__.keys() if self[key] is not None]
+        keys = [key for key in keys if key[:2] != '__' and key[-2:] != '__']
+        return keys
+    
+    def __getitem__(self, key):
+        """
+            Gets the data of the attribute :obj:`key`.
+        """
+        return getattr(self, key, None)
+
+    def __setitem__(self, key, value):
+        """
+            Sets the attribute :obj:`key` to :obj:`value`.
+        """
+        setattr(self, key, value)
+    
+    def __contains__(self, key):
+        """
+            Returns :obj:`True`, if the attribute :obj:`key` is present in the
+            data.
+        """
+        return key in self.keys
 
 
 class ComplexBatch(Complex):
@@ -714,7 +733,8 @@ class ComplexBatch(Complex):
 
     @classmethod
     def from_complex_list(cls, data_list: List[Complex], follow_batch=[], max_dim: int = 2):
-        dimension = max([complex.dimension for complex in data_list])
+        
+        dimension = max([data.dimension for data in data_list])
         dimension = min(dimension, max_dim)
         chains = [list() for _ in range(dimension + 1)]
         label_list = list()
