@@ -1,6 +1,7 @@
 import torch
 from torch_geometric.data import Data
-from data.utils import compute_connectivity, get_adj_index, compute_clique_complex_with_gudhi, convert_graph_dataset_with_gudhi, compute_ring_2complex
+from data.utils import compute_connectivity, get_adj_index, compute_clique_complex_with_gudhi
+from data.utils import convert_graph_dataset_with_gudhi, compute_ring_2complex, convert_graph_dataset_with_rings
 from data.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 from data.complex import ComplexBatch
@@ -705,3 +706,72 @@ def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
     
     # Check label
     assert torch.equal(house_cell.y, house_simp.y)
+
+    
+def test_ring_2complex_dataset_conversion(house_edge_index):
+    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    dataset = [house1, house2, house3]
+
+    complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, initialize_rings=True)
+    assert dim == 2
+    assert len(num_features) == 3
+    for i in range(len(num_features)):
+        assert num_features[i] == 1
+    assert len(complexes) == 3
+    for i in range(len(complexes)):
+        # Do some basic checks for each complex.
+        assert complexes[i].dimension == 2
+        assert complexes[i].nodes.face_index is None
+        assert list(complexes[i].edges.face_index.size()) == [2, 2*6]
+        assert list(complexes[i].triangles.face_index.size()) == [2, 3+4]
+        assert complexes[i].edges.lower_index.size(1) == 18
+        assert torch.equal(complexes[i].nodes.x, house1.x)
+        assert torch.equal(complexes[i].y, house1.y)
+        
+        
+def test_ring_2complex_dataset_conversion(house_edge_index):    
+    edge_attr = torch.FloatTensor(
+                        [[0.0, 1.0],
+                         [0.0, 3.0],
+                         [0.0, 1.0],
+                         [1.0, 2.0],
+                         [1.0, 2.0],
+                         [2.0, 3.0],
+                         [2.0, 4.0],
+                         [0.0, 3.0],
+                         [2.0, 3.0],
+                         [3.0, 4.0],
+                         [2.0, 4.0],
+                         [3.0, 4.0]])
+    e_x = torch.FloatTensor(
+                        [[0.0, 1.0],
+                         [0.0, 3.0],
+                         [1.0, 2.0],
+                         [2.0, 3.0],
+                         [2.0, 4.0],
+                         [3.0, 4.0]])
+    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
+    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
+    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
+    dataset = [house1, house2, house3]
+
+    complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, initialize_rings=False)
+    assert dim == 2
+    assert len(num_features) == 3
+    assert num_features[0] == 1
+    assert num_features[1] == 2
+    assert num_features[2] == 0
+    assert len(complexes) == 3
+    for i in range(len(complexes)):
+        # Do some basic checks for each complex.
+        assert complexes[i].dimension == 2
+        assert complexes[i].nodes.face_index is None
+        assert list(complexes[i].edges.face_index.size()) == [2, 2*6]
+        assert list(complexes[i].triangles.face_index.size()) == [2, 3+4]
+        assert complexes[i].edges.lower_index.size(1) == 18
+        assert torch.equal(complexes[i].nodes.x, house1.x)
+        assert torch.equal(complexes[i].edges.x, e_x)
+        assert complexes[i].triangles.x is None
+        assert torch.equal(complexes[i].y, house1.y)
