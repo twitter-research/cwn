@@ -744,3 +744,26 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=2)
+
+
+def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=True,
+                                     init_method: str = 'sum', initialize_rings=False):
+    dimension = -1
+    complexes = []
+    num_features = [None, None, None]
+    
+    for data in tqdm(dataset):
+        complex = compute_ring_2complex(data.x, data.edge_index, data.edge_attr,
+                                        data.num_nodes, y=data.y, max_k=max_ring_size,
+                                        include_down_adj=include_down_adj, init_method=init_method,
+                                        initialize_rings=initialize_rings)
+        if complex.dimension > dimension:
+            dimension = complex.dimension
+        for dim in range(complex.dimension + 1):
+            if num_features[dim] is None:
+                num_features[dim] = complex.chains[dim].num_features
+            else:
+                assert num_features[dim] == complex.chains[dim].num_features
+        complexes.append(complex)
+
+    return complexes, dimension, num_features[:dimension+1]
