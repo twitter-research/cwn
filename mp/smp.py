@@ -166,9 +166,9 @@ class ChainMessagePassing(torch.nn.Module):
                 return src.index_select(self.node_dim, col)
         raise ValueError
 
-    def __collect__(self, args, index, size, direction, kwargs):
+    def __collect__(self, args, index, size, adjacency, kwargs):
         i, j = (1, 0) if self.flow == 'source_to_target' else (0, 1)
-        assert direction in ['up', 'down', 'face']
+        assert adjacency in ['up', 'down', 'face']
 
         out = {}
         for arg in args:
@@ -179,13 +179,13 @@ class ChainMessagePassing(torch.nn.Module):
             elif index is not None:
                 dim = 0 if arg[-2:] == '_j' else 1
                 # Extract any part up to _j or _i. So for x_j extract x
-                if direction == 'up' and arg.startswith('up_'):
+                if adjacency == 'up' and arg.startswith('up_'):
                     data = kwargs.get(arg[3:-2], Parameter.empty)
                     size_data = data
-                elif direction == 'down' and arg.startswith('down_'):
+                elif adjacency == 'down' and arg.startswith('down_'):
                     data = kwargs.get(arg[5:-2], Parameter.empty)
                     size_data = data
-                elif direction == 'face' and arg.startswith('face_'):
+                elif adjacency == 'face' and arg.startswith('face_'):
                     if dim == 0:
                         # We need to use the face attribute matrix (i.e. face_attr) for the features
                         # And we need to use the x matrix to extract the number of parent cells
@@ -215,30 +215,30 @@ class ChainMessagePassing(torch.nn.Module):
         # Automatically builds some default parameters that can be used in the message passing
         # functions as needed. This was modified to be discriminative of upper and lower adjacency.
         if isinstance(index, Tensor):
-            out[f'{direction}_adj_t'] = None
-            out[f'{direction}_ptr'] = None
-            out[f'{direction}_index'] = index
-            out[f'{direction}_index_i'] = index[i]
-            out[f'{direction}_index_j'] = index[j]
+            out[f'{adjacency}_adj_t'] = None
+            out[f'{adjacency}_ptr'] = None
+            out[f'{adjacency}_index'] = index
+            out[f'{adjacency}_index_i'] = index[i]
+            out[f'{adjacency}_index_j'] = index[j]
         elif isinstance(index, SparseTensor):
             out['edge_index'] = None
-            out[f'{direction}_adj_t'] = index
-            out[f'{direction}_index_i'] = index.storage.row()
-            out[f'{direction}_index_j'] = index.storage.col()
-            out[f'{direction}_ptr'] = index.storage.rowptr()
-            out[f'{direction}_weight'] = index.storage.value()
-            out[f'{direction}_attr'] = index.storage.value()
-            out[f'{direction}_type'] = index.storage.value()
+            out[f'{adjacency}_adj_t'] = index
+            out[f'{adjacency}_index_i'] = index.storage.row()
+            out[f'{adjacency}_index_j'] = index.storage.col()
+            out[f'{adjacency}_ptr'] = index.storage.rowptr()
+            out[f'{adjacency}_weight'] = index.storage.value()
+            out[f'{adjacency}_attr'] = index.storage.value()
+            out[f'{adjacency}_type'] = index.storage.value()
 
         # We need this if in contrast to pyg because index can be None for some adjacencies.
         if isinstance(index, Tensor) or isinstance(index, SparseTensor):
             # This is the old `index` argument used for aggregation of the messages.
-            out[f'agg_{direction}_index'] = out[f'{direction}_index_i']
+            out[f'agg_{adjacency}_index'] = out[f'{adjacency}_index_i']
 
-        out[f'{direction}_size'] = size
-        out[f'{direction}_size_i'] = size[1] or size[0]
-        out[f'{direction}_size_j'] = size[0] or size[1]
-        out[f'{direction}_dim_size'] = out[f'{direction}_size_i']
+        out[f'{adjacency}_size'] = size
+        out[f'{adjacency}_size_i'] = size[1] or size[0]
+        out[f'{adjacency}_size_j'] = size[0] or size[1]
+        out[f'{adjacency}_dim_size'] = out[f'{adjacency}_size_i']
         return out
 
     def get_msg_and_agg_func(self, adjacency):
