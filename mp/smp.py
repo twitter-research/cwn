@@ -38,8 +38,14 @@ class ChainMessagePassing(torch.nn.Module):
     """
 
     special_args: Set[str] = {
-        'edge_index', 'adj_t', 'edge_index_i', 'edge_index_j', 'size',
-        'size_i', 'size_j', 'ptr', 'index', 'dim_size'
+        'up_index', 'up_adj_t', 'up_index_i', 'up_index_j', 'up_size',
+        'up_size_i', 'up_size_j', 'up_ptr', 'agg_up_index', 'up_dim_size',
+
+        'down_index', 'down_adj_t', 'down_index_i', 'down_index_j', 'down_size',
+        'down_size_i', 'down_size_j', 'down_ptr', 'agg_down_index', 'down_dim_size',
+
+        'face_index', 'face_adj_t', 'face_index_i', 'face_index_j', 'face_size',
+        'face_size_i', 'face_size_j', 'face_ptr', 'agg_face_index', 'face_dim_size',
     }
 
     def __init__(self,
