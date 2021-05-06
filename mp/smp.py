@@ -215,8 +215,8 @@ class ChainMessagePassing(torch.nn.Module):
         # Automatically builds some default parameters that can be used in the message passing
         # functions as needed. This was modified to be discriminative of upper and lower adjacency.
         if isinstance(index, Tensor):
-            out['adj_t'] = None
-            out['ptr'] = None
+            out[f'{direction}_adj_t'] = None
+            out[f'{direction}_ptr'] = None
             out[f'{direction}_index'] = index
             out[f'{direction}_index_i'] = index[i]
             out[f'{direction}_index_j'] = index[j]
@@ -230,8 +230,10 @@ class ChainMessagePassing(torch.nn.Module):
             out[f'{direction}_attr'] = index.storage.value()
             out[f'{direction}_type'] = index.storage.value()
 
+        # We need this if in contrast to pyg because index can be None for some adjacencies.
         if isinstance(index, Tensor) or isinstance(index, SparseTensor):
-            out[f'{direction}_index'] = out[f'{direction}_index_i']
+            # This is the old `index` argument used for aggregation of the messages.
+            out[f'agg_{direction}_index'] = out[f'{direction}_index_i']
 
         out[f'{direction}_size'] = size
         out[f'{direction}_size_i'] = size[1] or size[0]
@@ -387,7 +389,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return face_x_j
 
-    def aggregate_up(self, inputs: Tensor, up_index: Tensor,
+    def aggregate_up(self, inputs: Tensor, agg_up_index: Tensor,
                      up_ptr: Optional[Tensor] = None,
                      up_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
@@ -404,10 +406,10 @@ class ChainMessagePassing(torch.nn.Module):
             up_ptr = expand_left(up_ptr, dim=self.node_dim, dims=inputs.dim())
             return segment_csr(inputs, up_ptr, reduce=self.aggr_up)
         else:
-            return scatter(inputs, up_index, dim=self.node_dim, dim_size=up_dim_size,
+            return scatter(inputs, agg_up_index, dim=self.node_dim, dim_size=up_dim_size,
                            reduce=self.aggr_up)
 
-    def aggregate_down(self, inputs: Tensor, down_index: Tensor,
+    def aggregate_down(self, inputs: Tensor, agg_down_index: Tensor,
                        down_ptr: Optional[Tensor] = None,
                        down_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
@@ -424,10 +426,10 @@ class ChainMessagePassing(torch.nn.Module):
             down_ptr = expand_left(down_ptr, dim=self.node_dim, dims=inputs.dim())
             return segment_csr(inputs, down_ptr, reduce=self.aggr_down)
         else:
-            return scatter(inputs, down_index, dim=self.node_dim, dim_size=down_dim_size,
+            return scatter(inputs, agg_down_index, dim=self.node_dim, dim_size=down_dim_size,
                            reduce=self.aggr_down)
 
-    def aggregate_face(self, inputs: Tensor, face_index: Tensor,
+    def aggregate_face(self, inputs: Tensor, agg_face_index: Tensor,
                        face_ptr: Optional[Tensor] = None,
                        face_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
@@ -445,7 +447,7 @@ class ChainMessagePassing(torch.nn.Module):
             down_ptr = expand_left(face_ptr, dim=self.node_dim, dims=inputs.dim())
             return segment_csr(inputs, down_ptr, reduce=self.aggr_face)
         else:
-            return scatter(inputs, face_index, dim=self.node_dim, dim_size=face_dim_size,
+            return scatter(inputs, agg_face_index, dim=self.node_dim, dim_size=face_dim_size,
                            reduce=self.aggr_face)
 
     def message_and_aggregate_up(self, up_adj_t: SparseTensor) -> Tensor:
