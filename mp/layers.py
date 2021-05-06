@@ -1,3 +1,5 @@
+from abc import ABC
+
 import torch
 
 from typing import Callable, Optional
@@ -6,7 +8,7 @@ from mp.smp import ChainMessagePassing, ChainMessagePassingParams
 from torch_geometric.nn.inits import reset
 from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
 from data.complex import Chain
-import torch.nn.functional as F
+from torch_scatter import scatter
 
 
 class DummyChainMessagePassing(ChainMessagePassing):
@@ -328,3 +330,60 @@ class OrientedConv(ChainMessagePassing):
         if self.orient:
             return down_x_j * down_attr
         return down_x_j
+
+
+class InitReduceConv(torch.nn.Module):
+
+    def __init__(self, reduce='add', out_size=None):
+        """
+
+        Args:
+            reduce (str): Way to aggregate faces. Can be "sum, add, mean, min, max"
+            out_size (int): The number of output cells. If None, this is inferred from face_index
+        """
+        super(InitReduceConv, self).__init__()
+        self.reduce = reduce
+        self.out_size = out_size
+
+    def forward(self, face_x, face_index):
+        out_size = self.out_size or face_index[1, :].max()+1
+        return scatter(face_x, face_index, dim=0, dim_size=out_size, reduce=self.reduce)
+
+
+class EmbedVEWithReduce(torch.nn.Module):
+
+    def __init__(self,
+                 v_embed_layer: torch.nn.Embedding,
+                 e_embed_layer: Optional[torch.nn.Embedding],
+                 init_reduce: InitReduceConv):
+        """
+
+        Args:
+            reduce (str): Way to aggregate faces. Can be "sum, add, mean, min, max"
+            out_size (int): The number of output cells. If None, this is inferred from face_index
+        """
+        super(EmbedVEWithReduce, self).__init__()
+        self.init_reduce = init_reduce
+        self.v_embed_layer = v_embed_layer
+        self.e_embed_layer = e_embed_layer
+
+    def forward(self,  *chain_params: ChainMessagePassingParams):
+        assert 2 <= len(chain_params) <= 3
+        v_params = chain_params[0]
+        e_params = chain_params[1]
+        c_params = chain_params[2] if len(chain_params) == 3 else None
+
+        assert v_params.x is not None
+        v_params.x = self.v_embed_layer(v_params.x)
+
+        if e_params.x is None:
+            e_params.x = self.init_reduce(v_params.x, e_params.face_index)
+        else:
+            e_params.x = self.e_embed_layer(e_params.x)
+
+        if c_params is not None:
+            # We divide by two in case this was obtained from node aggregation.
+            # The division should not do any harm if this is an aggregation of learned embeddings.
+            c_params.x = self.init_reduce(e_params.x, c_params.face_index) / 2.
+
+        return chain_params
