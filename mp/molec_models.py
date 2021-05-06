@@ -99,6 +99,8 @@ class ZincSparseSIN(torch.nn.Module):
         xs, jump_xs = None, None
         res = {}
 
+        assert data.chains[0].x.size(-1) == 1
+
         # Embed and populate higher-levels
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
         xs = self.init_conv(*params)

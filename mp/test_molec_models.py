@@ -80,7 +80,7 @@ def test_zinc_sparse_sin0_model_with_batching():
 
 def test_zinc_sparse_sin0_model_with_batching_on_proteins():
     """Check this runs without errors and that batching and no batching produce the same output."""
-    dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
+    dataset = load_dataset('PROTEINS', max_dim=2, fold=0, init_method='mean')
     assert len(dataset) == 1113
     split_idx = dataset.get_idx_split()
     dataset = dataset[split_idx['valid']]
@@ -100,6 +100,8 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
         batch.chains[1].x = None
         if len(batch.chains) == 3:
             batch.chains[2].x = None
+        # ZincSparseSin assumes features are unidimensional like in ZINC
+        batch.chains[0].x = batch.chains[0].x[:, :1]
 
         batched_pred, res = model.forward(batch, include_partial=True)
         for key in res:
@@ -119,6 +121,8 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
         batch.chains[1].x = None
         if len(batch.chains) == 3:
             batch.chains[2].x = None
+        # ZincSparseSin assumes features are unidimensional like in ZINC
+        batch.chains[0].x = batch.chains[0].x[:, :1]
 
         pred, res = model.forward(batch, include_partial=True)
         for key in res:
