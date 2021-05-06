@@ -376,9 +376,7 @@ class EmbedVEWithReduce(torch.nn.Module):
 
         assert v_params.x is not None
         # The embedding layer expects integers so we convert the tensor to int.
-        print(v_params.x.size())
         vx = self.v_embed_layer(v_params.x.squeeze().to(dtype=torch.long))
-        print(vx.size())
 
         if e_params.x is None:
             ex = self.init_reduce(vx, e_params.face_index)
@@ -389,6 +387,7 @@ class EmbedVEWithReduce(torch.nn.Module):
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
             cx = self.init_reduce(ex, c_params.face_index) / 2.
+
             return vx, ex, cx
 
         return vx, ex

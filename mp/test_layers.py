@@ -166,6 +166,8 @@ def test_embed_with_reduce_layer_on_house_complex():
 
     xs = conv.forward(*params)
 
+    assert len(xs) == 3
+    assert xs[0].dim() == 2
     assert xs[0].size(0) == chains[0].num_simplices
     assert xs[0].size(1) == 10
     assert xs[1].size(0) == chains[1].num_simplices

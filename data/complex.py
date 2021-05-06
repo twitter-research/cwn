@@ -87,7 +87,7 @@ class Chain(object):
     @x.setter
     def x(self, new_x):
         if new_x is not None:
-            assert self.num_simplices == len(new_x)
+            assert self.num_simplices == len(new_x), print(self.num_simplices, len(new_x))
         self.__x = new_x
 
     @property
@@ -186,15 +186,14 @@ class Chain(object):
             return self.__num_simplices__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
+        if self.face_index is not None:
+            return int(self.face_index[1,:].max()) + 1
         if self.upper_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
             return int(self.upper_index.max()) + 1
         if self.lower_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'lower_index'))
             return int(self.lower_index.max()) + 1
-        if self.face_index is not None:
-            logging.warning(__num_warn_msg__.format('simplices', 'face_index'))
-            return int(self.face_index[1,:].max()) + 1
         return None
 
     @num_simplices.setter

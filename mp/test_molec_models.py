@@ -24,7 +24,7 @@ def test_zinc_sparse_sin0_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = ZincSparseSIN(embed_dict_size=32, num_input_features=1, num_classes=3, num_layers=3,
+        model = ZincSparseSIN(embed_dict_size=32, num_input_features=5, num_classes=3, num_layers=3,
             hidden=5, jump_mode='cat', max_dim=model_max_dim)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
@@ -32,6 +32,7 @@ def test_zinc_sparse_sin0_model_with_batching():
         batched_res = {}
         for batch in data_loader:
             # Simulate no edge and triangle features to test init layer
+            # print("Edges", len(batch.chains[1].x))
             batch.chains[1].x = None
             if len(batch.chains) == 3:
                 batch.chains[2].x = None
@@ -77,7 +78,7 @@ def test_zinc_sparse_sin0_model_with_batching():
                         print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
-def test_sparse_sin0_model_with_batching_on_proteins():
+def test_zinc_sparse_sin0_model_with_batching_on_proteins():
     """Check this runs without errors and that batching and no batching produce the same output."""
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113
@@ -85,15 +86,21 @@ def test_sparse_sin0_model_with_batching_on_proteins():
     dataset = dataset[split_idx['valid']]
     assert len(dataset) == 111
 
-    max_dim = 3
+    max_dim = 2
     torch.manual_seed(0)
     data_loader = DataLoader(dataset, batch_size=32, max_dim=max_dim)
-    model = SparseSIN(num_input_features=dataset.num_features_in_dim(0),
-        num_classes=2, num_layers=3, hidden=5, jump_mode=None, max_dim=max_dim)
+    model = ZincSparseSIN(embed_dict_size=64, num_input_features=5, num_classes=3, num_layers=3,
+            hidden=5, jump_mode='cat', max_dim=max_dim)
     model.eval()
 
     batched_res = {}
     for batch in data_loader:
+        # Simulate no edge and triangle features to test init layer
+        # print("Edges", len(batch.chains[1].x))
+        batch.chains[1].x = None
+        if len(batch.chains) == 3:
+            batch.chains[2].x = None
+
         batched_pred, res = model.forward(batch, include_partial=True)
         for key in res:
             if key not in batched_res:
@@ -106,8 +113,14 @@ def test_sparse_sin0_model_with_batching_on_proteins():
     unbatched_res = {}
     for complex in dataset:
         # print(f"Complex dim {complex.dimension}")
-        pred, res = model.forward(ComplexBatch.from_complex_list([complex], max_dim=max_dim),
-            include_partial=True)
+        batch = ComplexBatch.from_complex_list([complex], max_dim=max_dim)
+        # Simulate no edge and triangle features to test init layer
+        # print("Edges", len(batch.chains[1].x))
+        batch.chains[1].x = None
+        if len(batch.chains) == 3:
+            batch.chains[2].x = None
+
+        pred, res = model.forward(batch, include_partial=True)
         for key in res:
             if key not in unbatched_res:
                 unbatched_res[key] = []
