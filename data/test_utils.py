@@ -731,7 +731,7 @@ def test_ring_2complex_dataset_conversion(house_edge_index):
         assert torch.equal(complexes[i].y, house1.y)
         
         
-def test_ring_2complex_dataset_conversion(house_edge_index):    
+def test_ring_2complex_dataset_conversion_with_edge_feats(house_edge_index):    
     edge_attr = torch.FloatTensor(
                         [[0.0, 1.0],
                          [0.0, 3.0],
