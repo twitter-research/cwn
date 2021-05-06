@@ -443,9 +443,265 @@ def test_construction_of_ring_2complex(house_edge_index):
                                           [1, 0]],
                                          dtype=torch.long)
     assert torch.equal(t_params.down_index, expected_t_down_index)
+    expected_t_down_attr = torch.tensor([[5], [5]], dtype=torch.float)
+    assert torch.equal(t_params.kwargs['down_attr'], expected_t_down_attr)
+    
     assert t_params.up_index is None
     assert torch.equal(t_params.kwargs['face_attr'], expected_e_x)
     expected_t_face_index = torch.tensor([[0, 1, 2, 3, 3, 4, 5],
                                           [0, 0, 0, 0, 1, 1, 1]], dtype=torch.long)
     assert torch.equal(t_params.kwargs['face_index'], expected_t_face_index)
     assert torch.equal(house_complex.y, house.y)
+    
+
+def test_construction_of_ring_2complex_with_edge_feats(house_edge_index):
+    
+    '''
+        4
+       / \
+      3---2
+      |   |
+      0---1 
+    
+        .
+       5 4
+      . 3 .
+      1   2
+      . 0 . 
+     
+        .
+       /0\
+      .---.
+      | 1 |
+      .---. 
+    '''
+    
+    edge_attr = torch.FloatTensor(
+                            [[0.0, 1.0],
+                             [0.0, 3.0],
+                             [0.0, 1.0],
+                             [1.0, 2.0],
+                             [1.0, 2.0],
+                             [2.0, 3.0],
+                             [2.0, 4.0],
+                             [0.0, 3.0],
+                             [2.0, 3.0],
+                             [3.0, 4.0],
+                             [2.0, 4.0],
+                             [3.0, 4.0]])
+    
+    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]),
+                 edge_attr=edge_attr)
+    house.num_nodes = house_edge_index.max().item() + 1
+
+    house_complex = compute_ring_2complex(house.x, house.edge_index, house.edge_attr, house.num_nodes,
+                                          max_k=4, y=house.y, initialize_rings=False)
+
+    # Check the number of simplices
+    assert house_complex.nodes.num_simplices_down is None
+    assert house_complex.nodes.num_simplices_up == 6
+    assert house_complex.nodes.face_index is None
+    assert house_complex.edges.num_simplices_down == 5
+    assert house_complex.edges.num_simplices_up == 2
+    assert list(house_complex.edges.face_index.size()) == [2, 2*6]
+    assert house_complex.chains[2].num_simplices == 2
+    assert house_complex.chains[2].num_simplices_down == 6
+    assert house_complex.chains[2].num_simplices_up == 0
+    assert list(house_complex.chains[2].face_index.size()) == [2, 3+4]
+
+    # Check the returned parameters
+    v_params = house_complex.get_chain_params(dim=0)
+    assert torch.equal(v_params.x, house.x)
+    assert v_params.down_index is None
+
+    expected_v_up_index = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4],
+                                        [1, 0, 3, 0, 2, 1, 3, 2, 4, 2, 4, 3]], dtype=torch.long)
+    assert torch.equal(v_params.up_index, expected_v_up_index)
+
+    expected_v_up_attr = torch.tensor([[0.0, 1.0], [0.0, 1.0], [0.0, 3.0], [0.0, 3.0],
+                                       [1.0, 2.0], [1.0, 2.0], [2.0, 3.0], [2.0, 3.0],
+                                       [2.0, 4.0], [2.0, 4.0], [3.0, 4.0], [3.0, 4.0]], dtype=torch.float)
+    assert torch.equal(v_params.kwargs['up_attr'], expected_v_up_attr)
+    assert v_params.kwargs['down_attr'] is None
+    assert v_params.kwargs['face_attr'] is None
+
+    e_params = house_complex.get_chain_params(dim=1)
+    expected_e_x = torch.FloatTensor(
+                                [[0.0, 1.0],
+                                 [0.0, 3.0],
+                                 [1.0, 2.0],
+                                 [2.0, 3.0],
+                                 [2.0, 4.0],
+                                 [3.0, 4.0]])
+    assert torch.equal(e_params.x, expected_e_x)
+
+    expected_e_up_index = torch.tensor([[0, 1, 0, 2, 0, 3, 1, 2, 1, 3, 2, 3, 3, 4, 3, 5, 4, 5],
+                                        [1, 0, 2, 0, 3, 0, 2, 1, 3, 1, 3, 2, 4, 3, 5, 3, 5, 4]], dtype=torch.long)
+    assert torch.equal(e_params.up_index, expected_e_up_index)
+    assert e_params.kwargs['up_attr'] is None
+
+    expected_e_down_index = torch.tensor([[0, 1, 0, 2, 2, 3, 2, 4, 3, 4, 1, 3, 1, 5, 3, 5, 4, 5],
+                                          [1, 0, 2, 0, 3, 2, 4, 2, 4, 3, 3, 1, 5, 1, 5, 3, 5, 4]],
+                                         dtype=torch.long)
+    assert torch.equal(e_params.down_index, expected_e_down_index)
+    expected_e_down_attr = torch.tensor([[0], [0], [1], [1], [2], [2], [2], [2], [2], [2],
+                                         [3], [3], [3], [3], [3], [3], [4], [4]],
+                                        dtype=torch.float)
+    assert torch.equal(e_params.kwargs['down_attr'], expected_e_down_attr)
+
+    assert torch.equal(e_params.kwargs['face_attr'], house.x)
+    assert list(e_params.kwargs['face_index'].size()) == [2, 2*house_complex.edges.num_simplices]
+    assert torch.equal(e_params.kwargs['face_index'][1], torch.LongTensor([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]))
+    assert torch.equal(e_params.kwargs['face_index'][0], torch.LongTensor([0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4]))
+
+    t_params = house_complex.get_chain_params(dim=2)
+    assert t_params.x is None
+    expected_t_down_index = torch.tensor([[0, 1],
+                                          [1, 0]],
+                                         dtype=torch.long)
+    assert torch.equal(t_params.down_index, expected_t_down_index)
+    expected_t_down_attr = torch.tensor([[2.0, 3.0], [2.0, 3.0]], dtype=torch.float)
+    assert torch.equal(t_params.kwargs['down_attr'], expected_t_down_attr)
+    
+    assert t_params.up_index is None
+    assert torch.equal(t_params.kwargs['face_attr'], expected_e_x)
+    expected_t_face_index = torch.tensor([[0, 1, 2, 3, 3, 4, 5],
+                                          [0, 0, 0, 0, 1, 1, 1]], dtype=torch.long)
+    assert torch.equal(t_params.kwargs['face_index'], expected_t_face_index)
+    assert torch.equal(house_complex.y, house.y)
+
+
+def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
+    
+    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house.num_nodes = house_edge_index.max().item() + 1
+
+    house_cell_a = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
+                                         max_k=4, y=house.y, initialize_rings=True)
+    house_cell_b = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
+                                         max_k=10, y=house.y, initialize_rings=True)
+
+    # Check the number of simplices
+    assert house_cell_a.nodes.num_simplices_down is None
+    assert house_cell_b.nodes.num_simplices_down is None
+    assert house_cell_a.nodes.num_simplices_up == house_cell_b.nodes.num_simplices_up
+    assert house_cell_a.nodes.face_index is None
+    assert house_cell_b.nodes.face_index is None
+    assert house_cell_a.edges.num_simplices_down == house_cell_b.edges.num_simplices_down
+    assert house_cell_a.edges.num_simplices_up == house_cell_b.edges.num_simplices_up
+    assert list(house_cell_a.edges.face_index.size()) == list(house_cell_b.edges.face_index.size())
+    assert house_cell_a.triangles.num_simplices == house_cell_b.triangles.num_simplices
+    assert house_cell_a.triangles.num_simplices_down == house_cell_b.triangles.num_simplices_down
+    assert house_cell_a.triangles.num_simplices_up == house_cell_b.triangles.num_simplices_up
+    assert list(house_cell_a.triangles.face_index.size()) == list(house_cell_b.triangles.face_index.size())
+
+    # Check the returned node parameters
+    v_params_a = house_cell_a.get_chain_params(dim=0)
+    v_params_b = house_cell_b.get_chain_params(dim=0)
+    assert torch.equal(v_params_a.x, v_params_b.x)
+    assert v_params_a.down_index is None
+    assert v_params_b.down_index is None
+    assert torch.equal(v_params_a.up_index, v_params_b.up_index)
+    assert torch.equal(v_params_a.kwargs['up_attr'], v_params_b.kwargs['up_attr'])
+    assert v_params_a.kwargs['down_attr'] is None
+    assert v_params_b.kwargs['down_attr'] is None
+    assert v_params_a.kwargs['face_attr'] is None
+    assert v_params_b.kwargs['face_attr'] is None
+
+    # Check the returned edge parameters
+    e_params_a = house_cell_a.get_chain_params(dim=1)
+    e_params_b = house_cell_b.get_chain_params(dim=1)
+    assert torch.equal(e_params_a.x, e_params_b.x)
+    assert torch.equal(e_params_a.up_index, e_params_b.up_index)
+    assert torch.equal(e_params_a.kwargs['up_attr'], e_params_b.kwargs['up_attr'])
+    assert torch.equal(e_params_a.down_index, e_params_b.down_index)
+    assert torch.equal(e_params_a.kwargs['down_attr'], e_params_b.kwargs['down_attr'])
+    assert torch.equal(e_params_a.kwargs['face_attr'], e_params_b.kwargs['face_attr'])
+    assert list(e_params_a.kwargs['face_index'].size()) == list(e_params_b.kwargs['face_index'].size())
+    assert torch.equal(e_params_a.kwargs['face_index'][1], e_params_b.kwargs['face_index'][1])
+    assert torch.equal(e_params_a.kwargs['face_index'][0], e_params_b.kwargs['face_index'][0])
+
+    # Check the returned ring parameters
+    t_params_a = house_cell_a.get_chain_params(dim=2)
+    t_params_b = house_cell_b.get_chain_params(dim=2)
+    assert torch.equal(t_params_a.x, t_params_b.x)
+    assert torch.equal(t_params_a.down_index, t_params_b.down_index)
+    assert torch.equal(t_params_a.kwargs['down_attr'], t_params_b.kwargs['down_attr'])
+    assert t_params_a.up_index is None
+    assert t_params_b.up_index is None
+    assert t_params_a.kwargs['up_attr'] is None
+    assert t_params_b.kwargs['up_attr'] is None
+    assert torch.equal(t_params_a.kwargs['face_attr'], t_params_b.kwargs['face_attr'])
+    assert torch.equal(t_params_a.kwargs['face_index'], t_params_b.kwargs['face_index'])
+    
+    # Check label
+    assert torch.equal(house_cell_a.y, house_cell_b.y)
+
+
+def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
+    
+    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house.num_nodes = house_edge_index.max().item() + 1
+
+    house_cell = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
+                                       max_k=3, y=house.y, initialize_rings=True)
+    house_simp = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes,
+                                                   y=house.y)
+
+    # Check the number of simplices
+    assert house_cell.nodes.num_simplices_down is None
+    assert house_simp.nodes.num_simplices_down is None
+    assert house_cell.nodes.num_simplices_up == house_simp.nodes.num_simplices_up
+    assert house_cell.nodes.face_index is None
+    assert house_simp.nodes.face_index is None
+    assert house_cell.edges.num_simplices_down == house_simp.edges.num_simplices_down
+    assert house_cell.edges.num_simplices_up == house_simp.edges.num_simplices_up
+    assert list(house_cell.edges.face_index.size()) == list(house_simp.edges.face_index.size())
+    assert house_cell.triangles.num_simplices == house_simp.triangles.num_simplices
+    assert house_cell.triangles.num_simplices_down == house_simp.triangles.num_simplices_down
+    assert house_cell.triangles.num_simplices_up == house_simp.triangles.num_simplices_up
+    assert list(house_cell.triangles.face_index.size()) == list(house_simp.triangles.face_index.size())
+
+    # Check the returned node parameters
+    v_params_a = house_cell.get_chain_params(dim=0)
+    v_params_b = house_simp.get_chain_params(dim=0)
+    assert torch.equal(v_params_a.x, v_params_b.x)
+    assert v_params_a.down_index is None
+    assert v_params_b.down_index is None
+    assert torch.equal(v_params_a.up_index, v_params_b.up_index)
+    assert torch.equal(v_params_a.kwargs['up_attr'], v_params_b.kwargs['up_attr'])
+    assert v_params_a.kwargs['down_attr'] is None
+    assert v_params_b.kwargs['down_attr'] is None
+    assert v_params_a.kwargs['face_attr'] is None
+    assert v_params_b.kwargs['face_attr'] is None
+
+    # Check the returned edge parameters
+    e_params_a = house_cell.get_chain_params(dim=1)
+    e_params_b = house_simp.get_chain_params(dim=1)
+    assert torch.equal(e_params_a.x, e_params_b.x)
+    assert torch.equal(e_params_a.up_index, e_params_b.up_index)
+    assert torch.equal(e_params_a.kwargs['up_attr'], e_params_b.kwargs['up_attr'])
+    assert torch.equal(e_params_a.down_index, e_params_b.down_index)
+    assert torch.equal(e_params_a.kwargs['down_attr'], e_params_b.kwargs['down_attr'])
+    assert torch.equal(e_params_a.kwargs['face_attr'], e_params_b.kwargs['face_attr'])
+    assert list(e_params_a.kwargs['face_index'].size()) == list(e_params_b.kwargs['face_index'].size())
+    assert torch.equal(e_params_a.kwargs['face_index'][1], e_params_b.kwargs['face_index'][1])
+    assert torch.equal(e_params_a.kwargs['face_index'][0], e_params_b.kwargs['face_index'][0])
+
+    # Check the returned ring parameters
+    t_params_a = house_cell.get_chain_params(dim=2)
+    t_params_b = house_simp.get_chain_params(dim=2)
+    assert torch.equal(t_params_a.x, t_params_b.x)
+    assert t_params_a.down_index is None
+    assert t_params_b.down_index is None
+    assert t_params_a.kwargs['down_attr'] is None
+    assert t_params_b.kwargs['down_attr'] is None
+    assert t_params_a.up_index is None
+    assert t_params_b.up_index is None
+    assert t_params_a.kwargs['up_attr'] is None
+    assert t_params_b.kwargs['up_attr'] is None
+    assert torch.equal(t_params_a.kwargs['face_attr'], t_params_b.kwargs['face_attr'])
+    assert torch.equal(t_params_a.kwargs['face_index'], t_params_b.kwargs['face_index'])
+    
+    # Check label
+    assert torch.equal(house_cell.y, house_simp.y)

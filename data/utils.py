@@ -752,9 +752,10 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
         edge_feats = []
         assert len(simplex_tables[1]) == max_id + 1
         for id in range(max_id + 1):
-            edge_feats.append(ex[id])    
-        xs[1] = torch.FloatTensor(edge_feats)
-        
+            edge_feats.append(ex[id])  
+        xs[1] = torch.stack(edge_feats, 0)
+
+    print(xs[1])
     if not initialize_rings:
         xs[2] = None
 
