@@ -2,7 +2,8 @@ import torch
 import torch.optim as optim
 
 from mp.layers import (
-    DummySimplicialMessagePassing, SINConv, SINChainConv, OrientedConv, InitReduceConv)
+    DummySimplicialMessagePassing, SINConv, SINChainConv, OrientedConv, InitReduceConv,
+    EmbedVEWithReduce)
 from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
 from data.datasets.flow import load_flow_dataset
@@ -133,13 +134,43 @@ def test_orient_conv_on_flow_dataset():
     assert out.size(1) == 4
 
 
-def test_init_reduce_conv():
+def test_init_reduce_conv_on_house_complex():
     house_complex = get_house_complex()
     v_params = house_complex.get_chain_params(dim=0)
     e_params = house_complex.get_chain_params(dim=1)
     t_params = house_complex.get_chain_params(dim=2)
 
     conv = InitReduceConv(reduce='add')
-    print("face index", e_params.face_index.size())
+
     ex = conv.forward(v_params.x, e_params.face_index)
+    expected_ex = torch.tensor([[3], [5], [7], [5], [9], [8]], dtype=torch.float)
+    assert torch.equal(expected_ex, ex)
+
+    tx = conv.forward(e_params.x, t_params.face_index)
+    expected_tx = torch.tensor([[14]], dtype=torch.float)
+    assert torch.equal(expected_tx, tx)
+
+
+def test_embed_with_reduce_layer_on_house_complex():
+    house_complex = get_house_complex()
+    chains = house_complex.chains
+    params = house_complex.get_all_chain_params()
+
+    embed_layer = nn.Embedding(num_embeddings=32, embedding_dim=10)
+    init_reduce = InitReduceConv()
+    conv = EmbedVEWithReduce(embed_layer, None, init_reduce)
+
+    # Simulate the lack of features in these dimensions.
+    params[1].x = None
+    params[2].x = None
+
+    xs = conv.forward(*params)
+
+    assert xs[0].size(0) == chains[0].num_simplices
+    assert xs[0].size(1) == 10
+    assert xs[1].size(0) == chains[1].num_simplices
+    assert xs[1].size(1) == 10
+    assert xs[2].size(0) == chains[2].num_simplices
+    assert xs[2].size(1) == 10
+
 
