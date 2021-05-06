@@ -346,8 +346,9 @@ class InitReduceConv(torch.nn.Module):
         self.out_size = out_size
 
     def forward(self, face_x, face_index):
-        out_size = self.out_size or face_index[1, :].max()+1
-        return scatter(face_x, face_index, dim=0, dim_size=out_size, reduce=self.reduce)
+        features = face_x.index_select(0, face_index[0])
+        out_size = self.out_size or face_index[1, :].max().item()+1
+        return scatter(features, face_index[1], dim=0, dim_size=out_size, reduce=self.reduce)
 
 
 class EmbedVEWithReduce(torch.nn.Module):
@@ -374,16 +375,20 @@ class EmbedVEWithReduce(torch.nn.Module):
         c_params = chain_params[2] if len(chain_params) == 3 else None
 
         assert v_params.x is not None
-        v_params.x = self.v_embed_layer(v_params.x)
+        # The embedding layer expects integers so we convert the tensor to int.
+        print(v_params.x.size())
+        vx = self.v_embed_layer(v_params.x.squeeze().to(dtype=torch.long))
+        print(vx.size())
 
         if e_params.x is None:
-            e_params.x = self.init_reduce(v_params.x, e_params.face_index)
+            ex = self.init_reduce(vx, e_params.face_index)
         else:
-            e_params.x = self.e_embed_layer(e_params.x)
+            ex = self.e_embed_layer(e_params.x)
 
         if c_params is not None:
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
-            c_params.x = self.init_reduce(e_params.x, c_params.face_index) / 2.
+            cx = self.init_reduce(ex, c_params.face_index) / 2.
+            return vx, ex, cx
 
-        return chain_params
+        return vx, ex

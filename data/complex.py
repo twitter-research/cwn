@@ -86,7 +86,8 @@ class Chain(object):
 
     @x.setter
     def x(self, new_x):
-        assert len(self.x) == len(new_x)
+        if new_x is not None:
+            assert self.num_simplices == len(new_x)
         self.__x = new_x
 
     @property
