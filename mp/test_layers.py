@@ -63,6 +63,8 @@ def test_dummy_simplicial_message_passing_on_molecular_cell_complex():
         dtype=torch.float)
     assert torch.equal(e_x, expected_e_x)
 
+    # The first cell feature is given by 1[x] + 0[up] + (2+2)[down] + (1+2+3+4)[faces] = 15
+    # The 2nd cell is given by 2[x] + 0[up] + (1+2)[down] + (2+5+6+7+8)[faces] = 33
     expected_ring_x = torch.tensor([[15], [33]], dtype=torch.float)
     assert torch.equal(ring_x, expected_ring_x)
 
