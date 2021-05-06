@@ -2,7 +2,7 @@ import torch
 import torch.optim as optim
 
 from mp.layers import DummySimplicialMessagePassing, SINConv, SINChainConv, OrientedConv
-from data.dummy_complexes import get_house_complex, get_square_dot_complex
+from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
 from data.datasets.flow import load_flow_dataset
 import torch.nn.functional as F
@@ -44,6 +44,29 @@ def test_dummy_simplicial_message_passing_with_face_msg():
 
     expected_t_x = torch.tensor([[15]], dtype=torch.float)
     assert torch.equal(t_x, expected_t_x)
+
+
+def test_dummy_simplicial_message_passing_on_molecular_cell_complex():
+    molecular_complex = get_molecular_complex()
+    v_params = molecular_complex.get_chain_params(dim=0)
+    e_params = molecular_complex.get_chain_params(dim=1)
+    ring_params = molecular_complex.get_chain_params(dim=2)
+
+    dsmp = DummySimplicialMessagePassing(use_face_msg=True, use_down_msg=True)
+    v_x, e_x, ring_x = dsmp.forward(v_params, e_params, ring_params)
+
+    expected_v_x = torch.tensor([[12], [24], [24], [15], [25], [31], [47], [24]],
+        dtype=torch.float)
+    assert torch.equal(v_x, expected_v_x)
+
+    expected_e_x = torch.tensor([[35], [79], [41], [27], [66], [70], [92], [82], [53]],
+        dtype=torch.float)
+    assert torch.equal(e_x, expected_e_x)
+
+    # The first cell feature is given by 1[x] + 0[up] + (2+2)[down] + (1+2+3+4)[faces] = 15
+    # The 2nd cell is given by 2[x] + 0[up] + (1+2)[down] + (2+5+6+7+8)[faces] = 33
+    expected_ring_x = torch.tensor([[15], [33]], dtype=torch.float)
+    assert torch.equal(ring_x, expected_ring_x)
 
 
 def test_sin_conv_training():
