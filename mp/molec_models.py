@@ -99,6 +99,7 @@ class ZincSparseSIN(torch.nn.Module):
         xs, jump_xs = None, None
         res = {}
 
+        # Check input node features are scalars.
         assert data.chains[0].x.size(-1) == 1
 
         # Embed and populate higher-levels
@@ -161,5 +162,4 @@ class ZincSparseSIN(torch.nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__
-
 
