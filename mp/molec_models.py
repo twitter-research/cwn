@@ -71,6 +71,7 @@ class ZincSparseSIN(torch.nn.Module):
         if self.jump_mode is not None:
             self.jump.reset_parameters()
         self.lin1s.reset_parameters()
+        self.lin2.reset_parameters()
 
     def pool_complex(self, xs, data):
         # All complexes have nodes so we can extract the batch size from chains[0]
@@ -99,8 +100,10 @@ class ZincSparseSIN(torch.nn.Module):
         xs, jump_xs = None, None
         res = {}
 
-        # Check input node features are scalars.
+        # Check input node/edge features are scalars.
         assert data.chains[0].x.size(-1) == 1
+        if data.chains[1].x is not None:
+            assert data.chains[1].x.size(-1) == 1
 
         # Embed and populate higher-levels
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
