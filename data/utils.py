@@ -372,7 +372,6 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_d
     return faces_tables, faces, cofaces
 
 
-# TODO: we should probably remove the "gudhi" suffix here.
 def build_adj(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], complex_dim: int,
               include_down_adj: bool):
     """Builds the upper and lower adjacency data structures of the complex
@@ -672,7 +671,7 @@ def extract_faces_and_cofaces_with_rings(simplex_tree, id_maps):
 def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor],
                           size: int, y: Tensor = None, max_k: int = 7,
                           include_down_adj=True, init_method: str = 'sum',
-                          initialize_rings=False) -> Complex:
+                          init_edges=True, init_rings=False) -> Complex:
     """Generates a ring 2-complex of a pyG graph via graph-tool.
 
     Args:
@@ -687,8 +686,6 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     """
     assert x is not None
     assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
-    if edge_attr is not None:
-        assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
 
     # Creates the gudhi-based simplicial complex up to edges
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
@@ -707,10 +704,12 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
                                                                    len(id_maps)-1, include_down_adj)
     
     # Construct features for the higher dimensions
-    xs = construct_features(x, simplex_tables, init_method)
-    
+    xs = [x, None, None]
+    if (edge_attr is None and init_edges) or init_rings:
+              xs = construct_features(x, simplex_tables, init_method)
+
     # If we have edge-features we simply use them for 1-cells
-    if edge_attr is not None:
+    if edge_attr is not None and init_edges:
         
         # Retrieve feats and check edge features are undirected
         ex = dict()
@@ -731,10 +730,8 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
         for id in range(max_id + 1):
             edge_feats.append(ex[id])  
         xs[1] = torch.stack(edge_feats, 0)
-        assert xs[1].size(0) == len(id_maps[1]) and xs[1].size(1) == edge_attr.size(1)
-
-    if not initialize_rings:
-        xs[2] = None
+        assert xs[1].size(0) == len(id_maps[1])
+        assert xs[1].size(1) == edge_attr.size(1)
 
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)

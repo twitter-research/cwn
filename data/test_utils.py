@@ -382,7 +382,7 @@ def test_construction_of_ring_2complex(house_edge_index):
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_complex = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
-                                          max_k=4, y=house.y, initialize_rings=True)
+                                          max_k=4, y=house.y, init_rings=True)
 
     # Check the number of simplices
     assert house_complex.nodes.num_simplices_down is None
@@ -495,7 +495,7 @@ def test_construction_of_ring_2complex_with_edge_feats(house_edge_index):
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_complex = compute_ring_2complex(house.x, house.edge_index, house.edge_attr, house.num_nodes,
-                                          max_k=4, y=house.y, initialize_rings=False)
+                                          max_k=4, y=house.y, init_rings=False)
 
     # Check the number of simplices
     assert house_complex.nodes.num_simplices_down is None
@@ -580,9 +580,9 @@ def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_cell_a = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
-                                         max_k=4, y=house.y, initialize_rings=True)
+                                         max_k=4, y=house.y, init_rings=True)
     house_cell_b = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
-                                         max_k=10, y=house.y, initialize_rings=True)
+                                         max_k=10, y=house.y, init_rings=True)
 
     # Check the number of simplices
     assert house_cell_a.nodes.num_simplices_down is None
@@ -650,7 +650,7 @@ def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_cell = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
-                                       max_k=3, y=house.y, initialize_rings=True)
+                                       max_k=3, y=house.y, init_rings=True)
     house_simp = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes,
                                                    y=house.y)
 
