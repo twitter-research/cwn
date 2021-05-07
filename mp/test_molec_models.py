@@ -63,16 +63,8 @@ def test_zinc_sparse_sin0_model_with_batching():
             unbatched_res[key] = torch.cat(unbatched_res[key], dim=0)
 
         for key in set(list(unbatched_res.keys()) + list(batched_res.keys())):
-            if key == 'out':
-                # This seems to have some numerical errors on some seeds.
-                # After investigations, this seems to be related to the last linear layers of the model
-                # Probably because the magnitude of the levels is different, this causes instabilities.
-                # The absolute tolerance should be adjusted if the test becomes flaky.
-                assert (torch.allclose(unbatched_res[key], batched_res[key]),
-                        print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
-            else:
-                assert (torch.allclose(unbatched_res[key], batched_res[key]),
-                        print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
+            assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-5), (
+                    print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
 def test_zinc_sparse_sin0_model_with_batching_on_proteins():
@@ -131,15 +123,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
         unbatched_res[key] = torch.cat(unbatched_res[key], dim=0)
 
     for key in set(list(unbatched_res.keys()) + list(batched_res.keys())):
-        if key == 'out':
-            # This seems to have some numerical errors on some seeds.
-            # After investigations, this seems to be related to the last linear layers of the model
-            # Probably because the magnitude of the levels is different, this causes instabilities.
-            # The absolute tolerance should be adjusted if the test becomes flaky.
-            assert (torch.allclose(unbatched_res[key], batched_res[key]),
-                    print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
-        else:
-            assert (torch.allclose(unbatched_res[key], batched_res[key]),
+        assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-5), (
                 print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
