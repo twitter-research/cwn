@@ -7,6 +7,7 @@ import itertools
 import graph_tool as gt
 import graph_tool.topology as top
 import networkx as nx
+import numpy as np
 
 from tqdm import tqdm
 from data.complex import Chain, Complex
@@ -14,7 +15,7 @@ from collections import OrderedDict
 from typing import List, Dict, Optional
 from torch import Tensor
 from torch_geometric.typing import Adj
-
+from torch_scatter import scatter
 
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
@@ -409,48 +410,21 @@ def build_adj(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], compl
 
     return all_shared_faces, all_shared_cofaces, lower_indexes, upper_indexes
 
-# This code can be made more general to work with cell complexes out-of-the-box (see below)
-# def construct_features_(vx: Tensor, simplex_tables, init_method: str):
-#     """Combines the features of the component vertices to initialise the simplex features"""
-#     features = [vx]
-#     for dim in range(1, len(simplex_tables)):
-#         nodes = torch.tensor(simplex_tables[dim], dtype=torch.long).view(-1,)
-#         # This has shape [simplices * (dim+1), node_feature_dim]
-#         node_features = torch.index_select(vx, 0, nodes)
-#         # Reshape to [simplices, (dim+1), node_feature_dim]
-#         node_features = node_features.view(len(simplex_tables[dim]), dim+1, -1)
-#         # Reduce along the simplex dimension containing the features of the vertices of the simplex
-#         if init_method == 'sum':
-#             features.append(node_features.sum(dim=1))
-#         elif init_method == 'mean':
-#             features.append(node_features.mean(dim=1))
-#         else:
-#             raise ValueError(f'Init method {init_method} is not supported now.')
-
-#     return features
 
 def construct_features(vx: Tensor, cell_tables, init_method: str):
     """Combines the features of the component vertices to initialise the cell features"""
     features = [vx]
     for dim in range(1, len(cell_tables)):
-        cell_features = list()
-        for cell in cell_tables[dim]:
-            nodes = torch.tensor([cell], dtype=torch.long).view(-1,)
-            # This has shape [1 * cell_length, node_feature_dim]
-            node_features = torch.index_select(vx, 0, nodes)
-            # Reshape to [1, cell_length, node_feature_dim]
-            node_features = node_features.view(1, len(cell), -1)
-            # Reduce along the cell dimension containing the features of the vertices of the cell
-            if init_method == 'sum':
-                cell_features.append(node_features.sum(dim=1))
-            elif init_method == 'mean':
-                cell_features.append(node_features.mean(dim=1))
-            else:
-                raise ValueError(f'Init method {init_method} is not supported now.')
-        features.append(torch.cat(cell_features, 0))
+        aux_1 = []
+        aux_0 = []
+        for c, cell in enumerate(cell_tables[dim]):
+            aux_1 += [c for _ in range(len(cell))]
+            aux_0 += cell
+        node_cell_index = torch.LongTensor([aux_0, aux_1])
+        in_features = vx.index_select(0, node_cell_index[0])
+        features.append(scatter(in_features, node_cell_index[1], dim=0, dim_size=len(cell_tables[dim]), reduce=init_method))
 
     return features
-
 
 
 def extract_labels(y, size):
@@ -606,6 +580,10 @@ def get_rings(edge_index, max_k=7):
     gt.stats.remove_parallel_edges(graph_gt)
     # We represent rings with their original node ordering
     # so that we can easily read out the faces
+    # The use of the `sorted_rings` set allows to discard
+    # different isomorphisms which are however associated
+    # to the same original ring – this happens due to the intrinsic
+    # symmetries of cycles
     rings = set()
     sorted_rings = set()
     for k in range(3, max_k+1):
@@ -753,6 +731,7 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
         for id in range(max_id + 1):
             edge_feats.append(ex[id])  
         xs[1] = torch.stack(edge_feats, 0)
+        assert xs[1].size(0) == len(id_maps[1]) and xs[1].size(1) == edge_attr.size(1)
 
     if not initialize_rings:
         xs[2] = None
