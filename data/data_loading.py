@@ -81,22 +81,22 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     elif name == 'IMDBBINARY':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=True, init_method=init_method)
+            fold=fold, degree_as_tag=True, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'IMDBMULTI':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=3,
-            fold=fold, degree_as_tag=True, init_method=init_method) 
+            fold=fold, degree_as_tag=True, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None)) 
     elif name == 'REDDITBINARY':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method)
+            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'REDDITMULTI5K':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=5,
-            fold=fold, degree_as_tag=False, init_method=init_method)
+            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'PROTEINS':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method)
+            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'NCI1':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method)
+            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'FLOW':
         dataset = FlowDataset(os.path.join(root, name), name, num_points=kwargs['flow_points'],
             train_samples=1000, val_samples=200, classes=kwargs['flow_classes'])

@@ -4,7 +4,7 @@ import numpy as np
 from definitions import ROOT_DIR
 
 from data.tu_utils import load_data, S2V_to_PyG, get_fold_indices
-from data.utils import convert_graph_dataset_with_gudhi
+from data.utils import convert_graph_dataset_with_gudhi, convert_graph_dataset_with_rings
 from data.datasets import InMemoryComplexDataset
 
 def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_as_tag=False, fold=0, seed=0):
@@ -34,11 +34,17 @@ def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_
 class TUDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, max_dim=2, num_classes=2, degree_as_tag=False, fold=0,
-                 init_method='sum', seed=0):
+                 init_method='sum', seed=0, max_ring_size=None):
         self.name = name
         self.degree_as_tag = degree_as_tag
+        if max_ring_size is not None and max_ring_size <= 3:
+            max_ring_size = None
+        self._max_ring_size = max_ring_size
+        cellular = (max_ring_size is not None)
+        if cellular:
+            max_dim = 2
         super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
-            init_method=init_method)
+            init_method=init_method, cellular=cellular)
 
         with open(self.processed_paths[0], 'rb') as handle:
             self._data_list = pickle.load(handle)
@@ -64,6 +70,12 @@ class TUDataset(InMemoryComplexDataset):
         # self.tune_val_ids = np.loadtxt(tune_test_filename, dtype=int).tolist()
         # self.tune_test_ids = None
 
+    @property
+    def processed_dir(self):
+        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        directory = super(TUDataset, self).processed_dir
+        suffix = "_{}rings".format(self._max_ring_size) if self._cellular else ""
+        return directory + suffix
             
     @property
     def processed_file_names(self):
@@ -88,10 +100,19 @@ class TUDataset(InMemoryComplexDataset):
         with open(self.raw_paths[0], 'rb') as handle:
             graph_list = pickle.load(handle)        
         
-        print("Converting the dataset with gudhi...")
-        complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim,
-                                                           include_down_adj=self.include_down_adj)
-        
+        if self._cellular:
+            print("Converting the dataset accounting for rings...")
+            complexes, _, _ = convert_graph_dataset_with_rings(graph_list, max_ring_size=self._max_ring_size,
+                                                               include_down_adj=self.include_down_adj,
+                                                               init_method=self._init_method,
+                                                               initialize_rings=True)
+        else:
+            print("Converting the dataset with gudhi...")
+            # What about the init_method here? Adding now, although I remember we had handled this
+            complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim,
+                                                               include_down_adj=self.include_down_adj,
+                                                               init_method=self._init_method)
+
         with open(self.processed_paths[0], 'wb') as handle:
             pickle.dump(complexes, handle)
 
