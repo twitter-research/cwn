@@ -4,6 +4,9 @@ import itertools as it
 import torch
 import gudhi as gd
 import itertools
+import graph_tool as gt
+import graph_tool.topology as top
+import networkx as nx
 
 from tqdm import tqdm
 from data.complex import Chain, Complex
@@ -369,8 +372,8 @@ def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_d
 
 
 # TODO: we should probably remove the "gudhi" suffix here.
-def build_adj_gudhi(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], complex_dim: int,
-                    include_down_adj: bool):
+def build_adj(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], complex_dim: int,
+              include_down_adj: bool):
     """Builds the upper and lower adjacency data structures of the complex
 
     Args:
@@ -548,9 +551,8 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
         extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_dim))
 
     # Computes the adjacencies between all the simplexes in the complex
-    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps,
-                                                                         complex_dim,
-                                                                         include_down_adj)
+    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj(faces, co_faces, id_maps,
+                                                                   complex_dim, include_down_adj)
 
     # Construct features for the higher dimensions
     # TODO: Make this handle edge features as well and add alternative options to compute this.
@@ -593,11 +595,6 @@ def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_a
 
 # ---- support for rings as cells
 
-import graph_tool as gt
-import graph_tool.topology as top
-import networkx as nx
-
-
 def get_rings(edge_index, max_k=7):
  
     edge_list = edge_index.numpy().T
@@ -616,9 +613,9 @@ def get_rings(edge_index, max_k=7):
         pattern_edge_list = list(pattern.edges)
         pattern_gt = gt.Graph(directed=False)
         pattern_gt.add_edge_list(pattern_edge_list)
-        sub_iso = top.subgraph_isomorphism(pattern_gt, graph_gt, induced=True, subgraph=True, 
+        sub_isos = top.subgraph_isomorphism(pattern_gt, graph_gt, induced=True, subgraph=True,
                                            generator=True)
-        sub_iso_sets = map(lambda x: tuple(x.a), sub_iso)
+        sub_iso_sets = map(lambda isomorphism: tuple(isomorphism.a), sub_isos)
         for iso in sub_iso_sets:
             if tuple(sorted(iso)) not in sorted_rings:
                 rings.add(iso)
@@ -636,14 +633,15 @@ def build_tables_with_rings(edge_index, simplex_tree, size, max_k):
     # Find rings in the graph
     rings = get_rings(edge_index, max_k=max_k)
     
-    # Extend the tables with rings as 2-cells
-    id_maps += [{}]
-    simplex_tables += [[]]
-    assert len(simplex_tables) == 3, simplex_tables
-    for cell in rings:
-        next_id = len(simplex_tables[2])
-        id_maps[2][cell] = next_id
-        simplex_tables[2].append(list(cell))
+    if len(rings) > 0:
+        # Extend the tables with rings as 2-cells
+        id_maps += [{}]
+        simplex_tables += [[]]
+        assert len(simplex_tables) == 3, simplex_tables
+        for cell in rings:
+            next_id = len(simplex_tables[2])
+            id_maps[2][cell] = next_id
+            simplex_tables[2].append(list(cell))
 
     return simplex_tables, id_maps
 
@@ -672,22 +670,23 @@ def extract_faces_and_cofaces_with_rings(simplex_tree, id_maps):
     faces_tables, faces, cofaces = extract_faces_and_cofaces_from_simplex_tree(
                                             simplex_tree, id_maps, simplex_tree.dimension())
     
-    # Extend tables with face and coface information of rings
-    complex_dim = 2
-    faces += [{}]
-    cofaces += [{}]
-    faces_tables += [[]]
-    for cell in id_maps[2]:
-        cell_faces = get_ring_faces(cell)
-        faces[2][cell] = list()
-        faces_tables[2].append([])
-        for face in cell_faces:
-            assert face in id_maps[1], face
-            faces[2][cell].append(face)
-            if face not in cofaces[1]:
-                cofaces[1][face] = list()
-            cofaces[1][face].append(cell)
-            faces_tables[2][-1].append(id_maps[1][face])
+    assert len(id_maps) <= 3
+    if len(id_maps) == 3:
+        # Extend tables with face and coface information of rings
+        faces += [{}]
+        cofaces += [{}]
+        faces_tables += [[]]
+        for cell in id_maps[2]:
+            cell_faces = get_ring_faces(cell)
+            faces[2][cell] = list()
+            faces_tables[2].append([])
+            for face in cell_faces:
+                assert face in id_maps[1], face
+                faces[2][cell].append(face)
+                if face not in cofaces[1]:
+                    cofaces[1][face] = list()
+                cofaces[1][face].append(cell)
+                faces_tables[2][-1].append(id_maps[1][face])
     
     return faces_tables, faces, cofaces
 
@@ -715,19 +714,19 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
 
     # Creates the gudhi-based simplicial complex up to edges
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
-    simplex_tree.expansion(1)  # Computes the clique complex up to the edge dim.
     assert simplex_tree.dimension() == 1
 
     # Builds tables of the simplicial complexes at each level and their IDs
     simplex_tables, id_maps = build_tables_with_rings(edge_index, simplex_tree, size, max_k)
+    assert len(id_maps) <= 3
 
     # Extracts the faces and cofaces of each simplex in the complex
     faces_tables, faces, co_faces = extract_faces_and_cofaces_with_rings(simplex_tree, id_maps)
 
     # Computes the adjacencies between all the simplexes in the complex;
     # here we force complex dimension to be 2
-    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj_gudhi(faces, co_faces, id_maps,
-                                                                         2, include_down_adj)
+    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj(faces, co_faces, id_maps,
+                                                                   len(id_maps)-1, include_down_adj)
     
     # Construct features for the higher dimensions
     xs = construct_features(x, simplex_tables, init_method)
@@ -735,7 +734,7 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     # If we have edge-features we simply use them for 1-cells
     if edge_attr is not None:
         
-        # Retrieve feats and check edge-symmetry
+        # Retrieve feats and check edge features are undirected
         ex = dict()
         for e, edge in enumerate(edge_index.numpy().T):
             canon_edge = tuple(sorted(edge))
@@ -755,7 +754,6 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
             edge_feats.append(ex[id])  
         xs[1] = torch.stack(edge_feats, 0)
 
-    print(xs[1])
     if not initialize_rings:
         xs[2] = None
 

@@ -573,6 +573,9 @@ def test_construction_of_ring_2complex_with_edge_feats(house_edge_index):
 
 def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
     
+    # Here we check that the max ring size does not have any effect when it is larger
+    # then the largest ring present in the original graph
+
     house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
@@ -639,7 +642,10 @@ def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
 
 
 def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
-    
+
+    # Here we check that when we consider rings up to length 3, then the output cell complex
+    # exactly corresponds to a 2-simplicial complex extracted with the alternative routine
+
     house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
