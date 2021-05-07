@@ -42,7 +42,7 @@ class TUDataset(InMemoryComplexDataset):
         self._max_ring_size = max_ring_size
         cellular = (max_ring_size is not None)
         if cellular:
-            max_dim = 2
+            assert max_dim == 2
         super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
             init_method=init_method, cellular=cellular)
 
@@ -105,7 +105,7 @@ class TUDataset(InMemoryComplexDataset):
             complexes, _, _ = convert_graph_dataset_with_rings(graph_list, max_ring_size=self._max_ring_size,
                                                                include_down_adj=self.include_down_adj,
                                                                init_method=self._init_method,
-                                                               initialize_rings=True)
+                                                               init_edges=True, init_rings=True)
         else:
             print("Converting the dataset with gudhi...")
             # What about the init_method here? Adding now, although I remember we had handled this

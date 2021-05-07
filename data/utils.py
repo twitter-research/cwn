@@ -694,6 +694,7 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     # Builds tables of the simplicial complexes at each level and their IDs
     simplex_tables, id_maps = build_tables_with_rings(edge_index, simplex_tree, size, max_k)
     assert len(id_maps) <= 3
+    complex_dim = len(id_maps)-1
 
     # Extracts the faces and cofaces of each simplex in the complex
     faces_tables, faces, co_faces = extract_faces_and_cofaces_with_rings(simplex_tree, id_maps)
@@ -701,7 +702,7 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     # Computes the adjacencies between all the simplexes in the complex;
     # here we force complex dimension to be 2
     shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj(faces, co_faces, id_maps,
-                                                                   len(id_maps)-1, include_down_adj)
+                                                                   complex_dim, include_down_adj)
     
     # Construct features for the higher dimensions
     xs = [x, None, None]
@@ -737,17 +738,17 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     v_y, complex_y = extract_labels(y, size)
 
     chains = []
-    for i in range(3):
+    for i in range(complex_dim + 1):
         y = v_y if i == 0 else None
         chain = generate_chain(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                               simplex_tables, faces_tables, complex_dim=2, y=y)
+                               simplex_tables, faces_tables, complex_dim=complex_dim, y=y)
         chains.append(chain)
 
-    return Complex(*chains, y=complex_y, dimension=2)
+    return Complex(*chains, y=complex_y, dimension=complex_dim)
 
 
 def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=True,
-                                     init_method: str = 'sum', initialize_rings=False):
+                                     init_method: str = 'sum', init_edges=True, init_rings=False):
     dimension = -1
     complexes = []
     num_features = [None, None, None]
@@ -756,7 +757,7 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
         complex = compute_ring_2complex(data.x, data.edge_index, data.edge_attr,
                                         data.num_nodes, y=data.y, max_k=max_ring_size,
                                         include_down_adj=include_down_adj, init_method=init_method,
-                                        initialize_rings=initialize_rings)
+                                        init_edges=init_edges, init_rings=init_rings)
         if complex.dimension > dimension:
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
