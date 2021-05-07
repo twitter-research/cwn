@@ -655,6 +655,46 @@ def test_batching_returns_the_same_features_on_proteins():
             assert xs[i] == batched_xs[i]
         else:
             assert torch.equal(batched_xs[i], xs[i])
+            
+        
+def test_batching_returns_the_same_features_on_ring_proteins():
+    dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean',
+                           max_ring_size=7)
+    assert len(dataset) == 1113
+    assert dataset.max_dim == 2
+    split_idx = dataset.get_idx_split()
+    dataset = dataset[split_idx['valid']]
+    assert len(dataset) == 111
+
+    batch_max_dim = 3
+    data_loader = DataLoader(dataset, batch_size=32, max_dim=batch_max_dim)
+
+    batched_x = [[] for _ in range(batch_max_dim+1)]
+    for batch in data_loader:
+        params = batch.get_all_chain_params()
+        assert len(params) <= batch_max_dim+1
+        for dim in range(len(params)):
+            batched_x[dim].append(params[dim].x)
+    batched_xs = [None for _ in range(batch_max_dim+1)]
+    for i in range(batch_max_dim+1):
+        if len(batched_x[i]) > 0:
+            batched_xs[i] = torch.cat(batched_x[i], dim=0)
+
+    x = [[] for _ in range(batch_max_dim+1)]
+    for complex in dataset:
+        params = complex.get_all_chain_params()
+        for dim in range(min(len(params), batch_max_dim+1)):
+            x[dim].append(params[dim].x)
+    xs = [None for _ in range(batch_max_dim+1)]
+    for i in range(batch_max_dim+1):
+        if len(x[i]) > 0:
+            xs[i] = torch.cat(x[i], dim=0)
+
+    for i in range(batch_max_dim+1):
+        if xs[i] is None or batched_xs[i] is None:
+            assert xs[i] == batched_xs[i]
+        else:
+            assert torch.equal(batched_xs[i], xs[i])
 
 
 def test_batching_returns_the_same_up_attr_on_proteins():

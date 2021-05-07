@@ -20,11 +20,13 @@ class ComplexDataset(Dataset, ABC):
     """
 
     def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None,
-                 max_dim: int = None, num_classes: int = None, init_method: str = 'sum'):
+                 max_dim: int = None, num_classes: int = None, init_method: str = 'sum',
+                 cellular: bool = False):
         # These have to be initialised before calling the super class.
         self._max_dim = max_dim
         self._num_features = [None for _ in range(max_dim+1)]
         self._init_method = init_method
+        self._cellular = cellular
 
         super(ComplexDataset, self).__init__(root, transform, pre_transform, pre_filter)
         self._num_classes = num_classes
@@ -47,7 +49,8 @@ class ComplexDataset(Dataset, ABC):
     @property
     def processed_dir(self):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
-        return osp.join(self.root, f'complex_dim{self.max_dim}_{self._init_method}')
+        prefix = "cell_" if self._cellular else ""
+        return osp.join(self.root, f'{prefix}complex_dim{self.max_dim}_{self._init_method}')
 
     def num_features_in_dim(self, dim):
         if dim > self.max_dim:
@@ -96,10 +99,11 @@ class InMemoryComplexDataset(ComplexDataset):
     
     def __init__(self, root=None, transform=None, pre_transform=None,
                  pre_filter=None, max_dim: int = None, num_classes: int = None,
-                 include_down_adj=False, init_method=None):
+                 include_down_adj=False, init_method=None, cellular: bool = False):
         self.include_down_adj = include_down_adj
         super(InMemoryComplexDataset, self).__init__(root, transform, pre_transform, pre_filter,
-                                                     max_dim, num_classes, init_method=init_method)
+                                                     max_dim, num_classes, init_method=init_method,
+                                                     cellular=cellular)
         self._data_list = None
                 
     def len(self):
