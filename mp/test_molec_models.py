@@ -63,7 +63,7 @@ def test_zinc_sparse_sin0_model_with_batching():
             unbatched_res[key] = torch.cat(unbatched_res[key], dim=0)
 
         for key in set(list(unbatched_res.keys()) + list(batched_res.keys())):
-            assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-5), (
+            assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-6), (
                     print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
@@ -123,7 +123,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
         unbatched_res[key] = torch.cat(unbatched_res[key], dim=0)
 
     for key in set(list(unbatched_res.keys()) + list(batched_res.keys())):
-        assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-5), (
+        assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-6), (
                 print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 

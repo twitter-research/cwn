@@ -41,7 +41,7 @@ def test_sin_model_with_batching():
 
         # This is flaky when using equal. I suspect it's because of numerical errors.
         assert (preds.size() == batched_preds.size())
-        assert torch.allclose(preds, batched_preds, atol=1e-5)
+        assert torch.allclose(preds, batched_preds, atol=1e-6)
 
 
 def test_edge_sin0_model_with_batching():
@@ -67,7 +67,7 @@ def test_edge_sin0_model_with_batching():
             preds.append(pred)
         preds = torch.cat(preds, dim=0)
 
-        assert torch.allclose(preds, batched_preds, atol=1e-5)
+        assert torch.allclose(preds, batched_preds, atol=1e-6)
 
 
 def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_one():
@@ -182,7 +182,7 @@ def test_sparse_sin0_model_with_batching():
             unbatched_res[key] = torch.cat(unbatched_res[key], dim=0)
 
         for key in set(list(unbatched_res.keys()) + list(batched_res.keys())):
-            assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-5), (
+            assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-6), (
                     print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
@@ -226,7 +226,7 @@ def test_sparse_sin0_model_with_batching_on_proteins():
         unbatched_res[key] = torch.cat(unbatched_res[key], dim=0)
 
     for key in set(list(unbatched_res.keys()) + list(batched_res.keys())):
-        assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-5), (
+        assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-6), (
             print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
