@@ -203,7 +203,7 @@ def test_sparse_sin0_model_with_batching_on_proteins():
     assert len(dataset) == 111
 
     max_dim = 3
-    torch.manual_seed(0)
+    torch.manual_seed(1)
     data_loader = DataLoader(dataset, batch_size=32, max_dim=max_dim)
     model = SparseSIN(num_input_features=dataset.num_features_in_dim(0),
         num_classes=2, num_layers=3, hidden=5, jump_mode=None, max_dim=max_dim)
