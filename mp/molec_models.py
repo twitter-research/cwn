@@ -10,7 +10,7 @@ from mp.models import get_nonlinearity, get_pooling_fn
 
 class ZincSparseSIN(torch.nn.Module):
     """
-    A simplicial version of GIN.
+    A simplicial version of GIN with some tailoring to nimbly work on molecules from the ZINC database.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -161,6 +161,5 @@ class ZincSparseSIN(torch.nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__
-
 
 
