@@ -43,6 +43,7 @@ class TUDataset(InMemoryComplexDataset):
         cellular = (max_ring_size is not None)
         if cellular:
             assert max_dim == 2
+
         super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
             init_method=init_method, cellular=cellular)
 

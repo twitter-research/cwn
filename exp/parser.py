@@ -49,6 +49,8 @@ def get_parser():
                         help='whether to minimize evaluation metric or not')
     parser.add_argument('--max_dim', type=int, default="2",
                         help='maximum simplicial dimension (default: 2, i.e. triangles)')
+    parser.add_argument('--max_ring_size', type=int, default=None,
+                        help='maximum ring size to look for (default: None, i.e. don't look for rings)')
     parser.add_argument('--result_folder', type=str, default=None,
                         help='filename to output result (default: None, will use `scn/exp/results`)')
     parser.add_argument('--exp_name', type=str, default=None,

@@ -719,7 +719,6 @@ def test_ring_2complex_dataset_conversion(house_edge_index):
     house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
     house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
     dataset = [house1, house2, house3]
-
     complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, init_rings=True)
     assert dim == 2
     assert len(num_features) == 3
@@ -762,7 +761,6 @@ def test_ring_2complex_dataset_conversion_with_edge_feats(house_edge_index):
     house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
     house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
     dataset = [house1, house2, house3]
-
     complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, init_edges=True, init_rings=False)
     assert dim == 2
     assert len(num_features) == 3

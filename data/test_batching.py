@@ -658,7 +658,7 @@ def test_batching_returns_the_same_features_on_proteins():
             
         
 def test_batching_returns_the_same_features_on_ring_proteins():
-    dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean',
+    dataset = load_dataset('PROTEINS', max_dim=2, fold=0, init_method='mean',
                            max_ring_size=7)
     assert len(dataset) == 1113
     assert dataset.max_dim == 2
