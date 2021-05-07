@@ -359,7 +359,7 @@ def get_filled_square_complex():
     )
     c_x = torch.tensor([[1]], dtype=torch.float)
     yc = torch.tensor([2], dtype=torch.long)
-    c_chain = Chain(dim=2, x=c_x, y=yc, face_idex=c_face_index)
+    c_chain = Chain(dim=2, x=c_x, y=yc, face_index=c_face_index)
     return Complex(v_chain, e_chain, c_chain)
 
 

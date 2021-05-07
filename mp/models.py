@@ -204,7 +204,7 @@ class SparseSIN(torch.nn.Module):
             conv.reset_parameters()
         if self.jump_mode is not None:
             self.jump.reset_parameters()
-        self.lin1.reset_parameters()
+        self.lin1s.reset_parameters()
         self.lin2.reset_parameters()
 
     def pool_complex(self, xs, data):

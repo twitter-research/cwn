@@ -4,9 +4,9 @@ from typing import Callable, Optional
 from torch import Tensor
 from mp.smp import ChainMessagePassing, ChainMessagePassingParams
 from torch_geometric.nn.inits import reset
-from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
+from torch.nn import Linear, Sequential, BatchNorm1d as BN
 from data.complex import Chain
-import torch.nn.functional as F
+from torch_scatter import scatter
 
 
 class DummyChainMessagePassing(ChainMessagePassing):
@@ -328,3 +328,70 @@ class OrientedConv(ChainMessagePassing):
         if self.orient:
             return down_x_j * down_attr
         return down_x_j
+
+
+class InitReduceConv(torch.nn.Module):
+
+    def __init__(self, reduce='add'):
+        """
+
+        Args:
+            reduce (str): Way to aggregate faces. Can be "sum, add, mean, min, max"
+        """
+        super(InitReduceConv, self).__init__()
+        self.reduce = reduce
+
+    def forward(self, face_x, face_index):
+        features = face_x.index_select(0, face_index[0])
+        out_size = face_index[1, :].max() + 1
+        return scatter(features, face_index[1], dim=0, dim_size=out_size, reduce=self.reduce)
+
+
+class EmbedVEWithReduce(torch.nn.Module):
+
+    def __init__(self,
+                 v_embed_layer: torch.nn.Embedding,
+                 e_embed_layer: Optional[torch.nn.Embedding],
+                 init_reduce: InitReduceConv):
+        """
+
+        Args:
+            v_embed_layer: Layer to embed the integer features of the vertices
+            e_embed_layer: Layer (potentially None) to embed the integer features of the edges.
+            init_reduce: Layer to initialise the 2D cell features and potentially the edge features.
+        """
+        super(EmbedVEWithReduce, self).__init__()
+        self.v_embed_layer = v_embed_layer
+        self.e_embed_layer = e_embed_layer
+        self.init_reduce = init_reduce
+
+    def forward(self,  *chain_params: ChainMessagePassingParams):
+        assert 2 <= len(chain_params) <= 3
+        v_params = chain_params[0]
+        e_params = chain_params[1]
+        c_params = chain_params[2] if len(chain_params) == 3 else None
+
+        assert v_params.x is not None
+        # The embedding layer expects integers so we convert the tensor to int.
+        assert v_params.x.size(-1) == 1
+        vx = self.v_embed_layer(v_params.x.squeeze().to(dtype=torch.long))
+
+        if e_params.x is None:
+            ex = self.init_reduce(vx, e_params.face_index)
+        else:
+            # The embedding layer expects integers so we convert the tensor to int.
+            assert e_params.x.size(-1) == 1
+            ex = self.e_embed_layer(e_params.x.squeeze().to(dtype=torch.long))
+
+        if c_params is not None:
+            # We divide by two in case this was obtained from node aggregation.
+            # The division should not do any harm if this is an aggregation of learned embeddings.
+            cx = self.init_reduce(ex, c_params.face_index) / 2.
+
+            return vx, ex, cx
+
+        return vx, ex
+
+    def reset_parameters(self):
+        reset(self.v_embed_layer)
+        reset(self.e_embed_layer)
