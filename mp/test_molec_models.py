@@ -1,13 +1,10 @@
 import torch
 import itertools
-import numpy as np
 
-from data.complex import ComplexBatch, ChainBatch
+from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
-from mp.models import SIN0, EdgeSIN0, SparseSIN, EdgeOrient
 from mp.molec_models import ZincSparseSIN
 from data.data_loading import DataLoader, load_dataset
-from data.datasets.flow import load_flow_dataset
 
 
 def test_zinc_sparse_sin0_model_with_batching():
@@ -24,8 +21,8 @@ def test_zinc_sparse_sin0_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = ZincSparseSIN(embed_dict_size=32, num_input_features=5, num_classes=3, num_layers=3,
-            hidden=5, jump_mode='cat', max_dim=model_max_dim)
+        model = ZincSparseSIN(embed_dict_size=32, num_classes=3, num_layers=3, hidden=5,
+                              jump_mode='cat', max_dim=model_max_dim)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
 
@@ -89,8 +86,8 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
     max_dim = 2
     torch.manual_seed(0)
     data_loader = DataLoader(dataset, batch_size=32, max_dim=max_dim)
-    model = ZincSparseSIN(embed_dict_size=64, num_input_features=5, num_classes=3, num_layers=3,
-            hidden=5, jump_mode='cat', max_dim=max_dim)
+    model = ZincSparseSIN(embed_dict_size=64, num_classes=3, num_layers=3, hidden=5,
+                          jump_mode='cat', max_dim=max_dim)
     model.eval()
 
     batched_res = {}

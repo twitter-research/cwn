@@ -16,12 +16,11 @@ class ZincSparseSIN(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
 
-    def __init__(self, embed_dict_size, num_input_features, num_classes, num_layers, hidden,
-                 dropout_rate: float = 0.5,
-                 max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
-                 train_eps=False, final_hidden_multiplier: int = 2,
-                 readout_dims=(0, 2, 3), final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum'):
+    def __init__(self, embed_dict_size, num_classes, num_layers, hidden,
+                 dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
+                 readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
+                 readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
+                 init_reduce='sum', embed_edge=False, embed_dim=None):
         super(ZincSparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -30,9 +29,12 @@ class ZincSparseSIN(torch.nn.Module):
         else:
             self.readout_dims = list(range(max_dim+1))
 
-        self.embed_init = Embedding(embed_dict_size, hidden)
+        if embed_dim is None:
+            embed_dim = hidden
+        self.v_embed_init = Embedding(embed_dict_size, embed_dim)
+        self.e_embed_init = Embedding(embed_dict_size, embed_dim) if embed_edge else None
         self.reduce_init = InitReduceConv(reduce=init_reduce)
-        self.init_conv = EmbedVEWithReduce(self.embed_init, None, self.reduce_init)
+        self.init_conv = EmbedVEWithReduce(self.v_embed_init, self.e_embed_init, self.reduce_init)
 
         self.final_readout = final_readout
         self.dropout_rate = dropout_rate
@@ -43,14 +45,14 @@ class ZincSparseSIN(torch.nn.Module):
         self.pooling_fn = get_pooling_fn(readout)
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
-            layer_dim = hidden
+            layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     face_msg_size=layer_dim, msg_faces_nn=lambda x: x,
                     msg_up_nn=lambda x1, x2: x1, inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=(num_input_features>1)))  # TODO: turn this into a less hacky trick
+                    apply_norm=(embed_dim>1)))  # TODO: turn this into a less hacky trick
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -68,13 +70,11 @@ class ZincSparseSIN(torch.nn.Module):
             conv.reset_parameters()
         if self.jump_mode is not None:
             self.jump.reset_parameters()
-        self.lin1.reset_parameters()
-        self.lin2.reset_parameters()
+        self.lin1s.reset_parameters()
 
     def pool_complex(self, xs, data):
         # All complexes have nodes so we can extract the batch size from chains[0]
         batch_size = data.chains[0].batch.max() + 1
-        # print(batch_size)
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
         pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
             device=batch_size.device)

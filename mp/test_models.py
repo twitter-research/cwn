@@ -239,11 +239,9 @@ def test_sparse_sin0_model_with_batching_on_proteins():
             # After investigations, this seems to be related to the last linear layers of the model
             # Probably because the magnitude of the levels is different, this causes instabilities.
             # The absolute tolerance should be adjusted if the test becomes flaky.
-            assert (torch.allclose(unbatched_res[key], batched_res[key]),
-                    print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
+            assert (torch.allclose(unbatched_res[key], batched_res[key]))
         else:
-            assert (torch.allclose(unbatched_res[key], batched_res[key]),
-                print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
+            assert (torch.allclose(unbatched_res[key], batched_res[key]))
 
 
 def test_edge_orient_model_on_flow_dataset_with_batching():
