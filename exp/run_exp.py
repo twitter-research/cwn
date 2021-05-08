@@ -78,7 +78,7 @@ def main(args):
         # Data loading
         dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
             init_method=args.init_method, emb_dim=args.emb_dim, flow_points=args.flow_points,
-            flow_classes=args.flow_classes)
+            flow_classes=args.flow_classes, max_ring_size=args.max_ring_size)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
