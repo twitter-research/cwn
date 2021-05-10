@@ -10,7 +10,7 @@ from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
 from mp.graph_models import GIN0, GINWithJK
-from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN
+from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, SparseSINCo
 
 from definitions import ROOT_DIR
 
@@ -118,6 +118,19 @@ def main(args):
                     ).to(device)
     elif args.model == 'sparse_sin':
         model = SparseSIN(dataset.num_features_in_dim(0),     # num_input_features
+                     dataset.num_classes,                     # num_classes
+                     args.num_layers,                         # num_layers
+                     args.emb_dim,                            # hidden
+                     dropout_rate=args.drop_rate,             # dropout rate
+                     max_dim=dataset.max_dim,                 # max_dim
+                     jump_mode=args.jump_mode,                # jump mode
+                     nonlinearity=args.nonlinearity,          # nonlinearity
+                     readout=args.readout,                    # readout
+                     final_readout=args.final_readout,        # final readout
+                     apply_dropout_before=args.drop_position, # where to apply dropout
+                    ).to(device)
+    elif args.model == 'sparse_sinco':
+        model = SparseSINCo(dataset.num_features_in_dim(0),   # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
