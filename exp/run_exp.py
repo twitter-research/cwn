@@ -36,9 +36,13 @@ def main(args):
     print(args)
 
     # Set the seed for everything
-    torch.manual_seed(43)
-    np.random.seed(43)
-    random.seed(43)
+    if args.seed is not None:
+        seed = args.seed
+    else:
+        seed = 43
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
     if args.exp_name is None:
         # get timestamp for results and set result directory
@@ -257,10 +261,13 @@ def main(args):
         
     else:
         print('Evaluating...')
-        train_curve.append(eval(model, device, train_loader, evaluator))
-        valid_curve.append(eval(model, device, valid_loader, evaluator))
+        train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
+        train_curve.append(train_perf)
+        val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
+        valid_curve.append(val_perf)
         if test_loader is not None:
-            test_curve.append(eval(model, device, test_loader, evaluator))
+            test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
+            test_curve.append(test_perf)
         else:
             test_curve.append(np.nan)
         best_val_epoch = 0

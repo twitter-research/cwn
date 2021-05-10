@@ -22,16 +22,19 @@ __families__ = [
     'sr361446',
     'sr401224']
 
-__max_dim__ = [
-    3,
-    4,
-    3,
-    6,
-    4,
-    4,
-    6,
-    3,
-    3]
+# __max_dim__ = [
+#     3,
+#     4,
+#     3,
+#     6,
+#     4,
+#     4,
+#     6,
+#     3,
+#     3]
+
+__max_dim__ = [2] * 9
+__max_ring_size__ = 6
 
 if __name__ == "__main__":
     
@@ -49,6 +52,10 @@ if __name__ == "__main__":
         current_args = copy.copy(passed_args) + ['--dataset', family, '--exp_name', family]
         if '--max_dim' not in passed_args:
             current_args += ['--max_dim', str(__max_dim__[f])]
+        # (!)
+        current_args += ['--max_ring_size', str(__max_ring_size__)]
+        # (¡)
+        
         parsed_args = parser.parse_args(current_args)
         curves = main(parsed_args)
         results.append(curves)

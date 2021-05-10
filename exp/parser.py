@@ -3,6 +3,8 @@ import argparse
 
 def get_parser():
     parser = argparse.ArgumentParser(description='SCN experiment.')
+    parser.add_argument('--seed', type=int, default=None,
+                        help='random seed to set (default: None (will eventually be set to 43))')
     parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sparse_sin',
@@ -50,7 +52,7 @@ def get_parser():
     parser.add_argument('--max_dim', type=int, default="2",
                         help='maximum simplicial dimension (default: 2, i.e. triangles)')
     parser.add_argument('--max_ring_size', type=int, default=None,
-                        help='maximum ring size to look for (default: None, i.e. don't look for rings)')
+                        help='maximum ring size to look for (default: None, i.e. do not look for rings)')
     parser.add_argument('--result_folder', type=str, default=None,
                         help='filename to output result (default: None, will use `scn/exp/results`)')
     parser.add_argument('--exp_name', type=str, default=None,
