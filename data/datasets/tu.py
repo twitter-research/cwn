@@ -7,6 +7,7 @@ from data.tu_utils import load_data, S2V_to_PyG, get_fold_indices
 from data.utils import convert_graph_dataset_with_gudhi, convert_graph_dataset_with_rings
 from data.datasets import InMemoryComplexDataset
 
+
 def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_as_tag=False, fold=0, seed=0):
     raw_dir = os.path.join(root, name, 'raw')
     load_from = os.path.join(raw_dir, '{}_graph_list_degree_as_tag_{}.pkl'.format(name, degree_as_tag))
@@ -30,6 +31,7 @@ def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_
         train_ids, val_ids = get_fold_indices(graph_list, seed, fold)
     test_ids = None
     return graph_list, train_ids, val_ids, test_ids
+
 
 class TUDataset(InMemoryComplexDataset):
 
