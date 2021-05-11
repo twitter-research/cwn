@@ -98,6 +98,9 @@ def main(args):
             
     # automatic evaluator, takes dataset name as input
     evaluator = Evaluator(args.eval_metric)
+    
+    # use cofaces?
+    use_cofaces = args.use_cofaces.lower() == 'true'
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
@@ -124,7 +127,7 @@ def main(args):
                      readout=args.readout,                    # readout
                      final_readout=args.final_readout,        # final readout
                      apply_dropout_before=args.drop_position, # where to apply dropout
-                     use_cofaces=args.use_cofaces,            # whether to use cofaces in up-msg
+                     use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
                     ).to(device)
     elif args.model == 'gin':
         model = GIN0(num_features,                            # num_input_features
