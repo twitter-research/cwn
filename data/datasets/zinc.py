@@ -11,13 +11,14 @@ class ZincDataset(InMemoryComplexDataset):
     The dataset contains multiple graphs and we have to do node classification on all these graphs.
     """
 
-    def __init__(self, root, max_ring_size, transform=None,
+    def __init__(self, root, max_ring_size, use_edge_features=False, transform=None,
                  pre_transform=None, pre_filter=None):
         self.name = 'ZINC'
+        self._max_ring_size = max_ring_size
+        self._use_edge_features = use_edge_features
         super(ZincDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                           max_dim=2, cellular=True)
 
-        self._max_ring_size = max_ring_size
         self.max_dim = 2
 
         self._data_list, idx = self.load_dataset()
@@ -69,21 +70,24 @@ class ZincDataset(InMemoryComplexDataset):
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
             init_method=self._init_method,
-            init_edges=True, init_rings=True)
+            init_edges=self._use_edge_features,
+            init_rings=True)
         print("Converting the validation dataset with gudhi...")
         val_complexes, _, _ = convert_graph_dataset_with_rings(
             val_data,
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
             init_method=self._init_method,
-            init_edges=True, init_rings=True)
+            init_edges=self._use_edge_features,
+            init_rings=True)
         print("Converting the test dataset with gudhi...")
         test_complexes, _, _ = convert_graph_dataset_with_rings(
             test_data,
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
             init_method=self._init_method,
-            init_edges=True, init_rings=True)
+            init_edges=self._use_edge_features,
+            init_rings=True)
         complexes = [train_complexes, val_complexes, test_complexes]
 
         for i, path in enumerate(self.processed_paths):

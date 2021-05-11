@@ -410,7 +410,7 @@ def build_adj(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], compl
     return all_shared_faces, all_shared_cofaces, lower_indexes, upper_indexes
 
 
-def construct_features(vx: Tensor, cell_tables, init_method: str):
+def construct_features(vx: Tensor, cell_tables, init_method: str) -> List:
     """Combines the features of the component vertices to initialise the cell features"""
     features = [vx]
     for dim in range(1, len(cell_tables)):
@@ -706,33 +706,35 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     
     # Construct features for the higher dimensions
     xs = [x, None, None]
-    if (edge_attr is None and init_edges) or init_rings:
-              xs = construct_features(x, simplex_tables, init_method)
+    constructed_features = construct_features(x, simplex_tables, init_method)
+    if init_rings:
+        xs[2] = constructed_features[2]
 
-    # If we have edge-features we simply use them for 1-cells
-    if edge_attr is not None and init_edges:
-        
-        # Retrieve feats and check edge features are undirected
-        ex = dict()
-        for e, edge in enumerate(edge_index.numpy().T):
-            canon_edge = tuple(sorted(edge))
-            edge = tuple(edge)
-            edge_id = id_maps[1][canon_edge]
-            edge_feats = edge_attr[e]
-            if edge_id in ex:
-                assert torch.equal(ex[edge_id], edge_feats)
-            else:
-                ex[edge_id] = edge_feats
-    
-        # Build edge feature matrix
-        max_id = max(ex.keys())
-        edge_feats = []
-        assert len(simplex_tables[1]) == max_id + 1
-        for id in range(max_id + 1):
-            edge_feats.append(ex[id])  
-        xs[1] = torch.stack(edge_feats, 0)
-        assert xs[1].size(0) == len(id_maps[1])
-        assert xs[1].size(1) == edge_attr.size(1)
+    if init_edges:
+        if edge_attr is None:
+            xs[1] = constructed_features[1]
+        # If we have edge-features we simply use them for 1-cells
+        else:
+            # Retrieve feats and check edge features are undirected
+            ex = dict()
+            for e, edge in enumerate(edge_index.numpy().T):
+                canon_edge = tuple(sorted(edge))
+                edge_id = id_maps[1][canon_edge]
+                edge_feats = edge_attr[e]
+                if edge_id in ex:
+                    assert torch.equal(ex[edge_id], edge_feats)
+                else:
+                    ex[edge_id] = edge_feats
+
+            # Build edge feature matrix
+            max_id = max(ex.keys())
+            edge_feats = []
+            assert len(simplex_tables[1]) == max_id + 1
+            for id in range(max_id + 1):
+                edge_feats.append(ex[id])
+            xs[1] = torch.stack(edge_feats, 0)
+            assert xs[1].size(0) == len(id_maps[1])
+            assert xs[1].size(1) == edge_attr.size(1)
 
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)

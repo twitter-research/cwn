@@ -76,5 +76,4 @@ def get_parser():
                         help='Number of points to use for the flow experiment')
     parser.add_argument('--flow_classes',  type=int, default=3,
                         help='Number of classes for the flow experiment')
-
     return parser
