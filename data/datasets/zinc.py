@@ -40,7 +40,7 @@ class ZincDataset(InMemoryComplexDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset.
-        ZINC(self.root, subset=True)
+        ZINC(self.raw_dir, subset=True)
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
@@ -56,9 +56,9 @@ class ZincDataset(InMemoryComplexDataset):
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
         print(f"Processing simplicial complex dataset for {self.name}")
-        train_data = ZINC(self.root, subset=True, split='train')
-        val_data = ZINC(self.root, subset=True, split='val')
-        test_data = ZINC(self.root, subset=True, split='test')
+        train_data = ZINC(self.raw_dir, subset=True, split='train')
+        val_data = ZINC(self.raw_dir, subset=True, split='val')
+        test_data = ZINC(self.raw_dir, subset=True, split='test')
 
         print("Converting the train dataset to a cell complex...")
         train_complexes, _, _ = convert_graph_dataset_with_rings(
