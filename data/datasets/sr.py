@@ -40,8 +40,7 @@ class SRDataset(InMemoryComplexDataset):
                  train_ids=None, val_ids=None, test_ids=None, include_down_adj=False, max_ring_size=None):
         self.name = name
         self._num_classes = num_classes
-        if max_ring_size is not None and max_ring_size <= 3:
-            max_ring_size = None
+        assert max_ring_size is None or max_ring_size > 3
         self._max_ring_size = max_ring_size
         cellular = (max_ring_size is not None)
         if cellular:
@@ -60,7 +59,7 @@ class SRDataset(InMemoryComplexDataset):
     def processed_dir(self):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
         directory = super(SRDataset, self).processed_dir
-        suffix = "_{}rings".format(self._max_ring_size) if self._cellular else ""
+        suffix = f"_{self._max_ring_size}rings" if self._cellular else ""
         return directory + suffix
 
     @property

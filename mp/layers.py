@@ -204,18 +204,14 @@ class SparseSINChainConv(ChainMessagePassing):
     
     def message_faces(self, face_x_j: Tensor) -> Tensor:
         return self.msg_up_faces(faces_x_j)
-
-    # def message_and_aggregate_faces(self, face_attr: Tensor) -> Tensor:
-    #     shape = face_attr.size()
-    #     x = face_attr.view(shape[0] * shape[1], -1)
-    #     x = self.msg_faces_nn(x)
-    #     return x.view(shape).sum(1)
+    
 
 class Catter(torch.nn.Module):
     def __init__(self):
         super(Catter, self).__init__()
     def forward(self, x):
         return torch.cat(x, dim=-1)
+    
     
 class SparseSINConv(torch.nn.Module):
     """A simplicial version of GIN which performs message passing from  simplicial upper
@@ -225,54 +221,21 @@ class SparseSINConv(torch.nn.Module):
     def __init__(self, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_faces_nn: Callable, inp_update_up_nn: Callable,
                  inp_update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
-                 max_dim: int = 2, apply_norm=True, **kwargs):
+                 max_dim: int = 2, apply_norm=True, use_cofaces=False, **kwargs):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
             if msg_up_nn is None:
-                msg_up_nn = Sequential(
-                        Catter(),
-                        Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),
-                        kwargs['act_module']()
-                )
-                # if apply_norm:
-                #     msg_up_nn = Sequential(
-                #         Catter(),
-                #         Linear(kwargs['layer_dim'] * 2, kwargs['hidden']),
-                #         BN(kwargs['hidden']),
-                #         kwargs['act_module'](),
-                #         Linear(kwargs['hidden'], kwargs['layer_dim']),
-                #         BN(kwargs['layer_dim']),
-                #         kwargs['act_module']()
-                #     )
-                # else:
-                #     msg_up_nn = Sequential(
-                #         Catter(),
-                #         Linear(kwargs['layer_dim'] * 2, kwargs['hidden']),
-                #         kwargs['act_module'](),
-                #         Linear(kwargs['hidden'], kwargs['layer_dim']),
-                #         kwargs['act_module']()
-                #     )
+                if use_cofaces:
+                    msg_up_nn = Sequential(
+                            Catter(),
+                            Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),
+                            kwargs['act_module']())
+                else:
+                    msg_up_nn = lambda xs: xs[0]
             if msg_faces_nn is None:
                 msg_faces_nn = lambda x: x
-                # if apply_norm:
-                #     msg_faces_nn = Sequential(
-                #         Linear(kwargs['layer_dim'], kwargs['hidden']),
-                #         BN(kwargs['hidden']),
-                #         kwargs['act_module'](),
-                #         Linear(kwargs['hidden'], kwargs['layer_dim']),
-                #         BN(kwargs['layer_dim']),
-                #         kwargs['act_module']()
-                #     )
-                # else:
-                #     msg_faces_nn = Sequential(
-                #         Linear(kwargs['layer_dim'], kwargs['hidden']),
-                #         kwargs['act_module'](),
-                #         Linear(kwargs['hidden'], kwargs['layer_dim']),
-                #         kwargs['act_module']()
-                #     )
-            # ---
             if inp_update_up_nn is None:
                 if apply_norm:
                     update_up_nn = Sequential(

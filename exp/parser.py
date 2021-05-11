@@ -3,12 +3,14 @@ import argparse
 
 def get_parser():
     parser = argparse.ArgumentParser(description='SCN experiment.')
-    parser.add_argument('--seed', type=int, default=None,
-                        help='random seed to set (default: None (will eventually be set to 43))')
+    parser.add_argument('--seed', type=int, default=43,
+                        help='random seed to set (default: 43, i.e. the non-meaning of life))')
     parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sparse_sin',
                         help='model, possible choices: sin, dummy, ... (default: sin)')
+    parser.add_argument('--use_cofaces', type=bool, default=False,
+                       help='whether to use coface features for up-messages in sparse_sin (default: False)')
     parser.add_argument('--drop_rate', type=float, default=0.5,
                         help='dropout rate (default: 0.5)')
     parser.add_argument('--drop_position', type=str, default='lin2',
