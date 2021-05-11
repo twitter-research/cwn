@@ -1,4 +1,5 @@
 import pickle
+import os.path as osp
 
 from data.utils import convert_graph_dataset_with_rings
 from data.datasets import InMemoryComplexDataset
@@ -39,7 +40,7 @@ class ZincDataset(InMemoryComplexDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset.
-        ZINC('./dataset/')
+        ZINC(self.root, subset=True)
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
@@ -55,41 +56,41 @@ class ZincDataset(InMemoryComplexDataset):
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
         print(f"Processing simplicial complex dataset for {self.name}")
-        train_data = ZINC('./dataset/', split='train')
-        val_data = ZINC('./dataset/', split='val')
-        test_data = ZINC('./dataset/', split='test')
+        train_data = ZINC(self.root, subset=True, split='train')
+        val_data = ZINC(self.root, subset=True, split='val')
+        test_data = ZINC(self.root, subset=True, split='test')
 
-        # For testing
-        train_data = list(train_data)[:3]
-        val_data = list(val_data)[:3]
-        test_data = list(test_data)[:3]
-
-        print("Converting the train dataset with gudhi...")
+        print("Converting the train dataset to a cell complex...")
         train_complexes, _, _ = convert_graph_dataset_with_rings(
             train_data,
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
-            init_method=self._init_method,
             init_edges=self._use_edge_features,
-            init_rings=True)
-        print("Converting the validation dataset with gudhi...")
+            init_rings=False)
+        print("Converting the validation dataset to a cell complex...")
         val_complexes, _, _ = convert_graph_dataset_with_rings(
             val_data,
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
-            init_method=self._init_method,
             init_edges=self._use_edge_features,
-            init_rings=True)
-        print("Converting the test dataset with gudhi...")
+            init_rings=False)
+        print("Converting the test dataset to a cell complex...")
         test_complexes, _, _ = convert_graph_dataset_with_rings(
             test_data,
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
-            init_method=self._init_method,
             init_edges=self._use_edge_features,
-            init_rings=True)
+            init_rings=False)
         complexes = [train_complexes, val_complexes, test_complexes]
 
         for i, path in enumerate(self.processed_paths):
+            print(f'Saving processed dataset in {path}....')
             with open(path, 'wb') as handle:
                 pickle.dump(complexes[i], handle)
+
+    @property
+    def processed_dir(self):
+        """Overwrite to change name based on edges"""
+        prefix = "cell_" if self._cellular else ""
+        suffix = "-E" if self._use_edge_features else ""
+        return osp.join(self.root, f'{prefix}complex_dim{self.max_dim}{suffix}')

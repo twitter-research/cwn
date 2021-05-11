@@ -54,8 +54,9 @@ def main(args):
     # Data loading
     dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
                            init_method=args.init_method, emb_dim=args.emb_dim,
-                           flow_points=args.flow_points,
-                           flow_classes=args.flow_classes, max_ring_size=args.max_ring_size)
+                           flow_points=args.flow_points, flow_classes=args.flow_classes,
+                           max_ring_size=args.max_ring_size,
+                           use_edge_features=args.use_edge_features)
     split_idx = dataset.get_idx_split()
 
     # Instantiate data loaders
@@ -72,8 +73,11 @@ def main(args):
     # instantiate model
     # NB: here we assume to have the same number of features per dim
     if args.model == 'zinc_sparse_sin':
+        assert args.dataset == 'ZINC'
+        assert args.task_type == 'regression'
+        assert args.minimize
         model = ZincSparseSIN(get_dictionary_size(args.dataset),  # dictionary size
-                              dataset.num_classes,  # num_classes
+                              1,  # num_classes
                               args.num_layers,  # num_layers
                               args.emb_dim,  # hidden
                               dropout_rate=args.drop_rate,  # dropout rate
@@ -137,8 +141,7 @@ def main(args):
         if epoch == 1 or epoch % args.train_eval_period == 0:
             train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
         train_curve.append(train_perf)
-        valid_perf, epoch_val_loss = eval(model, device, valid_loader, evaluator,
-                                          args.task_type)
+        valid_perf, epoch_val_loss = eval(model, device, valid_loader, evaluator, args.task_type)
         valid_curve.append(valid_perf)
 
         test_perf, epoch_test_loss = eval(model, device, test_loader, evaluator, args.task_type)

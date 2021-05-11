@@ -76,4 +76,5 @@ def get_parser():
                         help='Number of points to use for the flow experiment')
     parser.add_argument('--flow_classes',  type=int, default=3,
                         help='Number of classes for the flow experiment')
+    parser.add_argument('--use_edge_features', action='store_true')
     return parser

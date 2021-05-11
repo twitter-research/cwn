@@ -109,7 +109,8 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'OCEAN':
         dataset = OceanDataset(os.path.join(root, name), name)
     elif name == 'ZINC':
-        dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'])
+        dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
+                              use_edge_features=kwargs['use_edge_features'])
     else:
         raise NotImplementedError(name)
     return dataset
