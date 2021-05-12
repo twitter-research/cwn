@@ -35,7 +35,7 @@ def get_parser():
     parser.add_argument('--lr_scheduler_patience', type=float, default=10,
                         help='patience for `ReduceLROnPlateau` lr decay (default: 10)')
     parser.add_argument('--lr_scheduler_min, type=float, default=0.00001,
-                        help='min LR for `ReduceLROnPlateau` lr decay (default: 10)')
+                        help='min LR for `ReduceLROnPlateau` lr decay (default: 1e-5)')
     parser.add_argument('--num_layers', type=int, default=5,
                         help='number of message passing layers (default: 5)')
     parser.add_argument('--emb_dim', type=int, default=64,
