@@ -708,7 +708,7 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     # Construct features for the higher dimensions
     xs = [x, None, None]
     constructed_features = construct_features(x, simplex_tables, init_method)
-    if init_rings:
+    if init_rings and len(constructed_features) > 2:
         xs[2] = constructed_features[2]
 
     if init_edges:
