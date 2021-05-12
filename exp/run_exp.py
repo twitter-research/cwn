@@ -175,6 +175,7 @@ def main(args):
         assert args.minimize
         assert args.lr_scheduler == 'ReduceLROnPlateau'
         model = ZincSparseSIN(28,  # The number of atomic types
+                              4,  # The number of bond types
                               1,  # num_classes
                               args.num_layers,  # num_layers
                               args.emb_dim,  # hidden
