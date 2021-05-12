@@ -17,13 +17,6 @@ import numpy as np
 import copy
 
 
-def get_dictionary_size(dataset):
-    if dataset == 'ZINC':
-        return 28
-    else:
-        raise ValueError(f'Unsupported dataset {dataset}')
-
-
 def main(args):
     # set device
     device = torch.device(
@@ -76,7 +69,8 @@ def main(args):
         assert args.dataset == 'ZINC'
         assert args.task_type == 'regression'
         assert args.minimize
-        model = ZincSparseSIN(get_dictionary_size(args.dataset),  # dictionary size
+        assert args.lr_scheduler == 'ReduceLROnPlateau'
+        model = ZincSparseSIN(28,  # The number of atomic types
                               1,  # num_classes
                               args.num_layers,  # num_layers
                               args.emb_dim,  # hidden
@@ -111,6 +105,7 @@ def main(args):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                                factor=args.lr_scheduler_decay_rate,
                                                                patience=args.lr_scheduler_patience,
+                                                               min_lr=args.lr_scheduler_min,
                                                                verbose=True)
     elif args.lr_scheduler == 'StepLR':
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_scheduler_decay_steps,

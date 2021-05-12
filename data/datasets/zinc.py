@@ -7,10 +7,7 @@ from torch_geometric.datasets import ZINC
 
 
 class ZincDataset(InMemoryComplexDataset):
-    """This is the Cluster dataset from the Benchmarking GNNs paper.
-
-    The dataset contains multiple graphs and we have to do node classification on all these graphs.
-    """
+    """This is ZINC from the Benchmarking GNNs paper. This is a graph regression task."""
 
     def __init__(self, root, max_ring_size, use_edge_features=False, transform=None,
                  pre_transform=None, pre_filter=None):
@@ -19,8 +16,6 @@ class ZincDataset(InMemoryComplexDataset):
         self._use_edge_features = use_edge_features
         super(ZincDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                           max_dim=2, cellular=True)
-
-        self.max_dim = 2
 
         self._data_list, idx = self.load_dataset()
         self.train_ids = idx[0]
@@ -91,6 +86,7 @@ class ZincDataset(InMemoryComplexDataset):
     @property
     def processed_dir(self):
         """Overwrite to change name based on edges"""
-        prefix = "cell_" if self._cellular else ""
-        suffix = "-E" if self._use_edge_features else ""
-        return osp.join(self.root, f'{prefix}complex_dim{self.max_dim}{suffix}')
+        directory = super(ZincDataset, self).processed_dir
+        suffix1 = f"_{self._max_ring_size}rings" if self._cellular else ""
+        suffix2 = "-E" if self._use_edge_features else ""
+        return directory + suffix1 + suffix2

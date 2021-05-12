@@ -145,6 +145,6 @@ class Evaluator(object):
 
     def _mae(self, input_dict, **kwargs):
         y_true = input_dict['y_true']
-        y_pred = np.argmax(input_dict['y_pred'], axis=1)
+        y_pred = input_dict['y_pred']
         metric = met.mean_absolute_error(y_true, y_pred)
         return metric
