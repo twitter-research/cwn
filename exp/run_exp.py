@@ -36,9 +36,9 @@ def main(args):
     print(args)
 
     # Set the seed for everything
-    torch.manual_seed(43)
-    np.random.seed(43)
-    random.seed(43)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
 
     if args.exp_name is None:
         # get timestamp for results and set result directory
@@ -98,6 +98,9 @@ def main(args):
             
     # automatic evaluator, takes dataset name as input
     evaluator = Evaluator(args.eval_metric)
+    
+    # use cofaces?
+    use_cofaces = args.use_cofaces.lower() == 'true'
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
@@ -124,6 +127,7 @@ def main(args):
                      readout=args.readout,                    # readout
                      final_readout=args.final_readout,        # final readout
                      apply_dropout_before=args.drop_position, # where to apply dropout
+                     use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
                     ).to(device)
     elif args.model == 'gin':
         model = GIN0(num_features,                            # num_input_features
@@ -257,10 +261,13 @@ def main(args):
         
     else:
         print('Evaluating...')
-        train_curve.append(eval(model, device, train_loader, evaluator))
-        valid_curve.append(eval(model, device, valid_loader, evaluator))
+        train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
+        train_curve.append(train_perf)
+        val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
+        valid_curve.append(val_perf)
         if test_loader is not None:
-            test_curve.append(eval(model, device, test_loader, evaluator))
+            test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
+            test_curve.append(test_perf)
         else:
             test_curve.append(np.nan)
         best_val_epoch = 0

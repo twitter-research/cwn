@@ -76,7 +76,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
                  init_method='sum', **kwargs) -> ComplexDataset:
     if name.startswith('sr'):
         dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=max_dim,
-            num_classes=kwargs['emb_dim'])
+            num_classes=kwargs['emb_dim'], max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'CLUSTER':
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     elif name == 'IMDBBINARY':
@@ -95,6 +95,12 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
             fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'NCI1':
+        dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
+            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+    elif name == 'PTC':
+        dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
+            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+    elif name == 'MUTAG':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
             fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'FLOW':
@@ -127,6 +133,12 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
         graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
         data = (graph_list, train_ids, val_ids, test_ids, 2)
     elif name == 'NCI1':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
+    elif name == 'PTC':
+        graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
+    elif name == 'MUTAG':
         graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
         data = (graph_list, train_ids, val_ids, test_ids, 2)
     else:

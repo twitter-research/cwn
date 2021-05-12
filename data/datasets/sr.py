@@ -3,7 +3,7 @@ import torch
 import pickle
 
 from data.sr_utils import load_sr_dataset
-from data.utils import compute_clique_complex_with_gudhi
+from data.utils import compute_clique_complex_with_gudhi, compute_ring_2complex
 from data.datasets import InMemoryComplexDataset
 from definitions import ROOT_DIR
 from torch_geometric.data import Data
@@ -37,11 +37,16 @@ def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), emb_dim
 class SRDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, max_dim=2, num_classes=2,
-                 train_ids=None, val_ids=None, test_ids=None, include_down_adj=False):
+                 train_ids=None, val_ids=None, test_ids=None, include_down_adj=False, max_ring_size=None):
         self.name = name
         self._num_classes = num_classes
+        assert max_ring_size is None or max_ring_size > 3
+        self._max_ring_size = max_ring_size
+        cellular = (max_ring_size is not None)
+        if cellular:
+            assert max_dim == 2
         super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
-            include_down_adj=include_down_adj)
+            include_down_adj=include_down_adj, cellular=cellular)
         
         with open(self.processed_paths[0], 'rb') as handle:
             self._data_list = pickle.load(handle)
@@ -49,6 +54,13 @@ class SRDataset(InMemoryComplexDataset):
         self.train_ids = list(range(self.len())) if train_ids is None else train_ids
         self.val_ids = list(range(self.len())) if val_ids is None else val_ids
         self.test_ids = list(range(self.len())) if test_ids is None else test_ids
+        
+    @property
+    def processed_dir(self):
+        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        directory = super(SRDataset, self).processed_dir
+        suffix = f"_{self._max_ring_size}rings" if self._cellular else ""
+        return directory + suffix
 
     @property
     def processed_file_names(self):
@@ -64,10 +76,20 @@ class SRDataset(InMemoryComplexDataset):
         for datum in data:
             edge_index, num_nodes = datum
             x = torch.ones(num_nodes, 1, dtype=torch.float32)
-            complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes,
-                expansion_dim=exp_dim, include_down_adj=self.include_down_adj)
+            
+            if self._cellular:
+                complex = compute_ring_2complex(x, edge_index, None,
+                          num_nodes, max_k=self._max_ring_size,
+                          include_down_adj=self.include_down_adj,
+                          init_edges=True, init_rings=True)
+            else:
+                complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes,
+                    expansion_dim=exp_dim, include_down_adj=self.include_down_adj)
+                
             if complex.dimension > max_dim:
                 max_dim = complex.dimension
+            if self._max_ring_size is not None:
+                assert max_dim <= 2
             for dim in range(complex.dimension + 1):
                 if num_features[dim] is None:
                     num_features[dim] = complex.chains[dim].num_features

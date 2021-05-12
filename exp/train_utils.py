@@ -89,7 +89,7 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     elif task_type == 'regression':
         loss_fn = reg_criterion
     else:
-        raise NotImplementedError('Training on task type {} not yet supported.'.format(task_type))
+        loss_fn = None
     
     model.eval()
     y_true = []
@@ -99,8 +99,10 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
-            loss = loss_fn(pred, batch.y.view(-1))
-        losses.append(loss.detach().cpu().item())
+            if loss_fn is not None:
+                loss = loss_fn(pred, batch.y.view(-1))
+        if loss_fn is not None:
+            losses.append(loss.detach().cpu().item())
 
         y_true.append(batch.y.detach().cpu())
         y_pred.append(pred.detach().cpu())
@@ -109,7 +111,8 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     y_pred = torch.cat(y_pred, dim=0).numpy()
 
     input_dict = {'y_pred': y_pred, 'y_true': y_true}
-    return evaluator.eval(input_dict), float(np.mean(losses))
+    mean_loss = float(np.mean(losses)) if len(losses) > 0 else np.nan
+    return evaluator.eval(input_dict), mean_loss
 
     
 class Evaluator(object):

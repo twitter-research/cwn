@@ -151,7 +151,7 @@ class SparseSIN(torch.nn.Module):
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
                  dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
-                 train_eps=False, final_hidden_multiplier: int = 2,
+                 train_eps=False, final_hidden_multiplier: int = 2, use_cofaces=False,
                  readout_dims=(0, 2, 3), final_readout='sum', apply_dropout_before='lin2'):
         super(SparseSIN, self).__init__()
 
@@ -170,6 +170,8 @@ class SparseSIN(torch.nn.Module):
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
+            # Instantiate message / update functions here if you want them to be
+            # shared across dimensions. See the example below:
             # conv_update_up = Sequential(
             #     Linear(layer_dim, hidden),
             #     act_module(),
@@ -182,11 +184,12 @@ class SparseSIN(torch.nn.Module):
             #     act_module())
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=lambda x: x,
-                    msg_up_nn=lambda x1, x2: x1, inp_update_up_nn=None,
-                    inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                    face_msg_size=layer_dim, msg_faces_nn=None, msg_up_nn=None,
+                    inp_update_up_nn=None, inp_update_faces_nn=None,
+                    train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=(num_input_features>1)))  # TODO: turn this into a less hacky trick
+                    apply_norm=(num_input_features>1), use_cofaces=use_cofaces))
+            # TODO: turn apply_norm into a less hacky trick
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -295,7 +298,7 @@ class SparseSIN(torch.nn.Module):
     def __repr__(self):
         return self.__class__.__name__
 
-
+    
 class EdgeSIN0(torch.nn.Module):
     """
     A variant of SIN0 operating up to edge level. It may optionally ignore triangle features.

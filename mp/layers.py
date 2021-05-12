@@ -199,15 +199,20 @@ class SparseSINChainConv(ChainMessagePassing):
         self.eps2.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        return self.msg_up_nn(up_x_j, up_attr)
+        # return self.msg_up_nn(torch.cat([up_x_j, up_attr], dim=-1))
+        return self.msg_up_nn((up_x_j, up_attr))
+    
+    def message_faces(self, face_x_j: Tensor) -> Tensor:
+        return self.msg_up_faces(faces_x_j)
+    
 
-    def message_and_aggregate_faces(self, face_attr: Tensor) -> Tensor:
-        shape = face_attr.size()
-        x = face_attr.view(shape[0] * shape[1], -1)
-        x = self.msg_faces_nn(x)
-        return x.view(shape).sum(1)
-
-
+class Catter(torch.nn.Module):
+    def __init__(self):
+        super(Catter, self).__init__()
+    def forward(self, x):
+        return torch.cat(x, dim=-1)
+    
+    
 class SparseSINConv(torch.nn.Module):
     """A simplicial version of GIN which performs message passing from  simplicial upper
     neighbors and faces, but not from lower neighbors (hence why "Sparse")
@@ -216,11 +221,21 @@ class SparseSINConv(torch.nn.Module):
     def __init__(self, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_faces_nn: Callable, inp_update_up_nn: Callable,
                  inp_update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
-                 max_dim: int = 2, apply_norm=True, **kwargs):
+                 max_dim: int = 2, apply_norm=True, use_cofaces=False, **kwargs):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
+            if msg_up_nn is None:
+                if use_cofaces:
+                    msg_up_nn = Sequential(
+                            Catter(),
+                            Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),
+                            kwargs['act_module']())
+                else:
+                    msg_up_nn = lambda xs: xs[0]
+            if msg_faces_nn is None:
+                msg_faces_nn = lambda x: x
             if inp_update_up_nn is None:
                 if apply_norm:
                     update_up_nn = Sequential(

@@ -37,8 +37,7 @@ class TUDataset(InMemoryComplexDataset):
                  init_method='sum', seed=0, max_ring_size=None):
         self.name = name
         self.degree_as_tag = degree_as_tag
-        if max_ring_size is not None and max_ring_size <= 3:
-            max_ring_size = None
+        assert max_ring_size is None or max_ring_size > 3
         self._max_ring_size = max_ring_size
         cellular = (max_ring_size is not None)
         if cellular:
@@ -75,7 +74,7 @@ class TUDataset(InMemoryComplexDataset):
     def processed_dir(self):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
         directory = super(TUDataset, self).processed_dir
-        suffix = "_{}rings".format(self._max_ring_size) if self._cellular else ""
+        suffix = f"_{self._max_ring_size}rings" if self._cellular else ""
         return directory + suffix
             
     @property
