@@ -41,6 +41,7 @@ class ZincDataset(InMemoryComplexDataset):
         """Load the dataset from here and process it if it doesn't exist"""
         data_list, idx = [], []
         start = 0
+        print("Loading dataset from disk...")
         for path in self.processed_paths:
             with open(path, 'rb') as handle:
                 data_list.extend(pickle.load(handle))
