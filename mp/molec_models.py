@@ -20,7 +20,7 @@ class ZincSparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None):
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
         super(ZincSparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -52,7 +52,7 @@ class ZincSparseSIN(torch.nn.Module):
                     msg_up_nn=lambda x: x[0], inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=(embed_dim>1)))  # TODO: turn this into a less hacky trick
+                    apply_norm=(embed_dim>1), use_cofaces=use_cofaces)) # TODO: turn this into a less hacky trick
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):

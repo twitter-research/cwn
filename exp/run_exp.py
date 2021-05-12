@@ -186,6 +186,7 @@ def main(args):
                               readout=args.readout,  # readout
                               final_readout=args.final_readout,  # final readout
                               apply_dropout_before=args.drop_position,  # where to apply dropout
+                              use_cofaces=use_cofaces,
                               ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
