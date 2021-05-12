@@ -11,6 +11,7 @@ from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser
 from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN
+from mp.molec_models import ZincSparseSIN
 
 from definitions import ROOT_DIR
 
@@ -51,9 +52,8 @@ def main(args):
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
     filename = os.path.join(result_folder, 'results.txt')
-    
+
     if args.model.startswith('gin'):  # load graph dataset
-        
         graph_list, train_ids, val_ids, test_ids, num_classes = load_graph_dataset(args.dataset, fold=args.fold)
         train_graphs = [graph_list[i] for i in train_ids]
         val_graphs = [graph_list[i] for i in val_ids]
@@ -77,8 +77,10 @@ def main(args):
         
         # Data loading
         dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
-            init_method=args.init_method, emb_dim=args.emb_dim, flow_points=args.flow_points,
-            flow_classes=args.flow_classes, max_ring_size=args.max_ring_size)
+                               init_method=args.init_method, emb_dim=args.emb_dim,
+                               flow_points=args.flow_points, flow_classes=args.flow_classes,
+                               max_ring_size=args.max_ring_size,
+                               use_edge_features=args.use_edge_features)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
@@ -90,11 +92,10 @@ def main(args):
         valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size,
             shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
         test_split = split_idx.get("test", None)
+        test_loader = None
         if test_split is not None:
             test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size,
                 shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
-        else:
-            test_loader = None
             
     # automatic evaluator, takes dataset name as input
     evaluator = Evaluator(args.eval_metric)
@@ -168,7 +169,23 @@ def main(args):
                       args.emb_dim,  # hidden
                       readout=args.readout,
                      ).to(device)
-        
+    elif args.model == 'zinc_sparse_sin':
+        assert args.dataset == 'ZINC'
+        assert args.task_type == 'regression'
+        assert args.minimize
+        assert args.lr_scheduler == 'ReduceLROnPlateau'
+        model = ZincSparseSIN(28,  # The number of atomic types
+                              1,  # num_classes
+                              args.num_layers,  # num_layers
+                              args.emb_dim,  # hidden
+                              dropout_rate=args.drop_rate,  # dropout rate
+                              max_dim=dataset.max_dim,  # max_dim
+                              jump_mode=args.jump_mode,  # jump mode
+                              nonlinearity=args.nonlinearity,  # nonlinearity
+                              readout=args.readout,  # readout
+                              final_readout=args.final_readout,  # final readout
+                              apply_dropout_before=args.drop_position,  # where to apply dropout
+                              ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
 
@@ -189,13 +206,18 @@ def main(args):
     
     # instantiate learning rate decay
     if args.lr_scheduler == 'ReduceLROnPlateau':
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=args.lr_scheduler_decay_rate, patience=args.lr_scheduler_patience, verbose=True)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
+                                                               factor=args.lr_scheduler_decay_rate,
+                                                               patience=args.lr_scheduler_patience,
+                                                               min_lr=args.lr_scheduler_min,
+                                                               verbose=True)
     elif args.lr_scheduler == 'StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_scheduler_decay_steps, gamma=args.lr_scheduler_decay_rate)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_scheduler_decay_steps,
+                                                    gamma=args.lr_scheduler_decay_rate)
     elif args.lr_scheduler == 'None':
         scheduler = None
     else:
-        raise NotImplementedError('Scheduler {} is not currently supported.'.format(args.lr_scheduler))
+        raise NotImplementedError(f'Scheduler {args.lr_scheduler} is not currently supported.')
 
     # (!) start training/evaluation
     valid_curve = []
@@ -221,13 +243,18 @@ def main(args):
             valid_perf, epoch_val_loss = eval(model, device,
                 valid_loader, evaluator, args.task_type)#, dataset[split_idx["valid"]])
             valid_curve.append(valid_perf)
+
             if test_loader is not None:
-                test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
+                test_perf, epoch_test_loss = eval(model, device, test_loader, evaluator,
+                                                  args.task_type)
             else:
                 test_perf = np.nan
+                epoch_test_loss = np.nan
             test_curve.append(test_perf)
+
             print(f'Train: {train_perf:.3f} | Validation: {valid_perf:.3f} | Test: {test_perf:.3f}'
-                  f' | Train Loss {epoch_train_loss:.3f} | Val Loss {epoch_val_loss:.3f}')
+                  f' | Train Loss {epoch_train_loss:.3f} | Val Loss {epoch_val_loss:.3f}'
+                  f' | Test Loss {epoch_test_loss:.3f}')
             
             # decay learning rate
             if scheduler is not None:

@@ -16,7 +16,7 @@ class ZincSparseSIN(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
 
-    def __init__(self, embed_dict_size, num_classes, num_layers, hidden,
+    def __init__(self, embed_dict_size, out_size, num_layers, hidden,
                  dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
@@ -63,7 +63,7 @@ class ZincSparseSIN(torch.nn.Module):
                     bias=False))
             else:
                 self.lin1s.append(Linear(hidden, final_hidden_multiplier * hidden))
-        self.lin2 = Linear(final_hidden_multiplier * hidden, num_classes)
+        self.lin2 = Linear(final_hidden_multiplier * hidden, out_size)
 
     def reset_parameters(self):
         for conv in self.convs:

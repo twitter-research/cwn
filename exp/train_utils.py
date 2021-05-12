@@ -7,7 +7,7 @@ from sklearn import metrics as met
 from data.complex import ComplexBatch
 
 cls_criterion = torch.nn.CrossEntropyLoss()
-reg_criterion = torch.nn.MSELoss()
+reg_criterion = torch.nn.L1Loss()
 
 
 def train(model, device, loader, optimizer, task_type='classification', ignore_unlabeled=False):
@@ -30,7 +30,7 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         if isinstance(batch, ComplexBatch):
             num_samples = batch.chains[0].x.size(0)
             for dim in range(1, batch.dimension+1):
-                num_samples = min(num_samples, batch.chains[dim].x.size(0))
+                num_samples = min(num_samples, batch.chains[dim].num_simplices)
         else:
             # This is graph.
             num_samples = batch.x.size(0)
@@ -49,18 +49,14 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
 
         optimizer.zero_grad()
         pred = model(batch)
-        # TODO: shall we do some dtype checking here on the y?
-        if ignore_unlabeled:
-            is_labeled = batch.y == batch.y
-            loss = loss_fn(pred[is_labeled], batch.y[is_labeled])
+        if task_type == 'regression':
+            loss = loss_fn(pred, batch.y.view(-1, 1))
         else:
             loss = loss_fn(pred, batch.y.view(-1))
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
 
-
-            
     return curve
 
 
@@ -99,10 +95,11 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
-            if loss_fn is not None:
+            if task_type == 'regression':
+                loss = loss_fn(pred, batch.y.view(-1, 1))
+            else:
                 loss = loss_fn(pred, batch.y.view(-1))
-        if loss_fn is not None:
-            losses.append(loss.detach().cpu().item())
+        losses.append(loss.detach().cpu().item())
 
         y_true.append(batch.y.detach().cpu())
         y_pred.append(pred.detach().cpu())
@@ -122,6 +119,8 @@ class Evaluator(object):
             self.eval_fn = self._isomorphism
         elif metric == 'accuracy':
             self.eval_fn = self._accuracy
+        elif metric == 'mae':
+            self.eval_fn = self._mae
         else:
             raise NotImplementedError('Metric {} is not yet supported.'.format(metric))
     
@@ -142,4 +141,10 @@ class Evaluator(object):
         y_true = input_dict['y_true']
         y_pred = np.argmax(input_dict['y_pred'], axis=1)
         metric = met.accuracy_score(y_true, y_pred)
+        return metric
+
+    def _mae(self, input_dict, **kwargs):
+        y_true = input_dict['y_true']
+        y_pred = input_dict['y_pred']
+        metric = met.mean_absolute_error(y_true, y_pred)
         return metric

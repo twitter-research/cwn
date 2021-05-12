@@ -34,6 +34,8 @@ def get_parser():
                         help='strength of lr decay (default: 0.5)')
     parser.add_argument('--lr_scheduler_patience', type=float, default=10,
                         help='patience for `ReduceLROnPlateau` lr decay (default: 10)')
+    parser.add_argument('--lr_scheduler_min', type=float, default=0.00001,
+                        help='min LR for `ReduceLROnPlateau` lr decay (default: 1e-5)')
     parser.add_argument('--num_layers', type=int, default=5,
                         help='number of message passing layers (default: 5)')
     parser.add_argument('--emb_dim', type=int, default=64,
@@ -76,5 +78,5 @@ def get_parser():
                         help='Number of points to use for the flow experiment')
     parser.add_argument('--flow_classes',  type=int, default=3,
                         help='Number of classes for the flow experiment')
-
+    parser.add_argument('--use_edge_features', action='store_true')
     return parser
