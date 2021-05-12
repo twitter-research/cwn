@@ -5,3 +5,4 @@ from data.datasets.tu import TUDataset, load_tu_graph_dataset
 from data.datasets.flow import FlowDataset
 from data.datasets.ocean import OceanDataset
 from data.datasets.zinc import ZincDataset
+from data.datasets.ogb import OGBDataset
