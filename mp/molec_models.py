@@ -1,10 +1,10 @@
 import torch
 import torch.nn.functional as F
 
-from torch.nn import Linear, Embedding
+from torch.nn import Linear, Embedding, Dropout
 from torch_geometric.nn import JumpingKnowledge
 from mp.layers import InitReduceConv, EmbedVEWithReduce, SparseSINConv
-from data.complex import Complex, ComplexBatch, ChainBatch
+from data.complex import ComplexBatch
 from mp.models import get_nonlinearity, get_pooling_fn
 
 
@@ -16,7 +16,7 @@ class ZincSparseSIN(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
 
-    def __init__(self, embed_dict_size, out_size, num_layers, hidden,
+    def __init__(self, atom_types, bond_types, out_size, num_layers, hidden,
                  dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
@@ -31,8 +31,8 @@ class ZincSparseSIN(torch.nn.Module):
 
         if embed_dim is None:
             embed_dim = hidden
-        self.v_embed_init = Embedding(embed_dict_size, embed_dim)
-        self.e_embed_init = Embedding(embed_dict_size, embed_dim) if embed_edge else None
+        self.v_embed_init = Embedding(atom_types, embed_dim)
+        self.e_embed_init = Embedding(bond_types, embed_dim) if embed_edge else None
         self.reduce_init = InitReduceConv(reduce=init_reduce)
         self.init_conv = EmbedVEWithReduce(self.v_embed_init, self.e_embed_init, self.reduce_init)
 
@@ -107,7 +107,12 @@ class ZincSparseSIN(torch.nn.Module):
 
         # Embed and populate higher-levels
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
-        xs = self.init_conv(*params)
+        xs = list(self.init_conv(*params))
+
+        # Apply dropout on the input features like all models do on ZINC.
+        for i, x in enumerate(xs):
+            xs[i] = F.dropout(xs[i], p=self.dropout_rate, training=self.training)
+
         data.set_xs(xs)
 
         for i, conv in enumerate(self.convs):
