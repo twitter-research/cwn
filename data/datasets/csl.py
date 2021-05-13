@@ -8,6 +8,7 @@ from data.utils import convert_graph_dataset_with_rings
 from torch_geometric.datasets import GNNBenchmarkDataset
 from torch_geometric.utils import remove_self_loops
 
+
 class CSLDataset(InMemoryComplexDataset):
     """This is the Cluster dataset from the Benchmarking GNNs paper.
 
@@ -32,13 +33,17 @@ class CSLDataset(InMemoryComplexDataset):
         valid_filename = osp.join(self.root, 'splits', 'CSL_val.txt')
         test_filename = osp.join(self.root, 'splits', 'CSL_test.txt')
 
-        self.train_ids = np.loadtxt(train_filename, dtype=int)[fold].tolist()
-        self.val_ids = np.loadtxt(valid_filename, dtype=int)[fold].tolist()
-        self.test_ids = np.loadtxt(test_filename, dtype=int)[fold].tolist()
+        self.train_ids = np.loadtxt(train_filename, dtype=int, delimiter=',')[fold].tolist()
+        self.val_ids = np.loadtxt(valid_filename, dtype=int, delimiter=',')[fold].tolist()
+        self.test_ids = np.loadtxt(test_filename, dtype=int, delimiter=',')[fold].tolist()
 
         # Make sure the split rations are as expected (3:1:1)
         assert len(self.train_ids) == 3 * len(self.test_ids)
         assert len(self.val_ids) == len(self.test_ids)
+        assert max(self.train_ids) < 150
+        assert max(self.val_ids) < 150
+        assert max(self.test_ids) < 150
+
 
     @property
     def raw_file_names(self):
@@ -57,19 +62,14 @@ class CSLDataset(InMemoryComplexDataset):
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
-        data_list, idx = [], []
-        start = 0
-        for path in self.processed_paths:
-            with open(path, 'rb') as handle:
-                data_list.extend(pickle.load(handle))
-                idx.append(list(range(start, len(data_list))))
-                start = len(data_list)
-        return data_list, idx
+        with open(self.processed_paths[0], 'rb') as handle:
+            return pickle.load(handle)
 
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
         print(f"Processing cell complex dataset for {self.name}")
         data = GNNBenchmarkDataset('./datasets/', 'CSL', split='train')
+        assert len(data) == 150
 
         # Check that indeed there are no features
         assert data[0].x is None
@@ -100,7 +100,7 @@ class CSLDataset(InMemoryComplexDataset):
         complexes, _, _ = convert_graph_dataset_with_rings(
             new_data,
             max_ring_size=self._max_ring_size,
-            include_down_adj=self.include_down_adj,
+            include_down_adj=False,
             init_edges=True,
             init_rings=False)
 
