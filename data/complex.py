@@ -61,8 +61,8 @@ class Chain(object):
         self.shared_cofaces = shared_cofaces
         self.upper_orient = upper_orient
         self.lower_orient = lower_orient
-        self.__oriented = False
-        self.__hodge_laplacian = None
+        self.__oriented__ = False
+        self.__hodge_laplacian__ = None
         # TODO: Figure out what to do with mapping.
         self.__mapping = mapping
         for key, item in kwargs.items():

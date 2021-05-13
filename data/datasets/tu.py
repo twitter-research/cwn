@@ -1,4 +1,5 @@
 import os
+import torch
 import pickle
 import numpy as np
 from definitions import ROOT_DIR
@@ -48,8 +49,7 @@ class TUDataset(InMemoryComplexDataset):
         super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
             init_method=init_method, cellular=cellular)
 
-        with open(self.processed_paths[0], 'rb') as handle:
-            self._data_list = pickle.load(handle)
+        self.data, self.slices = torch.load(self.processed_paths[0])
             
         self.fold = fold
         self.seed = seed
@@ -81,7 +81,7 @@ class TUDataset(InMemoryComplexDataset):
             
     @property
     def processed_file_names(self):
-        return ['{}_complex_list.pkl'.format(self.name)]
+        return ['{}_complex_list.pt'.format(self.name)]
     
     @property
     def raw_file_names(self):
@@ -115,8 +115,7 @@ class TUDataset(InMemoryComplexDataset):
                                                                include_down_adj=self.include_down_adj,
                                                                init_method=self._init_method)
 
-        with open(self.processed_paths[0], 'wb') as handle:
-            pickle.dump(complexes, handle)
+        torch.save(self.collate(complexes, self.max_dim), self.processed_paths[0])
 
     def get_tune_idx_split(self):
         raise NotImplementedError('Not implemented yet')
