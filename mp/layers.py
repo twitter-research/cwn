@@ -367,6 +367,7 @@ class EmbedVEWithReduce(torch.nn.Module):
     def __init__(self,
                  v_embed_layer: torch.nn.Embedding,
                  e_embed_layer: Optional[torch.nn.Embedding],
+                 c_merge_layer: Optional[torch.nn.Linear],
                  init_reduce: InitReduceConv):
         """
 
@@ -378,6 +379,7 @@ class EmbedVEWithReduce(torch.nn.Module):
         super(EmbedVEWithReduce, self).__init__()
         self.v_embed_layer = v_embed_layer
         self.e_embed_layer = e_embed_layer
+        self.c_merge_layer = c_merge_layer
         self.init_reduce = init_reduce
 
     def forward(self,  *chain_params: ChainMessagePassingParams):
@@ -390,10 +392,10 @@ class EmbedVEWithReduce(torch.nn.Module):
         # The embedding layer expects integers so we convert the tensor to int.
         assert v_params.x.size(-1) == 1
         vx = self.v_embed_layer(v_params.x.squeeze().to(dtype=torch.long))
+        reduced_ex = self.init_reduce(vx, e_params.face_index)
 
-        if e_params.x is None:
-            ex = self.init_reduce(vx, e_params.face_index)
-        else:
+        ex = reduced_ex
+        if e_params.x is not None:
             # The embedding layer expects integers so we convert the tensor to int.
             assert e_params.x.size(-1) == 1
             ex = self.e_embed_layer(e_params.x.squeeze().to(dtype=torch.long))
@@ -401,7 +403,13 @@ class EmbedVEWithReduce(torch.nn.Module):
         if c_params is not None:
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
-            cx = self.init_reduce(ex, c_params.face_index) / 2.
+            v_reduced_cx = self.init_reduce(reduced_ex, c_params.face_index) / 2.
+            if e_params.x is not None:
+                e_reduced_cx = self.init_reduce(ex, c_params.face_index)
+                cx = torch.cat((v_reduced_cx, e_reduced_cx), dim=1)
+                cx = self.c_merge_layer(cx)
+            else:
+                cx = v_reduced_cx
 
             return vx, ex, cx
 
