@@ -187,6 +187,7 @@ def main(args):
                               final_readout=args.final_readout,  # final readout
                               apply_dropout_before=args.drop_position,  # where to apply dropout
                               use_cofaces=use_cofaces,
+                              embed_edge=args.use_edge_features
                               ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
