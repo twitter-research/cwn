@@ -158,13 +158,13 @@ def main(args):
                       readout=args.readout,
                      ).to(device)
     elif args.model == 'zinc_sparse_sin':
-        assert args.dataset == 'ZINC'
-        assert args.task_type == 'regression'
-        assert args.minimize
-        assert args.lr_scheduler == 'ReduceLROnPlateau'
+        # assert args.dataset == 'ZINC'
+        # assert args.task_type == 'regression'
+        # assert args.minimize
+        # assert args.lr_scheduler == 'ReduceLROnPlateau'
         model = ZincSparseSIN(28,  # The number of atomic types
                               4,  # The number of bond types
-                              1,  # num_classes
+                              10,  # num_classes
                               args.num_layers,  # num_layers
                               args.emb_dim,  # hidden
                               dropout_rate=args.drop_rate,  # dropout rate

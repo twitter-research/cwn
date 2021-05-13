@@ -6,3 +6,4 @@ from data.datasets.flow import FlowDataset
 from data.datasets.ocean import OceanDataset
 from data.datasets.zinc import ZincDataset
 from data.datasets.dummy import DummyDataset, DummyMolecularDataset
+from data.datasets.csl import CSLDataset
