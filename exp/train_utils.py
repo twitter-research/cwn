@@ -5,6 +5,7 @@ import logging
 from tqdm import tqdm
 from sklearn import metrics as met
 from data.complex import ComplexBatch
+from ogb.graphproppred import Evaluator as OGBEvaluator
 
 cls_criterion = torch.nn.CrossEntropyLoss()
 reg_criterion = torch.nn.L1Loss()
@@ -125,6 +126,9 @@ class Evaluator(object):
             self.eval_fn = self._accuracy
         elif metric == 'mae':
             self.eval_fn = self._mae
+        elif metric == 'ogbg-molhiv':
+            self._ogb_evaluator = OGBEvaluator(metric)
+            self.eval_fn = self._ogb
         else:
             raise NotImplementedError('Metric {} is not yet supported.'.format(metric))
     
@@ -157,3 +161,10 @@ class Evaluator(object):
         assert y_pred is not None
         metric = met.mean_absolute_error(y_true, y_pred)
         return metric
+    
+    def _ogb(self, input_dict, **kwargs):
+        assert 'y_true' in input_dict
+        assert input_dict['y_true'] is not None
+        assert 'y_pred' in input_dict
+        assert input_dict['y_pred'] is not None
+        return self._ogb_evaluator.eval(input_dict)
