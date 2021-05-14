@@ -37,7 +37,7 @@ def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_
 class TUDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, max_dim=2, num_classes=2, degree_as_tag=False, fold=0,
-                 init_method='sum', seed=0, max_ring_size=None):
+                 init_method='sum', seed=0, include_down_adj=False, max_ring_size=None):
         self.name = name
         self.degree_as_tag = degree_as_tag
         assert max_ring_size is None or max_ring_size > 3
@@ -47,7 +47,7 @@ class TUDataset(InMemoryComplexDataset):
             assert max_dim == 2
 
         super(TUDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
-            init_method=init_method, cellular=cellular)
+            init_method=init_method, include_down_adj=include_down_adj, cellular=cellular)
 
         self.data, self.slices = torch.load(self.processed_paths[0])
             
@@ -77,6 +77,7 @@ class TUDataset(InMemoryComplexDataset):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
         directory = super(TUDataset, self).processed_dir
         suffix = f"_{self._max_ring_size}rings" if self._cellular else ""
+        suffix += f"_down_adj" if self.include_down_adj else ""
         return directory + suffix
             
     @property
@@ -111,6 +112,7 @@ class TUDataset(InMemoryComplexDataset):
         else:
             print("Converting the dataset with gudhi...")
             # What about the init_method here? Adding now, although I remember we had handled this
+            print(self.include_down_adj)
             complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim,
                                                                include_down_adj=self.include_down_adj,
                                                                init_method=self._init_method)
