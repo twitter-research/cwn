@@ -129,15 +129,20 @@ class InMemoryComplexDataset(ComplexDataset):
         
         retrieved = [self._get_chain(dim, idx) for dim in range(0, self.max_dim + 1)]
         chains = [r[0] for r in retrieved if not r[1]]
-        target = torch.tensor([self.data[-1][idx]])
+        target = self.data['labels'][idx]
+        if target is not None:
+            target = torch.tensor([target])
+        dim = self.data['dims'][idx].item()
+        assert dim == len(chains) - 1
         data = Complex(*chains, y=target)
+        print(data.chains[0].num_simplices_down)
     
         if hasattr(self, '__data_list__'):
             self.__data_list__[idx] = copy.copy(data)
             
         return data
     
-    def _get_chain(self, dim, idx):
+    def _get_chain(self, dim, idx) -> (Chain, bool):
         
         if dim < 0 or dim > self.max_dim:
             raise ValueError(f'The current dataset does not have chains at dimension {dim}.')
@@ -179,17 +184,15 @@ class InMemoryComplexDataset(ComplexDataset):
         r"""Collates a python list of data objects to the internal storage
         format of :class:`InMemoryComplexDataset`."""
         
-        def init_keys(data, slices, dim, keys):
-            assert dim not in data
-            assert dim not in slices
-            data[dim] = Chain(dim)
+        def init_keys(dim, keys):
+            chain = Chain(dim)
             for key in keys[dim]:
-                data[dim][key] = []
-            data[dim].__num_simplices__ = []
-            data[dim].__num_simplices_up__ = []
-            data[dim].__num_simplices_down__ = []
-            slices[dim] = {key: [0] for key in keys[dim]}
-            return data, slices
+                chain[key] = []
+            chain.__num_simplices__ = []
+            chain.__num_simplices_up__ = []
+            chain.__num_simplices_down__ = []
+            slc = {key: [0] for key in keys[dim]}
+            return chain, slc
         
         def collect_keys(data_list, max_dim):
             keys = {dim: set() for dim in range(0, max_dim + 1)}
@@ -205,10 +208,10 @@ class InMemoryComplexDataset(ComplexDataset):
         types = {}
         cat_dims = {}
         tensor_dims = {}
-        data = {-1: []}  # "-1" will index complex-wise labels
+        data = {'labels': [], 'dims': []}
         slices = {}
         for dim in range(0, max_dim + 1):
-            data, slices = init_keys(data, slices, dim, keys)
+            data[dim], slices[dim] = init_keys(dim, keys)
         
         for complex in data_list:
             
@@ -247,6 +250,7 @@ class InMemoryComplexDataset(ComplexDataset):
                     slices[dim][key].append(s)
                     
                 # Handle non-keys
+                # TODO: could they be considered as keys as well?
                 num = None
                 num_up = None
                 num_down = None
@@ -261,12 +265,13 @@ class InMemoryComplexDataset(ComplexDataset):
                 data[dim].__num_simplices_up__.append(num_up)
                 data[dim].__num_simplices_down__.append(num_down)
                     
-            # Collect complex-wise label(s)
+            # Collect complex-wise label(s) and dims
             if not hasattr(complex, 'y'):
                 complex.y = None
             if isinstance(complex.y, Tensor):
                 assert complex.y.size(0) == 1   
-            data[-1].append(complex.y)
+            data['labels'].append(complex.y)
+            data['dims'].append(complex.dimension)
 
         # Pack lists into tensors
         
@@ -286,18 +291,19 @@ class InMemoryComplexDataset(ComplexDataset):
 
                 slices[dim][key] = torch.tensor(slices[dim][key], dtype=torch.long)
         
-        # Labels
-        item = data[-1][0]
+        # Labels and dims
+        item = data['labels'][0]
         if isinstance(item, Tensor) and len(data_list) > 1:
             if item.dim() > 0:
                 cat_dim = 0
-                data[-1] = torch.cat(data[-1], dim=cat_dim)
+                data['labels'] = torch.cat(data['labels'], dim=cat_dim)
             else:
-                data[-1] = torch.stack(data[-1])
+                data['labels'] = torch.stack(data['labels'])
         elif isinstance(item, Tensor):
-            data[-1] = data[-1][0]
+            data['labels'] = data[-1][0]
         elif isinstance(item, int) or isinstance(item, float):
-            data[-1] = torch.tensor(data[-1])
+            data['labels'] = torch.tensor(data['labels'])
+        data['dims'] = torch.tensor(data['dims'])
 
         return data, slices
     

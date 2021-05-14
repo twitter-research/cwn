@@ -48,8 +48,7 @@ class SRDataset(InMemoryComplexDataset):
         super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
             include_down_adj=include_down_adj, cellular=cellular)
         
-        with open(self.processed_paths[0], 'rb') as handle:
-            self._data_list = pickle.load(handle)
+        self.data, self.slices = torch.load(self.processed_paths[0])
             
         self.train_ids = list(range(self.len())) if train_ids is None else train_ids
         self.val_ids = list(range(self.len())) if val_ids is None else val_ids
@@ -60,11 +59,12 @@ class SRDataset(InMemoryComplexDataset):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
         directory = super(SRDataset, self).processed_dir
         suffix = f"_{self._max_ring_size}rings" if self._cellular else ""
+        suffix += f"_down_adj" if self.include_down_adj else ""
         return directory + suffix
 
     @property
     def processed_file_names(self):
-        return ['{}_complex_list.pkl'.format(self.name)]       
+        return ['{}_complex_list.pt'.format(self.name)]       
 
     def process(self):
         data = load_sr_dataset(os.path.join(self.raw_dir, self.name + '.g6'))
@@ -104,9 +104,10 @@ class SRDataset(InMemoryComplexDataset):
         # They are not used in isomorphism testing; rather each complex
         # is embedded in a self.num_classes-dimensional space and pairwise
         # distances are computed and inspected.
-        y = torch.ones(self.num_classes, dtype=torch.long)
-        for complex in complexes:
-            complex.y = y
+        # y = torch.ones(self.num_classes, dtype=torch.long)
+        # for complex in complexes:
+        #     complex.y = y
+            
+        # Now we save in opt format.
         path = self.processed_paths[0]
-        with open(path, 'wb') as handle:
-            pickle.dump(complexes, handle)
+        torch.save(self.collate(complexes, self.max_dim), path)
