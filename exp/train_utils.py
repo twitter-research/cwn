@@ -86,9 +86,7 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         loss_fn = reg_criterion
     else:
         loss_fn = None
-        
-    print(loss_fn)
-    
+            
     model.eval()
     y_true = []
     y_pred = []
@@ -97,17 +95,16 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
-            if loss_fn is not None:
-                if task_type == 'regression':
-                    loss = loss_fn(pred, batch.y.view(-1, 1))
-                elif task_type == 'classification':
-                    loss = loss_fn(pred, batch.y.view(-1))
+            if task_type == 'regression':
+                loss = loss_fn(pred, batch.y.view(-1, 1))
+            elif task_type == 'classification':
+                loss = loss_fn(pred, batch.y.view(-1))
+            else:
+                assert task_type == 'isomorphism'
+                assert loss_fn is None
         if loss_fn is not None:
             losses.append(loss.detach().cpu().item())
-        if batch.y is not None:
             y_true.append(batch.y.detach().cpu())
-        else:
-            assert task_type=='isomorphism'
         y_pred.append(pred.detach().cpu())
 
     

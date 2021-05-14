@@ -100,14 +100,6 @@ class SRDataset(InMemoryComplexDataset):
             self.max_dim = max_dim
             makedirs(self.processed_dir)
             
-        # Here we add dummy labels to each of the complex.
-        # They are not used in isomorphism testing; rather each complex
-        # is embedded in a self.num_classes-dimensional space and pairwise
-        # distances are computed and inspected.
-        # y = torch.ones(self.num_classes, dtype=torch.long)
-        # for complex in complexes:
-        #     complex.y = y
-            
         # Now we save in opt format.
         path = self.processed_paths[0]
         torch.save(self.collate(complexes, self.max_dim), path)

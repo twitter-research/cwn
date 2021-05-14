@@ -3,7 +3,6 @@ import re
 from abc import ABC
 
 import torch
-import torch
 import os.path as osp
 
 from torch_geometric.data import Dataset
@@ -135,7 +134,6 @@ class InMemoryComplexDataset(ComplexDataset):
         dim = self.data['dims'][idx].item()
         assert dim == len(chains) - 1
         data = Complex(*chains, y=target)
-        print(data.chains[0].num_simplices_down)
     
         if hasattr(self, '__data_list__'):
             self.__data_list__[idx] = copy.copy(data)
