@@ -12,7 +12,6 @@ from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
     OceanDataset, ZincDataset, CSLDataset, OGBDataset)
 
-
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
         self.follow_batch = follow_batch
@@ -112,15 +111,12 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'])
-<<<<<<< HEAD
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                              fold=fold)
-=======
     elif name == 'MOLHIV':
         dataset = OGBDataset(os.path.join(root, name), 'ogbg-molhiv', num_classes=2, max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'])
->>>>>>> 5e02f7e... Added first implementation of OGB dataset
     else:
         raise NotImplementedError(name)
     return dataset
