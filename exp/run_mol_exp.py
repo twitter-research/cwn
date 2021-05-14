@@ -3,6 +3,7 @@ import os
 import copy
 import time
 import numpy as np
+
 from exp.parser import get_parser
 from exp.run_exp import main
     
@@ -21,20 +22,23 @@ def exp_main(passed_args):
         results.append(curves)
         
     # Extract results
-    train_curves = np.asarray([curves['train'] for curves in results])
     val_curves = np.asarray([curves['val'] for curves in results])
-    test_curves = np.asarray([curves['test']] for curves in results)
+    test_curves = np.asarray([curves['test'] for curves in results])
 
     best_val_idx = np.argmin(val_curves, axis=-1)
     test_results = test_curves[:, best_val_idx]
 
     mean_perf = np.mean(test_results)
     std_perf = np.std(test_results)
+    min_perf = np.min(test_results)
+    max_perf = np.max(test_results)
 
     print(" ===== Final result ======")
     msg = (
         f'Dataset:           {args.dataset}\n'
-        f'Performance:       {mean_perf} ± {std_perf}\n'
+        f'Mean:              {mean_perf} ± {std_perf}\n'
+        f'Min:               {min_perf}\n'
+        f'Max:               {max_perf}\n'
         f'-------------------------------\n')
     print(msg)
     
@@ -51,11 +55,7 @@ def exp_main(passed_args):
 
 
 if __name__ == "__main__":
-    
-    # standard args
     passed_args = sys.argv[1:]
     assert 'seed' not in passed_args
-    if '--exp_name' not in passed_args:
-        passed_args += ['--exp_name', str(time.time())]
-
+    assert 'fold' not in passed_args
     exp_main(passed_args)

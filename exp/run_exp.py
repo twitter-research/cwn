@@ -1,5 +1,6 @@
 import os
-
+import numpy as np
+import copy
 import pickle
 import torch
 import torch.optim as optim
@@ -13,42 +14,30 @@ from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN
 from mp.molec_models import ZincSparseSIN
 
-from definitions import ROOT_DIR
-
-import time
-import numpy as np
-import copy
-
 
 def main(args):
 
     # set device
     device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
 
-    if args.result_folder is None:
-        result_folder = os.path.join(ROOT_DIR, 'exp', 'results')
-    else:
-        result_folder = args.result_folder
-
-    print("==========================================================================")
+    print("==========================================================")
     print("Using device", str(device))
     print(f"Fold: {args.fold}")
+    print(f"Seed: {args.seed}")
     print("======================== Args ===========================")
     print(args)
+    print("===================================================")
 
     # Set the seed for everything
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    if args.exp_name is None:
-        # get timestamp for results and set result directory
-        exp_name = time.time()
-    else:
-        exp_name = args.exp_name
-    result_folder = os.path.join(result_folder, '{}-{}'.format(args.dataset, exp_name))
+    # Create results folder
+    result_folder = os.path.join(
+        args.result_folder, f'{args.dataset}-{args.exp_name}', f'seed-{args.seed}')
     if args.fold is not None:
-        result_folder = os.path.join(result_folder, 'fold-{}'.format(args.fold))
+        result_folder = os.path.join(result_folder, f'fold-{args.fold}')
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
     filename = os.path.join(result_folder, 'results.txt')
@@ -74,7 +63,6 @@ def main(args):
             num_features = graph_list[0].x.shape[1]
     
     else:
-        
         # Data loading
         dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
                                init_method=args.init_method, emb_dim=args.emb_dim,
@@ -285,9 +273,9 @@ def main(args):
         else:
             best_val_epoch = np.argmin(np.array(valid_curve))
         print('Finished training!')
-        print('Best validation score: {}'.format(valid_curve[best_val_epoch]))
+        print(f'Best validation score: {valid_curve[best_val_epoch]}')
         if test_loader is not None:
-            print('Test score: {}'.format(test_curve[best_val_epoch]))
+            print(f'Test score: {test_curve[best_val_epoch]}')
         
     else:
         print('Evaluating...')
@@ -321,7 +309,7 @@ def main(args):
     with open(filename, 'w') as handle:
         handle.write(msg)
     if args.dump_curves:
-        with open(os.path.join(result_folder,'curves.pkl'), 'wb') as handle:
+        with open(os.path.join(result_folder, 'curves.pkl'), 'wb') as handle:
             pickle.dump(curves, handle)
             
     return curves

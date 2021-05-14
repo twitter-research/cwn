@@ -1,4 +1,8 @@
+import os
+import time
 import argparse
+
+from definitions import ROOT_DIR
 
 
 def get_parser():
@@ -12,7 +16,7 @@ def get_parser():
     parser.add_argument('--model', type=str, default='sparse_sin',
                         help='model, possible choices: sin, dummy, ... (default: sin)')
     parser.add_argument('--use_cofaces', type=str, default='False',
-                       help='whether to use coface features for up-messages in sparse_sin (default: False)')
+                        help='whether to use coface features for up-messages in sparse_sin (default: False)')
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
     parser.add_argument('--drop_rate', type=float, default=0.5,
                         help='dropout rate (default: 0.5)')
@@ -60,9 +64,9 @@ def get_parser():
                         help='maximum simplicial dimension (default: 2, i.e. triangles)')
     parser.add_argument('--max_ring_size', type=int, default=None,
                         help='maximum ring size to look for (default: None, i.e. do not look for rings)')
-    parser.add_argument('--result_folder', type=str, default=None,
+    parser.add_argument('--result_folder', type=str, default=os.path.join(ROOT_DIR, 'exp', 'results'),
                         help='filename to output result (default: None, will use `scn/exp/results`)')
-    parser.add_argument('--exp_name', type=str, default=None,
+    parser.add_argument('--exp_name', type=str, default=str(time.time()),
                         help='name for specific experiment; if not provided, a name based on unix timestamp will be '+\
                         'used. (default: None)')
     parser.add_argument('--dump_curves', action='store_true',
