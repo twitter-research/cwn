@@ -20,7 +20,7 @@ class ZincSparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None):
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
         super(ZincSparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -32,9 +32,15 @@ class ZincSparseSIN(torch.nn.Module):
         if embed_dim is None:
             embed_dim = hidden
         self.v_embed_init = Embedding(atom_types, embed_dim)
-        self.e_embed_init = Embedding(bond_types, embed_dim) if embed_edge else None
+
+        self.e_embed_init = None
+        self.c_merge_layer = None
+        if embed_edge:
+            self.e_embed_init = Embedding(bond_types, embed_dim)
+            self.c_merge_layer = Linear(embed_dim*2, embed_dim)
         self.reduce_init = InitReduceConv(reduce=init_reduce)
-        self.init_conv = EmbedVEWithReduce(self.v_embed_init, self.e_embed_init, self.reduce_init)
+        self.init_conv = EmbedVEWithReduce(self.v_embed_init, self.e_embed_init,
+                                           self.c_merge_layer, self.reduce_init)
 
         self.final_readout = final_readout
         self.dropout_rate = dropout_rate
@@ -52,7 +58,7 @@ class ZincSparseSIN(torch.nn.Module):
                     msg_up_nn=lambda x: x[0], inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=(embed_dim>1)))  # TODO: turn this into a less hacky trick
+                    apply_norm=(embed_dim>1), use_cofaces=use_cofaces)) # TODO: turn this into a less hacky trick
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):

@@ -367,17 +367,22 @@ class EmbedVEWithReduce(torch.nn.Module):
     def __init__(self,
                  v_embed_layer: torch.nn.Embedding,
                  e_embed_layer: Optional[torch.nn.Embedding],
+                 c_merge_layer: Optional[torch.nn.Linear],
                  init_reduce: InitReduceConv):
         """
 
         Args:
             v_embed_layer: Layer to embed the integer features of the vertices
             e_embed_layer: Layer (potentially None) to embed the integer features of the edges.
+            c_merge_layer: Layer that takes as input the concatenated vertex and edge features
+                of the rings and produces an output representation with the right output size
+                (i.e. half of the input size).
             init_reduce: Layer to initialise the 2D cell features and potentially the edge features.
         """
         super(EmbedVEWithReduce, self).__init__()
         self.v_embed_layer = v_embed_layer
         self.e_embed_layer = e_embed_layer
+        self.c_merge_layer = c_merge_layer
         self.init_reduce = init_reduce
 
     def forward(self,  *chain_params: ChainMessagePassingParams):
@@ -390,18 +395,30 @@ class EmbedVEWithReduce(torch.nn.Module):
         # The embedding layer expects integers so we convert the tensor to int.
         assert v_params.x.size(-1) == 1
         vx = self.v_embed_layer(v_params.x.squeeze().to(dtype=torch.long))
+        reduced_ex = self.init_reduce(vx, e_params.face_index)
 
-        if e_params.x is None:
-            ex = self.init_reduce(vx, e_params.face_index)
-        else:
-            # The embedding layer expects integers so we convert the tensor to int.
+        ex = reduced_ex
+        if e_params.x is not None:
+            assert self.e_embed_layer is not None
             assert e_params.x.size(-1) == 1
+            # The embedding layer expects integers so we convert the tensor to int.
             ex = self.e_embed_layer(e_params.x.squeeze().to(dtype=torch.long))
+            # The output of this should be the same size as the vertex features.
+            assert ex.size(1) == vx.size(1)
 
         if c_params is not None:
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
-            cx = self.init_reduce(ex, c_params.face_index) / 2.
+            v_reduced_cx = self.init_reduce(reduced_ex, c_params.face_index) / 2.
+            if e_params.x is not None:
+                assert self.c_merge_layer is not None
+                e_reduced_cx = self.init_reduce(ex, c_params.face_index)
+                cx = torch.cat((v_reduced_cx, e_reduced_cx), dim=1)
+                cx = self.c_merge_layer(cx)
+                # The output of this should be the same size as the vertex features.
+                assert cx.size(1) == vx.size(1)
+            else:
+                cx = v_reduced_cx
 
             return vx, ex, cx
 

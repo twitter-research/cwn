@@ -716,6 +716,9 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
             xs[1] = constructed_features[1]
         # If we have edge-features we simply use them for 1-cells
         else:
+            # If edge_attr is a list of scalar features, make it a matrix
+            if edge_attr.dim() == 1:
+                edge_attr = edge_attr.view(-1, 1)
             # Retrieve feats and check edge features are undirected
             ex = dict()
             for e, edge in enumerate(edge_index.numpy().T):
@@ -733,7 +736,8 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
             assert len(simplex_tables[1]) == max_id + 1
             for id in range(max_id + 1):
                 edge_feats.append(ex[id])
-            xs[1] = torch.stack(edge_feats, 0)
+            xs[1] = torch.stack(edge_feats, dim=0)
+            assert xs[1].dim() == 2
             assert xs[1].size(0) == len(id_maps[1])
             assert xs[1].size(1) == edge_attr.size(1)
 
