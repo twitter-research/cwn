@@ -84,5 +84,7 @@ def get_parser():
                         help='Number of points to use for the flow experiment')
     parser.add_argument('--flow_classes',  type=int, default=3,
                         help='Number of classes for the flow experiment')
-    parser.add_argument('--use_edge_features', action='store_true')
+    parser.add_argument('--use_edge_features', action='store_true',
+                        help="Use edge features for molecular graphs")
+    parser.add_argument('--early_stop', action='store_true', help='Stop when minimum LR is reached.')
     return parser

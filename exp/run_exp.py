@@ -200,7 +200,7 @@ def main(args):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                                factor=args.lr_scheduler_decay_rate,
                                                                patience=args.lr_scheduler_patience,
-                                                               min_lr=args.lr_scheduler_min,
+                                                               # min_lr=args.lr_scheduler_min,
                                                                verbose=True)
     elif args.lr_scheduler == 'StepLR':
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_scheduler_decay_steps,
@@ -251,6 +251,9 @@ def main(args):
             if scheduler is not None:
                 if args.lr_scheduler == 'ReduceLROnPlateau':
                     scheduler.step(valid_perf)
+                    if args.early_stop and optimizer.param_groups[0]['lr'] < args.lr_scheduler_min:
+                        print("\n!! LR EQUAL TO MIN LR SET.")
+                        break
                 else:
                     scheduler.step()
 
