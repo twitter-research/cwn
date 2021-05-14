@@ -29,7 +29,7 @@ def exp_main(passed_args):
     test_results = test_curves[:, best_val_idx]
 
     mean_perf = np.mean(test_results)
-    std_perf = np.std(test_results)
+    std_perf = np.std(test_results, ddof=1)  # ddof=1 makes the estimator unbiased
     min_perf = np.min(test_results)
     max_perf = np.max(test_results)
 
