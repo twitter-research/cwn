@@ -86,6 +86,8 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         loss_fn = reg_criterion
     else:
         loss_fn = None
+        
+    print(loss_fn)
     
     model.eval()
     y_true = []
@@ -95,16 +97,21 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
-            if task_type == 'regression':
-                loss = loss_fn(pred, batch.y.view(-1, 1))
-            else:
-                loss = loss_fn(pred, batch.y.view(-1))
-        losses.append(loss.detach().cpu().item())
-
-        y_true.append(batch.y.detach().cpu())
+            if loss_fn is not None:
+                if task_type == 'regression':
+                    loss = loss_fn(pred, batch.y.view(-1, 1))
+                elif task_type == 'classification':
+                    loss = loss_fn(pred, batch.y.view(-1))
+        if loss_fn is not None:
+            losses.append(loss.detach().cpu().item())
+        if batch.y is not None:
+            y_true.append(batch.y.detach().cpu())
+        else:
+            assert task_type=='isomorphism'
         y_pred.append(pred.detach().cpu())
 
-    y_true = torch.cat(y_true, dim=0).numpy()
+    
+    y_true = torch.cat(y_true, dim=0).numpy()  if len(y_true) > 0 else None
     y_pred = torch.cat(y_pred, dim=0).numpy()
 
     input_dict = {'y_pred': y_pred, 'y_true': y_true}
@@ -132,6 +139,7 @@ class Evaluator(object):
         p = input_dict.get('p', 2)
         eps = input_dict.get('eps', 0.01)
         preds = input_dict['y_pred']
+        assert preds is not None
         mm = torch.pdist(torch.tensor(preds, dtype=torch.float32), p=p)
         wrong = (mm < eps).sum().item()
         metric = wrong / mm.shape[0]
@@ -140,11 +148,15 @@ class Evaluator(object):
     def _accuracy(self, input_dict, **kwargs):
         y_true = input_dict['y_true']
         y_pred = np.argmax(input_dict['y_pred'], axis=1)
+        assert y_true is not None
+        assert y_pred is not None
         metric = met.accuracy_score(y_true, y_pred)
         return metric
 
     def _mae(self, input_dict, **kwargs):
         y_true = input_dict['y_true']
         y_pred = input_dict['y_pred']
+        assert y_true is not None
+        assert y_pred is not None
         metric = met.mean_absolute_error(y_true, y_pred)
         return metric
