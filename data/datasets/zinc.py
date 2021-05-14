@@ -1,4 +1,5 @@
 import pickle
+import torch
 import os.path as osp
 
 from data.utils import convert_graph_dataset_with_rings
@@ -17,7 +18,7 @@ class ZincDataset(InMemoryComplexDataset):
         super(ZincDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                           max_dim=2, cellular=True)
 
-        self._data_list, idx = self.load_dataset()
+        self.data, self.slices, idx = self.load_dataset()
         self.train_ids = idx[0]
         self.val_ids = idx[1]
         self.test_ids = idx[2]
@@ -31,7 +32,8 @@ class ZincDataset(InMemoryComplexDataset):
 
     @property
     def processed_file_names(self):
-        return ['complex_train.pkl', 'complex_val.pkl', 'complex_test.pkl']
+        name = self.name
+        return [f'{name}_complex.pt', f'{name}_idx.pt']
 
     def download(self):
         # Instantiating this will download and process the graph dataset.
@@ -39,15 +41,10 @@ class ZincDataset(InMemoryComplexDataset):
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
-        data_list, idx = [], []
-        start = 0
         print("Loading dataset from disk...")
-        for path in self.processed_paths:
-            with open(path, 'rb') as handle:
-                data_list.extend(pickle.load(handle))
-                idx.append(list(range(start, len(data_list))))
-                start = len(data_list)
-        return data_list, idx
+        data, slices = torch.load(self.processed_paths[0])
+        idx = torch.load(self.processed_paths[1])
+        return data, slices, idx
 
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
@@ -56,6 +53,9 @@ class ZincDataset(InMemoryComplexDataset):
         val_data = ZINC(self.raw_dir, subset=True, split='val')
         test_data = ZINC(self.raw_dir, subset=True, split='test')
 
+        data_list = []
+        idx = []
+        start = 0
         print("Converting the train dataset to a cell complex...")
         train_complexes, _, _ = convert_graph_dataset_with_rings(
             train_data,
@@ -63,6 +63,9 @@ class ZincDataset(InMemoryComplexDataset):
             include_down_adj=self.include_down_adj,
             init_edges=self._use_edge_features,
             init_rings=False)
+        data_list += train_complexes
+        idx.append(list(range(start, len(data_list))))
+        start = len(data_list)
         print("Converting the validation dataset to a cell complex...")
         val_complexes, _, _ = convert_graph_dataset_with_rings(
             val_data,
@@ -70,6 +73,9 @@ class ZincDataset(InMemoryComplexDataset):
             include_down_adj=self.include_down_adj,
             init_edges=self._use_edge_features,
             init_rings=False)
+        data_list += val_complexes
+        idx.append(list(range(start, len(data_list))))
+        start = len(data_list)
         print("Converting the test dataset to a cell complex...")
         test_complexes, _, _ = convert_graph_dataset_with_rings(
             test_data,
@@ -77,12 +83,16 @@ class ZincDataset(InMemoryComplexDataset):
             include_down_adj=self.include_down_adj,
             init_edges=self._use_edge_features,
             init_rings=False)
-        complexes = [train_complexes, val_complexes, test_complexes]
+        data_list += test_complexes
+        idx.append(list(range(start, len(data_list))))
 
-        for i, path in enumerate(self.processed_paths):
-            print(f'Saving processed dataset in {path}....')
-            with open(path, 'wb') as handle:
-                pickle.dump(complexes[i], handle)
+        path = self.processed_paths[0]
+        print(f'Saving processed dataset in {path}....')
+        torch.save(self.collate(data_list, 2), path)
+        
+        path = self.processed_paths[1]
+        print(f'Saving idx in {path}....')
+        torch.save(idx, path)
 
     @property
     def processed_dir(self):
