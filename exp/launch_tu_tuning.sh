@@ -1,11 +1,10 @@
 #!/bin/bash
-
-for i in $( seq 0 7 )
+low=0
+high=7
+gridpath="<path_to_grid>"
+expname="<exp_name>"
+python3 -m exp.prepare_tu_tuning $gridpath
+for i in $( seq $low $high )
 do
-    # python3 -m exp.run_tu_tuning --conf ~/git/scn/exp/tuning_configurations/RDTB_grid.yml --code redditbinary_20210219 --idx $i &
-    # python3 -m exp.run_tu_tuning --conf ~/git/scn/exp/tuning_configurations/RDTB_grid.yml --code redditbinary_20210223 --idx $i &
-    # python3 -m exp.run_tu_tuning --conf ~/git/scn/exp/tuning_configurations/RDTM_grid.yml --code redditmulti_20210227 --idx $i &
-    # python3 -m exp.run_tu_tuning --conf ~/git/scn/exp/tuning_configurations/MUTAG_grid.yml --code mutag_20210510 --idx $i &
-    # python3 -m exp.run_tu_tuning --conf ~/git/scn/exp/tuning_configurations/MUTAG_grid_2.yml --code mutag_20210510_fr --idx $i &
-    python3 -m exp.run_tu_tuning --conf ~/git/scn/exp/tuning_configurations/MUTAG_grid_3.yml --code mutag_20210510_lin1 --idx $i &
+    python3 -m exp.run_tu_tuning --conf $gridpath --code $expname --idx $i &
 done
