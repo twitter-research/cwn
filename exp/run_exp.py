@@ -219,7 +219,8 @@ def main(args):
     
     # instantiate learning rate decay
     if args.lr_scheduler == 'ReduceLROnPlateau':
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
+        mode = 'min' if args.minimize else 'max'
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=mode,
                                                                factor=args.lr_scheduler_decay_rate,
                                                                patience=args.lr_scheduler_patience,
                                                                verbose=True)
