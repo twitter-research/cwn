@@ -250,7 +250,7 @@ def main(args):
             if scheduler is not None:
                 if args.lr_scheduler == 'ReduceLROnPlateau':
                     scheduler.step(valid_perf)
-                    if args.early_stop and optimizer.param_groups[0]['lr'] < args.lr_scheduler_min:
+                    if args.early_stop and optimizer.param_groups[0]['lr'] <= args.lr_scheduler_min:
                         print("\n!! The minimum learning rate has been reached.")
                         break
                 else:
