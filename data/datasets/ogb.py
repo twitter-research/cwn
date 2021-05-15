@@ -67,6 +67,7 @@ class OGBDataset(InMemoryComplexDataset):
             print('Using simple features')
             dataset.data.x = dataset.data.x[:,:2]
             dataset.data.edge_attr = dataset.data.edge_attr[:,:2]
+        dataset.data.y = dataset.data.y.to(torch.float32)
         
         print(f"Converting the {self.name} dataset to a cell complex...")
         complexes, _, _ = convert_graph_dataset_with_rings(

@@ -129,8 +129,8 @@ class InMemoryComplexDataset(ComplexDataset):
         retrieved = [self._get_chain(dim, idx) for dim in range(0, self.max_dim + 1)]
         chains = [r[0] for r in retrieved if not r[1]]
         target = self.data['labels'][idx]
-        if target is not None:
-            target = torch.tensor([target])
+        if target is not None and self.data['labels'].dim() > 1:
+            target = target.view(1, self.data['labels'].size(1))
         dim = self.data['dims'][idx].item()
         assert dim == len(chains) - 1
         data = Complex(*chains, y=target)
@@ -302,7 +302,7 @@ class InMemoryComplexDataset(ComplexDataset):
         elif isinstance(item, int) or isinstance(item, float):
             data['labels'] = torch.tensor(data['labels'])
         data['dims'] = torch.tensor(data['dims'])
-
+        
         return data, slices
     
     def copy(self, idx=None):
