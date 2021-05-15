@@ -101,7 +101,7 @@ class CSLDataset(InMemoryComplexDataset):
             new_data,
             max_ring_size=self._max_ring_size,
             include_down_adj=False,
-            init_edges=False,
+            init_edges=True,
             init_rings=False)
 
         path = self.processed_paths[0]
