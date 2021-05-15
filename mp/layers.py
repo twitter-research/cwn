@@ -7,6 +7,8 @@ from torch_geometric.nn.inits import reset
 from torch.nn import Linear, Sequential, BatchNorm1d as BN
 from data.complex import Chain
 from torch_scatter import scatter
+from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
+from abc import ABC, abstractmethod
 
 
 class DummyChainMessagePassing(ChainMessagePassing):
@@ -362,12 +364,12 @@ class InitReduceConv(torch.nn.Module):
         out_size = face_index[1, :].max() + 1
         return scatter(features, face_index[1], dim=0, dim_size=out_size, reduce=self.reduce)
 
-
-class EmbedVEWithReduce(torch.nn.Module):
-
+    
+class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
+    
     def __init__(self,
-                 v_embed_layer: torch.nn.Embedding,
-                 e_embed_layer: Optional[torch.nn.Embedding],
+                 v_embed_layer: Callable,
+                 e_embed_layer: Optional[Callable],
                  init_reduce: InitReduceConv):
         """
 
@@ -376,29 +378,31 @@ class EmbedVEWithReduce(torch.nn.Module):
             e_embed_layer: Layer (potentially None) to embed the integer features of the edges.
             init_reduce: Layer to initialise the 2D cell features and potentially the edge features.
         """
-        super(EmbedVEWithReduce, self).__init__()
+        super(AbstractEmbedVEWithReduce, self).__init__()
         self.v_embed_layer = v_embed_layer
         self.e_embed_layer = e_embed_layer
         self.init_reduce = init_reduce
-
-    def forward(self,  *chain_params: ChainMessagePassingParams):
+    
+    @abstractmethod
+    def _prepare_v_inputs(self, v_params):
+        pass
+    
+    @abstractmethod
+    def _prepare_e_inputs(self, e_params):
+        pass
+    
+    def forward(self, *chain_params: ChainMessagePassingParams):
         assert 2 <= len(chain_params) <= 3
         v_params = chain_params[0]
         e_params = chain_params[1]
         c_params = chain_params[2] if len(chain_params) == 3 else None
 
-        assert v_params.x is not None
-        # The embedding layer expects integers so we convert the tensor to int.
-        assert v_params.x.size(-1) == 1
-        vx = self.v_embed_layer(v_params.x.squeeze().to(dtype=torch.long))
+        vx = self.v_embed_layer(self._prepare_v_inputs(v_params))
         reduced_ex = self.init_reduce(vx, e_params.face_index)
 
         ex = reduced_ex
         if e_params.x is not None:
-            assert self.e_embed_layer is not None
-            assert e_params.x.size(-1) == 1
-            # The embedding layer expects integers so we convert the tensor to int.
-            ex = self.e_embed_layer(e_params.x.squeeze().to(dtype=torch.long))
+            ex = self.e_embed_layer(self._prepare_e_inputs(e_params))
             # The output of this should be the same size as the vertex features.
             assert ex.size(1) == vx.size(1)
 
@@ -409,7 +413,49 @@ class EmbedVEWithReduce(torch.nn.Module):
             return vx, ex, cx
 
         return vx, ex
-
+    
     def reset_parameters(self):
         reset(self.v_embed_layer)
         reset(self.e_embed_layer)
+
+    
+class EmbedVEWithReduce(AbstractEmbedVEWithReduce):
+
+    def __init__(self,
+                 v_embed_layer: torch.nn.Embedding,
+                 e_embed_layer: Optional[torch.nn.Embedding],
+                 init_reduce: InitReduceConv):
+        super(EmbedVEWithReduce, self).__init__(v_embed_layer, e_embed_layer, init_reduce)
+        
+    def _prepare_v_inputs(self, v_params):
+        assert v_params.x is not None
+        assert v_params.x.size(-1) == 1
+        # The embedding layer expects integers so we convert the tensor to int.
+        return v_params.x.squeeze().to(dtype=torch.long)
+    
+    def _prepare_e_inputs(self, e_params):
+        assert self.e_embed_layer is not None
+        assert e_params.x.size(-1) == 1
+        # The embedding layer expects integers so we convert the tensor to int.
+        return e_params.x.squeeze().to(dtype=torch.long)
+
+
+class OGBEmbedVEWithReduce(AbstractEmbedVEWithReduce):
+    
+    def __init__(self,
+                 v_embed_layer: AtomEncoder,
+                 e_embed_layer: Optional[BondEncoder],
+                 init_reduce: InitReduceConv):
+        super(OGBEmbedVEWithReduce, self).__init__(v_embed_layer, e_embed_layer, init_reduce)
+
+    def _prepare_v_inputs(self, v_params):
+        assert v_params.x is not None
+        # assert v_params.x.size(-1) == 1
+        assert v_params.x.dim() == 2
+        return v_params.x
+    
+    def _prepare_e_inputs(self, e_params):
+        assert self.e_embed_layer is not None
+        # assert e_params.x.size(-1) == 1
+        assert e_params.x.dim() == 2
+        return e_params.x

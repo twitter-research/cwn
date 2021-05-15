@@ -13,6 +13,7 @@ from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN
 from mp.molec_models import EmbedSparseSIN
+from mp.molec_models import MolhivSparseSIN
 
 
 def main(args):
@@ -75,14 +76,14 @@ def main(args):
             split_idx = dataset.get_idx_split()
 
         # Instantiate data loaders
-        train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size,
+        train_loader = DataLoader(dataset.get_split('train'), batch_size=args.batch_size,
             shuffle=True, num_workers=args.num_workers, max_dim=dataset.max_dim)
-        valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size,
+        valid_loader = DataLoader(dataset.get_split('valid'), batch_size=args.batch_size,
             shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
         test_split = split_idx.get("test", None)
         test_loader = None
         if test_split is not None:
-            test_loader = DataLoader(dataset[test_split], batch_size=args.batch_size,
+            test_loader = DataLoader(dataset.get_split('test'), batch_size=args.batch_size,
                 shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
             
     # automatic evaluator, takes dataset name as input
@@ -173,6 +174,25 @@ def main(args):
                                use_cofaces=use_cofaces,
                                embed_edge=args.use_edge_features
                                ).to(device)
+    # TODO: handle this as above
+    elif args.model == 'molhiv_sparse_sin':
+        assert args.dataset == 'MOLHIV'
+        assert args.task_type == 'bin_classification'
+        assert not args.minimize
+        assert args.lr_scheduler == 'None'
+        model = MolhivSparseSIN(dataset.num_tasks,  # num_classes
+                                args.num_layers,  # num_layers
+                                args.emb_dim,  # hidden
+                                dropout_rate=args.drop_rate,  # dropout rate
+                                max_dim=dataset.max_dim,  # max_dim
+                                jump_mode=args.jump_mode,  # jump mode
+                                nonlinearity=args.nonlinearity,  # nonlinearity
+                                readout=args.readout,  # readout
+                                final_readout=args.final_readout,  # final readout
+                                apply_dropout_before=args.drop_position,  # where to apply dropout
+                                use_cofaces=use_cofaces,
+                                embed_edge=args.use_edge_features
+                                ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
 

@@ -115,7 +115,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                              fold=fold)
     elif name == 'MOLHIV':
-        dataset = OGBDataset(os.path.join(root, name), 'ogbg-molhiv', num_classes=2, max_ring_size=kwargs['max_ring_size'],
+        dataset = OGBDataset(os.path.join(root, name), 'ogbg-molhiv', max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'])
     else:
         raise NotImplementedError(name)
