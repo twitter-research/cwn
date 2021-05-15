@@ -27,7 +27,7 @@ class CSLDataset(InMemoryComplexDataset):
         assert 0 <= fold <= 4
         self.fold = fold
 
-        self._data_list = self.load_dataset()
+        self.data, self.slices = self.load_dataset()
 
         train_filename = osp.join(self.root, 'splits', 'CSL_train.txt')
         valid_filename = osp.join(self.root, 'splits', 'CSL_val.txt')
@@ -44,7 +44,6 @@ class CSLDataset(InMemoryComplexDataset):
         assert max(self.val_ids) < 150
         assert max(self.test_ids) < 150
 
-
     @property
     def raw_file_names(self):
         name = self.name
@@ -54,7 +53,7 @@ class CSLDataset(InMemoryComplexDataset):
 
     @property
     def processed_file_names(self):
-        return ['complexes.pkl']
+        return ['complexes.pt']
 
     def download(self):
         # Instantiating this will download and process the graph dataset.
@@ -62,8 +61,9 @@ class CSLDataset(InMemoryComplexDataset):
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
-        with open(self.processed_paths[0], 'rb') as handle:
-            return pickle.load(handle)
+        print("Loading dataset from disk...")
+        data, slices = torch.load(self.processed_paths[0])
+        return data, slices
 
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
@@ -101,11 +101,12 @@ class CSLDataset(InMemoryComplexDataset):
             new_data,
             max_ring_size=self._max_ring_size,
             include_down_adj=False,
-            init_edges=True,
+            init_edges=False,
             init_rings=False)
 
-        with open(self.processed_paths[0], 'wb') as handle:
-            pickle.dump(complexes, handle)
+        path = self.processed_paths[0]
+        print(f'Saving processed dataset in {path}....')
+        torch.save(self.collate(complexes, 2), path)
 
     @property
     def processed_dir(self):
