@@ -182,18 +182,18 @@ def main(args):
         assert args.task_type == 'bin_classification'
         assert not args.minimize
         assert args.lr_scheduler == 'None'
-        model = MolhivSparseSIN(dataset.num_tasks,  # num_classes
-                                args.num_layers,  # num_layers
-                                args.emb_dim,  # hidden
-                                dropout_rate=args.drop_rate,  # dropout rate
-                                max_dim=dataset.max_dim,  # max_dim
-                                jump_mode=args.jump_mode,  # jump mode
-                                nonlinearity=args.nonlinearity,  # nonlinearity
-                                readout=args.readout,  # readout
-                                final_readout=args.final_readout,  # final readout
-                                apply_dropout_before=args.drop_position,  # where to apply dropout
-                                use_cofaces=use_cofaces,
-                                embed_edge=args.use_edge_features
+        model = MolhivSparseSIN(dataset.num_tasks,                       # out_size
+                                args.num_layers,                         # num_layers
+                                args.emb_dim,                            # hidden
+                                dropout_rate=args.drop_rate,             # dropout_rate
+                                max_dim=dataset.max_dim,                 # max_dim
+                                jump_mode=args.jump_mode,                # jump_mode
+                                nonlinearity=args.nonlinearity,          # nonlinearity
+                                readout=args.readout,                    # readout
+                                final_readout=args.final_readout,        # final readout
+                                apply_dropout_before=args.drop_position, # where to apply dropout
+                                use_cofaces=use_cofaces,                 # whether to use cofaces
+                                embed_edge=args.use_edge_features        # whether to use edge feats
                                 ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))

@@ -53,13 +53,7 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
 
         optimizer.zero_grad()
         pred = model(batch)
-        if task_type == 'regression':
-            targets = batch.y.view(-1, 1)
-        elif task_type == 'bin_classification':
-            targets = batch.y.view(-1, 1).to(torch.float32)
-        else:
-            targets = batch.y.view(-1)
-        loss = loss_fn(pred, targets)
+        loss = loss_fn(pred, batch.y)
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
@@ -104,14 +98,9 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
-            if task_type == 'regression':
-                loss = loss_fn(pred, batch.y.view(-1, 1))
-            elif task_type == 'classification':
-                loss = loss_fn(pred, batch.y.view(-1))
-            elif task_type == 'bin_classification':
-                loss = loss_fn(pred, batch.y.view(-1, 1).to(torch.float32))
+            if task_type != 'isomorphism':
+                loss = loss_fn(pred, batch.y)
             else:
-                assert task_type == 'isomorphism'
                 assert loss_fn is None
         if loss_fn is not None:
             losses.append(loss.detach().cpu().item())
@@ -178,5 +167,4 @@ class Evaluator(object):
         assert input_dict['y_true'] is not None
         assert 'y_pred' in input_dict
         assert input_dict['y_pred'] is not None
-        input_dict['y_true'] = input_dict['y_true'].reshape(input_dict['y_pred'].shape)
         return self._ogb_evaluator.eval(input_dict)[self._key]
