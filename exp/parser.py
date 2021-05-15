@@ -33,7 +33,7 @@ def get_parser():
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate (default: 0.001)')
     parser.add_argument('--lr_scheduler', type=str, default='StepLR',
-                        help='learning rate decay scheduler (default: None)')
+                        help='learning rate decay scheduler (default: StepLR)')
     parser.add_argument('--lr_scheduler_decay_steps', type=int, default=50,
                         help='number of epochs between lr decay (default: 50)')
     parser.add_argument('--lr_scheduler_decay_rate', type=float, default=0.5,
