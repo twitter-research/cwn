@@ -103,3 +103,5 @@ At this point the jobs should be running in parallel in the background, and you 
 
 The tuning jobs will write the results under `exp/results/<dataset_name>_tuning_<exp_name>/`.
 You can inspect tuning results via Jupyter Notebook / Lab. Open notebook `exp/analyse_TU_tuning.ipynb`. In the second cell, set the `exp_name` and `dataset` variables. Run all cells.
+
+The last cell will print the top-5 scores and the configurations hyperparameters in variable `inspect_args`.
