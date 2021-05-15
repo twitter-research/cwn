@@ -80,7 +80,7 @@ Open file `./exp/launch_tu_tuning.sh`.
 On lines `2, 3`, specify the device index range on which the tuning will run in parallel. The range must include the same number of devices specified in the step above. For example, if you have set `__max_devices__ = 8`, then specify `lower=0` and `upper=7`.
 Mind that you do have a certain freedom to define how many devices to use and which ones. For example, suppose you have a server with `8` devices, but you want to only use devices `3, 4, 5, 6`, it is sufficient to set `__max_devices__ = 4`, `lower=3`, `upper=6`.
 
-On line `4`, specify the grid you want to use and the folder where to save the results. Change `<path_to_grid>` with the absolute path to the `yaml` file specifying the grid. For example, if this repository is rooted at `~/git/scn`, and the config file is called `IMDBB_ring_grid.yaml`, then replace `<path_to_grid>` with `~/git/scn/exp/tuning_configurations/IMDBB_ring_grid.yaml`.
+On line `4`, specify the grid you want to use and the folder where to save the results. Change `<path_to_grid>` with the absolute path to the `yaml` file specifying the grid. For example, if this repository is rooted at `/home/ubuntu/git/scn`, and the config file is called `IMDBB_ring_grid.yaml`, then replace `<path_to_grid>` with `/home/ubuntu/git/scn/exp/tuning_configurations/IMDBB_ring_grid.yaml`.
 On line `5`, change `<exp_name>` with the name you want to give to the tuning experiment. This will determine where name of the folder where results will be stored. An example could be `imdbb_20210515_rings`.
 
 #### Launch the jobs
