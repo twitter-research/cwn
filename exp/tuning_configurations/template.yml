@@ -36,6 +36,7 @@ lr_scheduler_decay_steps:
     - 50
     - 20
 max_dim:
+    # If supplying a max_ring_size, max_dim should be set to 2.
     - 2
 max_ring_size:
     - 6
