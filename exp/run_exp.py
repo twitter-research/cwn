@@ -200,7 +200,6 @@ def main(args):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                                factor=args.lr_scheduler_decay_rate,
                                                                patience=args.lr_scheduler_patience,
-                                                               # min_lr=args.lr_scheduler_min,
                                                                verbose=True)
     elif args.lr_scheduler == 'StepLR':
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_scheduler_decay_steps,
@@ -252,7 +251,7 @@ def main(args):
                 if args.lr_scheduler == 'ReduceLROnPlateau':
                     scheduler.step(valid_perf)
                     if args.early_stop and optimizer.param_groups[0]['lr'] < args.lr_scheduler_min:
-                        print("\n!! LR EQUAL TO MIN LR SET.")
+                        print("\n!! The minimum learning rate has been reached.")
                         break
                 else:
                     scheduler.step()
@@ -294,12 +293,13 @@ def main(args):
         best_val_epoch = 0
         train_loss_curve.append(np.nan)
 
-    # save results
+    # save results and pad arrays with the last value in case we did early stopping.
+    epochs_left = args.epochs - len(train_curve)
     curves = {
         'train_loss': train_loss_curve,
-        'train': train_curve,
-        'val': valid_curve,
-        'test': test_curve,
+        'train': np.pad(train_curve, (0, epochs_left), mode='edge'),
+        'val': np.pad(valid_curve, (0, epochs_left), mode='edge'),
+        'test': np.pad(test_curve, (0, epochs_left), mode='edge'),
         'best': best_val_epoch}
     msg = (
        f'Dataset:        {args.dataset}\n'
