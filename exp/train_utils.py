@@ -178,5 +178,5 @@ class Evaluator(object):
         assert input_dict['y_true'] is not None
         assert 'y_pred' in input_dict
         assert input_dict['y_pred'] is not None
-        input_dict['y_true'].reshape(input_dict['y_pred'].shape)
+        input_dict['y_true'] = input_dict['y_true'].reshape(input_dict['y_pred'].shape)
         return self._ogb_evaluator.eval(input_dict)[self._key]
