@@ -37,7 +37,7 @@ class ZincSparseSIN(torch.nn.Module):
         self.c_merge_layer = None
         if embed_edge:
             self.e_embed_init = Embedding(bond_types, embed_dim)
-            # self.c_merge_layer = Linear(embed_dim*2, embed_dim)
+            self.c_merge_layer = Linear(embed_dim*2, embed_dim)
         self.reduce_init = InitReduceConv(reduce=init_reduce)
         self.init_conv = EmbedVEWithReduce(self.v_embed_init, self.e_embed_init,
                                            self.c_merge_layer, self.reduce_init)

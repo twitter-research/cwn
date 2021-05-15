@@ -410,15 +410,15 @@ class EmbedVEWithReduce(torch.nn.Module):
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
             v_reduced_cx = self.init_reduce(reduced_ex, c_params.face_index) / 2.
-            # if e_params.x is not None:
-            #     assert self.c_merge_layer is not None
-            #     e_reduced_cx = self.init_reduce(ex, c_params.face_index)
-            #     cx = torch.cat((v_reduced_cx, e_reduced_cx), dim=1)
-            #     cx = self.c_merge_layer(cx)
-            #     # The output of this should be the same size as the vertex features.
-            #     assert cx.size(1) == vx.size(1)
-            # else:
-            cx = v_reduced_cx
+            if e_params.x is not None:
+                assert self.c_merge_layer is not None
+                e_reduced_cx = self.init_reduce(ex, c_params.face_index)
+                cx = torch.cat((v_reduced_cx, e_reduced_cx), dim=1)
+                cx = self.c_merge_layer(cx)
+                # The output of this should be the same size as the vertex features.
+                assert cx.size(1) == vx.size(1)
+            else:
+                cx = v_reduced_cx
 
             return vx, ex, cx
 
