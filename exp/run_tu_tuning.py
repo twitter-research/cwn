@@ -16,7 +16,6 @@ if __name__ == "__main__":
     parser.add_argument('--code', type=str, help='tuning name')
     parser.add_argument('--idx', type=int, help='selection index')
     t_args = parser.parse_args()
-    assert t_args.idx >= 0 and t_args.idx < __max_devices__
     
     # parse grid from yaml
     with open(t_args.conf, 'r') as handle:
@@ -32,10 +31,8 @@ if __name__ == "__main__":
     grid = itertools.product(*hyper_values)
     exp_queue = list()
     for h, hypers in enumerate(grid):
-        if h % __max_devices__ == t_args.idx:
+        if h % __max_devices__ == (t_args.idx % __max_devices__):
             exp_queue.append((h, hypers))
-    
-    print(exp_queue)
     
     # form args
     base_args = [
@@ -43,8 +40,7 @@ if __name__ == "__main__":
         '--task_type', 'classification',
         '--eval_metric', 'accuracy',
         '--dataset', dataset,
-        '--result_folder', os.path.join(ROOT_DIR, 'exp', 'results', '{}_tuning_{}'.format(dataset, t_args.code)),
-        '--train_eval_period', '10']
+        '--result_folder', os.path.join(ROOT_DIR, 'exp', 'results', '{}_tuning_{}'.format(dataset, t_args.code))]
     
     for exp in exp_queue:
         args = copy.copy(base_args)
@@ -54,9 +50,5 @@ if __name__ == "__main__":
             addendum.append('--{}'.format(name))
             addendum.append('{}'.format(value))
         args += addendum
-        print(args)
         exp_main(args)
-    
-    
-    
-    
+

@@ -1,5 +1,6 @@
+import sys
 import yaml
-from data.data_loading import load_datasets
+from data.data_loading import load_dataset
 
 if __name__ == "__main__":
     
@@ -19,6 +20,4 @@ if __name__ == "__main__":
     for max_dim in max_dims:
         for max_ring_size in max_ring_sizes:
             for init in init_methods:
-                _ = load_dataset(name, max_dim=max_dim, init_method=init, max_ring_size=max_ring_size)
-                
-    return
+                _ = load_dataset(dataset, max_dim=max_dim, init_method=init, max_ring_size=max_ring_size)
