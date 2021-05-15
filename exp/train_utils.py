@@ -8,6 +8,7 @@ from data.complex import ComplexBatch
 from ogb.graphproppred import Evaluator as OGBEvaluator
 
 cls_criterion = torch.nn.CrossEntropyLoss()
+bicls_criterion = torch.nn.BCEWithLogitsLoss()
 reg_criterion = torch.nn.L1Loss()
 
 
@@ -18,6 +19,8 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
 
     if task_type == 'classification':
         loss_fn = cls_criterion
+    elif task_type == 'bin_classification':
+        loss_fn = bicls_criterion
     elif task_type == 'regression':
         loss_fn = reg_criterion
     else:
@@ -51,9 +54,12 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         optimizer.zero_grad()
         pred = model(batch)
         if task_type == 'regression':
-            loss = loss_fn(pred, batch.y.view(-1, 1))
+            targets = batch.y.view(-1, 1)
+        elif task_type == 'bin_classification':
+            targets = batch.y.view(-1, 1).to(torch.float32)
         else:
-            loss = loss_fn(pred, batch.y.view(-1))
+            targets = batch.y.view(-1)
+        loss = loss_fn(pred, targets)
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
@@ -83,6 +89,8 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
 
     if task_type == 'classification':
         loss_fn = cls_criterion
+    elif task_type == 'bin_classification':
+        loss_fn = bicls_criterion
     elif task_type == 'regression':
         loss_fn = reg_criterion
     else:
@@ -100,6 +108,8 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
                 loss = loss_fn(pred, batch.y.view(-1, 1))
             elif task_type == 'classification':
                 loss = loss_fn(pred, batch.y.view(-1))
+            elif task_type == 'bin_classification':
+                loss = loss_fn(pred, batch.y.view(-1, 1).to(torch.float32))
             else:
                 assert task_type == 'isomorphism'
                 assert loss_fn is None
@@ -128,6 +138,7 @@ class Evaluator(object):
             self.eval_fn = self._mae
         elif metric == 'ogbg-molhiv':
             self._ogb_evaluator = OGBEvaluator(metric)
+            self._key = 'rocauc'
             self.eval_fn = self._ogb
         else:
             raise NotImplementedError('Metric {} is not yet supported.'.format(metric))
@@ -167,4 +178,5 @@ class Evaluator(object):
         assert input_dict['y_true'] is not None
         assert 'y_pred' in input_dict
         assert input_dict['y_pred'] is not None
-        return self._ogb_evaluator.eval(input_dict)
+        input_dict['y_true'].reshape(input_dict['y_pred'].shape)
+        return self._ogb_evaluator.eval(input_dict)[self._key]
