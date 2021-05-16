@@ -1,15 +1,17 @@
 import sys
 import os
 import copy
-import time
 import numpy as np
+import subprocess
 
 from exp.parser import get_parser
 from exp.run_exp import main
-    
+
     
 def exp_main(passed_args):
-    
+    # Extract the commit sha so we can check the code that was used for each experiment
+    sha = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
 
@@ -22,11 +24,12 @@ def exp_main(passed_args):
         results.append(curves)
         
     # Extract results
-    val_curves = np.asarray([curves['val'] for curves in results])
-    test_curves = np.asarray([curves['test'] for curves in results])
+    val_curves = [curves['val'] for curves in results]
+    test_curves = [curves['test'] for curves in results]
+    best_idx = [curves['best'] for curves in results]
 
-    best_val_idx = np.argmin(val_curves, axis=-1)
-    test_results = test_curves[:, best_val_idx]
+    test_results = [test_curves[i][best] for i, best in enumerate(best_idx)]
+    test_results = np.array(test_results, dtype=np.float)
 
     mean_perf = np.mean(test_results)
     std_perf = np.std(test_results, ddof=1)  # ddof=1 makes the estimator unbiased
@@ -39,6 +42,7 @@ def exp_main(passed_args):
         f'Mean:              {mean_perf} ± {std_perf}\n'
         f'Min:               {min_perf}\n'
         f'Max:               {max_perf}\n'
+        f'SHA:               {sha}\n'
         f'-------------------------------\n')
     print(msg)
     
