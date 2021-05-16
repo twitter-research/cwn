@@ -3,7 +3,7 @@ import itertools
 
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
-from mp.molec_models import ZincSparseSIN
+from mp.molec_models import EmbedSparseSIN
 from data.data_loading import DataLoader, load_dataset
 
 
@@ -21,8 +21,8 @@ def test_zinc_sparse_sin0_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = ZincSparseSIN(atom_types=32, bond_types=4, out_size=3, num_layers=3, hidden=5,
-                              jump_mode='cat', max_dim=model_max_dim)
+        model = EmbedSparseSIN(atom_types=32, bond_types=4, out_size=3, num_layers=3, hidden=5,
+                               jump_mode='cat', max_dim=model_max_dim)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
 
@@ -76,8 +76,8 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
     max_dim = 2
     torch.manual_seed(0)
     data_loader = DataLoader(dataset, batch_size=32, max_dim=max_dim)
-    model = ZincSparseSIN(atom_types=64, bond_types=4, out_size=3, num_layers=3, hidden=5,
-                          jump_mode='cat', max_dim=max_dim)
+    model = EmbedSparseSIN(atom_types=64, bond_types=4, out_size=3, num_layers=3, hidden=5,
+                           jump_mode='cat', max_dim=max_dim)
     model.eval()
 
     batched_res = {}

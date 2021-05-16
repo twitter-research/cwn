@@ -21,7 +21,7 @@ jobs:
           name: pytorch
       - python/install-deps
       - run:
-          command: ./pyG_install.sh
+          command: ./pyG_install.sh cpu
           name: DepPyG
       - python/save-cache
       - run:

@@ -8,7 +8,7 @@ from data.complex import ComplexBatch
 from mp.models import get_nonlinearity, get_pooling_fn
 
 
-class ZincSparseSIN(torch.nn.Module):
+class EmbedSparseSIN(torch.nn.Module):
     """
     A simplicial version of GIN with some tailoring to nimbly work on molecules from the ZINC database.
 
@@ -21,7 +21,7 @@ class ZincSparseSIN(torch.nn.Module):
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
-        super(ZincSparseSIN, self).__init__()
+        super(EmbedSparseSIN, self).__init__()
 
         self.max_dim = max_dim
         if readout_dims is not None:

@@ -9,7 +9,7 @@ from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset, FlowDataset,
-    load_tu_graph_dataset, OceanDataset, ZincDataset)
+    load_tu_graph_dataset, OceanDataset, ZincDataset, CSLDataset)
 
 
 class Collater(object):
@@ -111,6 +111,9 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'])
+    elif name == 'CSL':
+        dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
+                             fold=fold)
     else:
         raise NotImplementedError(name)
     return dataset

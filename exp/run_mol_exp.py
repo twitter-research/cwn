@@ -6,8 +6,9 @@ import subprocess
 
 from exp.parser import get_parser
 from exp.run_exp import main
+from itertools import product
 
-    
+
 def exp_main(passed_args):
     # Extract the commit sha so we can check the code that was used for each experiment
     sha = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
@@ -17,12 +18,21 @@ def exp_main(passed_args):
 
     # run each experiment separately and gather results
     results = list()
-    for i in range(args.seeds):
-        current_args = copy.copy(passed_args) + ['--seed', str(i)]
-        parsed_args = parser.parse_args(current_args)
-        curves = main(parsed_args)
-        results.append(curves)
-        
+    if args.folds is None:
+        for seed in range(args.seeds):
+            current_args = copy.copy(passed_args) + ['--seed', str(seed)]
+            parsed_args = parser.parse_args(current_args)
+            curves = main(parsed_args)
+            results.append(curves)
+    else:
+        # Used by CSL only to run experiments across both seeds and folds
+        assert args.dataset == 'CSL'
+        for seed, fold in product(range(args.seeds), range(args.folds)):
+            current_args = copy.copy(passed_args) + ['--seed', str(seed)] + ['--fold', str(fold)]
+            parsed_args = parser.parse_args(current_args)
+            curves = main(parsed_args)
+            results.append(curves)
+
     # Extract results
     val_curves = [curves['val'] for curves in results]
     test_curves = [curves['test'] for curves in results]

@@ -75,6 +75,8 @@ def get_parser():
                         help='whether to skip training')
     parser.add_argument('--fold', type=int, default=None,
                         help='fold index for k-fold cross-validation experiments')
+    parser.add_argument('--folds', type=int, default=None,
+                        help='The number of folds to run on in cross validation experiments')
     parser.add_argument('--init_method', type=str, default='sum',
                         help='How to initialise features at higher levels (sum, mean)')
     parser.add_argument('--train_eval_period', type=int, default=10,
@@ -88,3 +90,22 @@ def get_parser():
                         help="Use edge features for molecular graphs")
     parser.add_argument('--early_stop', action='store_true', help='Stop when minimum LR is reached.')
     return parser
+
+
+def validate_args(args):
+    # TODO(Cris): Add more detailed validation for more datasets in the future
+    if args.dataset == 'CSL':
+        assert args.model == 'embed_sparse_sin'
+        assert args.task_type == 'classification'
+        assert not args.minimize
+        assert args.lr_scheduler == 'ReduceLROnPlateau'
+        assert args.eval_metric == 'accuracy'
+        assert args.fold is not None
+    elif args.dataset == 'ZINC':
+        assert args.model == 'embed_sparse_sin'
+        assert args.task_type == 'regression'
+        assert args.minimize
+        assert args.eval_metric == 'mae'
+        assert args.lr_scheduler == 'ReduceLROnPlateau'
+
+
