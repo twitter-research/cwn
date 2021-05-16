@@ -293,8 +293,7 @@ def main(args):
         best_val_epoch = 0
         train_loss_curve.append(np.nan)
 
-    # save results and pad arrays with the last value in case we did early stopping.
-    epochs_left = args.epochs - len(train_curve)
+    # save results
     curves = {
         'train_loss': train_loss_curve,
         'train': train_curve,
