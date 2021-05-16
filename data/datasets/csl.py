@@ -1,4 +1,3 @@
-import pickle
 import os.path as osp
 import numpy as np
 import torch
@@ -10,25 +9,29 @@ from torch_geometric.utils import remove_self_loops
 
 
 class CSLDataset(InMemoryComplexDataset):
-    """This is the Cluster dataset from the Benchmarking GNNs paper.
+    """This is the CSL (Circular Skip Link) dataset from the Benchmarking GNNs paper.
 
-    The dataset contains multiple graphs and we have to do node classification on all these graphs.
+    The dataset contains 10 isomorphism classes of strongly regular graphs that must be classified.
     """
 
     def __init__(self, root, transform=None,
-                 pre_transform=None, pre_filter=None, max_ring_size=6, fold=0, init_method='sum',
-                 num_classes=None):
+                 pre_transform=None, pre_filter=None, max_ring_size=6, fold=0, init_method='sum'):
         self.name = 'CSL'
         self._max_ring_size = max_ring_size
         super(CSLDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                          max_dim=2, cellular=True, init_method=init_method,
-                                         num_classes=num_classes)
+                                         num_classes=10)
 
         assert 0 <= fold <= 4
         self.fold = fold
 
         self.data, self.slices = self.load_dataset()
 
+        self.num_node_type = 1
+        self.num_edge_type = 1
+
+        # These cross-validation splits have been taken from
+        # https://github.com/graphdeeplearning/benchmarking-gnns/tree/master/data/CSL
         train_filename = osp.join(self.root, 'splits', 'CSL_train.txt')
         valid_filename = osp.join(self.root, 'splits', 'CSL_val.txt')
         test_filename = osp.join(self.root, 'splits', 'CSL_test.txt')
@@ -40,6 +43,7 @@ class CSLDataset(InMemoryComplexDataset):
         # Make sure the split rations are as expected (3:1:1)
         assert len(self.train_ids) == 3 * len(self.test_ids)
         assert len(self.val_ids) == len(self.test_ids)
+        # Check all splits contain number smaller than the total number of graphs
         assert max(self.train_ids) < 150
         assert max(self.val_ids) < 150
         assert max(self.test_ids) < 150
@@ -57,7 +61,7 @@ class CSLDataset(InMemoryComplexDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset.
-        GNNBenchmarkDataset('./datasets/', 'CSL')
+        GNNBenchmarkDataset(self.raw_dir, 'CSL')
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
@@ -68,7 +72,8 @@ class CSLDataset(InMemoryComplexDataset):
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
         print(f"Processing cell complex dataset for {self.name}")
-        data = GNNBenchmarkDataset('./datasets/', 'CSL', split='train')
+        # This dataset has no train / val / test splits and we must use cross-validation
+        data = GNNBenchmarkDataset(self.raw_dir, 'CSL')
         assert len(data) == 150
 
         # Check that indeed there are no features

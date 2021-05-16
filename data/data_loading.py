@@ -113,7 +113,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
                               use_edge_features=kwargs['use_edge_features'])
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
-                             num_classes=10, fold=fold)
+                             fold=fold)
     else:
         raise NotImplementedError(name)
     return dataset

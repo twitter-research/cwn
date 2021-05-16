@@ -1,6 +1,4 @@
-import pickle
 import torch
-import os.path as osp
 
 from data.utils import convert_graph_dataset_with_rings
 from data.datasets import InMemoryComplexDataset
@@ -16,12 +14,15 @@ class ZincDataset(InMemoryComplexDataset):
         self._max_ring_size = max_ring_size
         self._use_edge_features = use_edge_features
         super(ZincDataset, self).__init__(root, transform, pre_transform, pre_filter,
-                                          max_dim=2, cellular=True)
+                                          max_dim=2, cellular=True, num_classes=1)
 
         self.data, self.slices, idx = self.load_dataset()
         self.train_ids = idx[0]
         self.val_ids = idx[1]
         self.test_ids = idx[2]
+
+        self.num_node_type = 28
+        self.num_edge_type = 4
 
     @property
     def raw_file_names(self):

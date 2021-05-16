@@ -9,10 +9,10 @@ import random
 from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
-from exp.parser import get_parser
+from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN
-from mp.molec_models import ZincSparseSIN
+from mp.molec_models import EmbedSparseSIN
 
 
 def main(args):
@@ -157,48 +157,22 @@ def main(args):
                       args.emb_dim,  # hidden
                       readout=args.readout,
                      ).to(device)
-    elif args.model == 'zinc_sparse_sin':
-        assert args.dataset == 'ZINC'
-        assert args.task_type == 'regression'
-        assert args.minimize
-        assert args.lr_scheduler == 'ReduceLROnPlateau'
-        model = ZincSparseSIN(28,  # The number of atomic types
-                              4,  # The number of bond types
-                              1,  # num_classes
-                              args.num_layers,  # num_layers
-                              args.emb_dim,  # hidden
-                              dropout_rate=args.drop_rate,  # dropout rate
-                              max_dim=dataset.max_dim,  # max_dim
-                              jump_mode=args.jump_mode,  # jump mode
-                              nonlinearity=args.nonlinearity,  # nonlinearity
-                              readout=args.readout,  # readout
-                              final_readout=args.final_readout,  # final readout
-                              apply_dropout_before=args.drop_position,  # where to apply dropout
-                              use_cofaces=use_cofaces,
-                              embed_edge=args.use_edge_features
-                              ).to(device)
-    elif args.model == 'csl_sparse_sin':
-        # This is a bit of a hack to use the ZincSparseSin model on CSL easily.
-        assert args.dataset == 'CSL'
-        assert args.task_type == 'classification'
-        assert not args.minimize
-        assert args.lr_scheduler == 'ReduceLROnPlateau'
-        assert args.fold is not None
-        model = ZincSparseSIN(1,  # The number of atomic types
-                              1,  # The number of bond types
-                              10,  # num_classes
-                              args.num_layers,  # num_layers
-                              args.emb_dim,  # hidden
-                              dropout_rate=args.drop_rate,  # dropout rate
-                              max_dim=dataset.max_dim,  # max_dim
-                              jump_mode=args.jump_mode,  # jump mode
-                              nonlinearity=args.nonlinearity,  # nonlinearity
-                              readout=args.readout,  # readout
-                              final_readout=args.final_readout,  # final readout
-                              apply_dropout_before=args.drop_position,  # where to apply dropout
-                              use_cofaces=use_cofaces,
-                              embed_edge=args.use_edge_features
-                              ).to(device)
+    elif args.model == 'embed_sparse_sin':
+        model = EmbedSparseSIN(dataset.num_node_type,  # The number of atomic types
+                               dataset.num_edge_type,  # The number of bond types
+                               dataset.num_classes,  # num_classes
+                               args.num_layers,  # num_layers
+                               args.emb_dim,  # hidden
+                               dropout_rate=args.drop_rate,  # dropout rate
+                               max_dim=dataset.max_dim,  # max_dim
+                               jump_mode=args.jump_mode,  # jump mode
+                               nonlinearity=args.nonlinearity,  # nonlinearity
+                               readout=args.readout,  # readout
+                               final_readout=args.final_readout,  # final readout
+                               apply_dropout_before=args.drop_position,  # where to apply dropout
+                               use_cofaces=use_cofaces,
+                               embed_edge=args.use_edge_features
+                               ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
 
@@ -346,5 +320,6 @@ if __name__ == "__main__":
 
     parser = get_parser()
     args = parser.parse_args()
+    validate_args(args)
     
     main(args)
