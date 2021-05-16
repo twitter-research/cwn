@@ -18,43 +18,20 @@ conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch
 
 Install torch-geometric:
 ```
-CUDA=cu102
-TORCH=1.7.0
-pip install torch-scatter==2.0.5 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
-pip install torch-sparse==0.6.8 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
-pip install torch-cluster==1.5.8 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
-pip install torch-spline-conv==1.2.0 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
-pip install torch-geometric==1.6.3
-```
-or, as an alternative:
-```
 sh pyG_install.sh cu102
 ```
 
 Install other required packages via pip:
-```
-pip install pytest==6.2.1
-pip install gudhi==3.4.0
-pip install ogb==1.3.1
-pip install pyyaml==3.12
-pip install jupyter==1.0.0
-pip install matplotlib==2.2.2
-```
-or, as an alternative:
 ```
 pip install -r requirements.txt
 ```
 
 Install graph-tool via conda:
 ```
-conda install -c conda-forge graph-tool==2.29
-```
-or, as an alternative:
-```
 sh graph-tool_install.sh
 ```
 
-At this point you should be good to go. :)
+At this point you should be good to go 😈.
 
 
 ## Tuning SparseSIN on TU datasets
