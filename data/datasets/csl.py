@@ -11,7 +11,7 @@ from torch_geometric.utils import remove_self_loops
 class CSLDataset(InMemoryComplexDataset):
     """This is the CSL (Circular Skip Link) dataset from the Benchmarking GNNs paper.
 
-    The dataset contains 10 isomorphism classes of strongly regular graphs that must be classified.
+    The dataset contains 10 isomorphism classes of regular graphs that must be classified.
     """
 
     def __init__(self, root, transform=None,
