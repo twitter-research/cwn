@@ -250,7 +250,9 @@ def main(args):
             if scheduler is not None:
                 if args.lr_scheduler == 'ReduceLROnPlateau':
                     scheduler.step(valid_perf)
-                    if args.early_stop and optimizer.param_groups[0]['lr'] <= args.lr_scheduler_min:
+                    # We use a strict inequality here like in the benchmarking GNNs paper code
+                    # https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/main_molecules_graph_regression.py#L217
+                    if args.early_stop and optimizer.param_groups[0]['lr'] < args.lr_scheduler_min:
                         print("\n!! The minimum learning rate has been reached.")
                         break
                 else:
