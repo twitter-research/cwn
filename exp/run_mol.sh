@@ -16,8 +16,8 @@ CUDA_VISIBLE_DEVICES=3 python -m exp.run_mol_exp --dataset ZINC --seeds 10 --tra
 
 # Reference run for CSL with the GIN params from the Benchmarking GNNs paper
 CUDA_VISIBLE_DEVICES=0 python -m exp.run_mol_exp --seeds 20 --folds 5 --exp_name=csl-sin \
-  --dataset CSL --train_eval_period 10 --epochs 300 --batch_size 5   --drop_rate 0.1 \
-  --drop_position lin2 --emb_dim 128 --max_dim 2 --final_readout sum --init_method sum --lr 5e-4 \
+  --dataset CSL --train_eval_period 10 --epochs 300 --batch_size 32  --drop_rate 0.1 \
+  --drop_position lin2 --emb_dim 100 --max_dim 2 --final_readout sum --init_method sum --lr 5e-4 \
   --model csl_sparse_sin --nonlinearity relu --num_layers 3 --readout sum --max_ring_size=12 \
   --lr_scheduler='ReduceLROnPlateau' --use_cofaces=True --lr_scheduler_min 1e-6 \
   --lr_scheduler_patience 5 --early_stop
