@@ -28,7 +28,7 @@ pip install torch-geometric==1.6.3
 ```
 or, as an alternative:
 ```
-sh pyG_install.sh
+sh pyG_install.sh cu102
 ```
 
 Install other required packages via pip:

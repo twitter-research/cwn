@@ -107,9 +107,5 @@ def validate_args(args):
         assert args.minimize
         assert args.eval_metric == 'mae'
         assert args.lr_scheduler == 'ReduceLROnPlateau'
-    else:
-        assert not args.minimize
-        assert args.task_type == 'classification'
-        assert args.eval_metric == 'accuracy'
 
 
