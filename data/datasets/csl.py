@@ -40,20 +40,17 @@ class CSLDataset(InMemoryComplexDataset):
         self.val_ids = np.loadtxt(valid_filename, dtype=int, delimiter=',')[fold].tolist()
         self.test_ids = np.loadtxt(test_filename, dtype=int, delimiter=',')[fold].tolist()
 
-        # Make sure the split rations are as expected (3:1:1)
+        # Make sure the split ratios are as expected (3:1:1)
         assert len(self.train_ids) == 3 * len(self.test_ids)
         assert len(self.val_ids) == len(self.test_ids)
-        # Check all splits contain number smaller than the total number of graphs
+        # Check all splits contain numbers that are smaller than the total number of graphs
         assert max(self.train_ids) < 150
         assert max(self.val_ids) < 150
         assert max(self.test_ids) < 150
 
     @property
     def raw_file_names(self):
-        name = self.name
-        # The processed graph files are our raw files.
-        # This is obtained from inside the GNNBenchmarkDataset class
-        return [f'{name}_train.pt', f'{name}_val.pt', f'{name}_test.pt']
+        return ['data.pt']
 
     @property
     def processed_file_names(self):

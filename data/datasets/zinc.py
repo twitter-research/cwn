@@ -26,10 +26,7 @@ class ZincDataset(InMemoryComplexDataset):
 
     @property
     def raw_file_names(self):
-        name = self.name
-        # The processed graph files are our raw files.
-        # I've obtained this from inside the GNNBenchmarkDataset class
-        return [f'{name}_train.pt', f'{name}_val.pt', f'{name}_test.pt']
+        return ['train.pt', 'val.pt', 'test.pt']
 
     @property
     def processed_file_names(self):
