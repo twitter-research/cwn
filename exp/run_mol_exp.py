@@ -2,10 +2,11 @@ import sys
 import os
 import copy
 import numpy as np
+import subprocess
 
 from exp.parser import get_parser
 from exp.run_exp import main
-    
+
     
 def exp_main(passed_args):
     
@@ -33,12 +34,16 @@ def exp_main(passed_args):
     min_perf = np.min(test_results)
     max_perf = np.max(test_results)
 
+    # Extract the commit sha so we can check the code that was used for each experiment
+    sha = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+
     print(" ===== Final result ======")
     msg = (
         f'Dataset:           {args.dataset}\n'
         f'Mean:              {mean_perf} ± {std_perf}\n'
         f'Min:               {min_perf}\n'
         f'Max:               {max_perf}\n'
+        f'SHA:               {sha}\n'
         f'-------------------------------\n')
     print(msg)
     
