@@ -158,7 +158,7 @@ def test_embed_with_reduce_layer_on_house_complex():
 
     embed_layer = nn.Embedding(num_embeddings=32, embedding_dim=10)
     init_reduce = InitReduceConv()
-    conv = EmbedVEWithReduce(embed_layer, None, None, init_reduce)
+    conv = EmbedVEWithReduce(embed_layer, None, init_reduce)
 
     # Simulate the lack of features in these dimensions.
     params[1].x = None
