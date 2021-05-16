@@ -86,7 +86,7 @@ class CSLDataset(InMemoryComplexDataset):
         new_data = []
         for i, datum in enumerate(data):
             edge_index = datum.edge_index
-            num_nodes = edge_index.max() + 1
+            num_nodes = datum.num_nodes
             # Make sure we have no self-loops in this dataset
             edge_index, _ = remove_self_loops(edge_index)
             num_edges = edge_index.size(1)
