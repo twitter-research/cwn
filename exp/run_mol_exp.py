@@ -9,7 +9,9 @@ from exp.run_exp import main
 
     
 def exp_main(passed_args):
-    
+    # Extract the commit sha so we can check the code that was used for each experiment
+    sha = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
 
@@ -33,9 +35,6 @@ def exp_main(passed_args):
     std_perf = np.std(test_results, ddof=1)  # ddof=1 makes the estimator unbiased
     min_perf = np.min(test_results)
     max_perf = np.max(test_results)
-
-    # Extract the commit sha so we can check the code that was used for each experiment
-    sha = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
 
     print(" ===== Final result ======")
     msg = (
