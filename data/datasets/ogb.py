@@ -10,11 +10,11 @@ class OGBDataset(InMemoryComplexDataset):
     """This is OGB graph-property prediction. This are graph-wise classification tasks."""
 
     def __init__(self, root, name, max_ring_size, use_edge_features=False, transform=None,
-                 pre_transform=None, pre_filter=None, init_method='sum', full=True):
+                 pre_transform=None, pre_filter=None, init_method='sum', simple=False):
         self.name = name
         self._max_ring_size = max_ring_size
         self._use_edge_features = use_edge_features
-        self._full = full
+        self._simple = simple
         super(OGBDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                          max_dim=2, init_method=init_method, cellular=True)
         self.data, self.slices, idx, self.num_tasks = self.load_dataset()
@@ -34,11 +34,11 @@ class OGBDataset(InMemoryComplexDataset):
     
     @property
     def processed_dir(self):
-        """Overwrite to change name based on edge and full feats"""
+        """Overwrite to change name based on edge and simple feats"""
         directory = super(OGBDataset, self).processed_dir
         suffix1 = f"_{self._max_ring_size}rings" if self._cellular else ""
         suffix2 = "-E" if self._use_edge_features else ""
-        suffix3 = "" if self._full else "-S"
+        suffix3 = "-S" if self._simple else ""
         return directory + suffix1 + suffix2 + suffix3
 
     def download(self):
@@ -58,11 +58,10 @@ class OGBDataset(InMemoryComplexDataset):
         # At this stage, the graph dataset is already downloaded and processed
         dataset = PygGraphPropPredDataset(self.name, self.raw_dir)
         split_idx = dataset.get_idx_split()
-        if not self._full:  # Only retain the top two node/edge features
+        if self._simple:  # Only retain the top two node/edge features
             print('Using simple features')
             dataset.data.x = dataset.data.x[:,:2]
             dataset.data.edge_attr = dataset.data.edge_attr[:,:2]
-        dataset.data.y = dataset.data.y.to(torch.float32)
         
         print(f"Converting the {self.name} dataset to a cell complex...")
         complexes, _, _ = convert_graph_dataset_with_rings(

@@ -53,7 +53,12 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
 
         optimizer.zero_grad()
         pred = model(batch)
-        loss = loss_fn(pred, batch.y)
+        if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
+            targets = batch.y.view(-1, 1)
+        else:
+            targets = batch.y.to(torch.float32).view(pred.shape)
+        mask = ~torch.isnan(targets)
+        loss = loss_fn(pred[mask], targets[mask])
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
@@ -98,13 +103,27 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
+            
+            if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
+                targets = batch.y.view(-1, 1)
+            else:
+                targets = batch.y.to(torch.float32).view(pred.shape)
+            mask = ~torch.isnan(targets)
+            
             if task_type != 'isomorphism':
-                loss = loss_fn(pred, batch.y)
+                loss = loss_fn(pred[mask], targets[mask])
             else:
                 assert loss_fn is None
+                
         if loss_fn is not None:
             losses.append(loss.detach().cpu().item())
-            y_true.append(batch.y.detach().cpu())
+            
+        if task_type != 'isomorphism':
+            targets = batch.y
+            if not isinstance(loss_fn, torch.nn.CrossEntropyLoss):
+                targets = batch.y.view(pred.shape)
+            y_true.append(targets.detach().cpu())
+            
         y_pred.append(pred.detach().cpu())
 
     

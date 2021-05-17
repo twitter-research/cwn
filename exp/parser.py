@@ -88,6 +88,8 @@ def get_parser():
                         help='Number of classes for the flow experiment')
     parser.add_argument('--use_edge_features', action='store_true',
                         help="Use edge features for molecular graphs")
+    parser.add_argument('--simple_features', action='store_true',
+                        help="Whether to use only a subset of original features, specific to ogb-mol*")
     parser.add_argument('--early_stop', action='store_true', help='Stop when minimum LR is reached.')
     return parser
 
@@ -101,17 +103,20 @@ def validate_args(args):
         assert args.lr_scheduler == 'ReduceLROnPlateau'
         assert args.eval_metric == 'accuracy'
         assert args.fold is not None
+        assert not args.simple_features
     elif args.dataset == 'ZINC':
         assert args.model == 'embed_sparse_sin'
         assert args.task_type == 'regression'
         assert args.minimize
         assert args.eval_metric == 'mae'
         assert args.lr_scheduler == 'ReduceLROnPlateau'
+        assert not args.simple_features
     elif args.dataset == 'MOLHIV':
         assert args.model == 'ogb_embed_sparse_sin'
         assert args.task_type == 'bin_classification'
         assert not args.minimize
         assert args.eval_metric == 'ogbg-molhiv'
         assert args.lr_scheduler == 'None'
+        
 
 
