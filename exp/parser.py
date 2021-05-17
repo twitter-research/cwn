@@ -107,5 +107,11 @@ def validate_args(args):
         assert args.minimize
         assert args.eval_metric == 'mae'
         assert args.lr_scheduler == 'ReduceLROnPlateau'
+    elif args.dataset == 'MOLHIV':
+        assert args.model == 'ogb_embed_sparse_sin'
+        assert args.task_type == 'bin_classification'
+        assert not args.minimize
+        assert args.eval_metric == 'ogbg-molhiv'
+        assert args.lr_scheduler == 'None'
 
 

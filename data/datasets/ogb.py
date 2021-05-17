@@ -21,17 +21,12 @@ class OGBDataset(InMemoryComplexDataset):
         self.train_ids = idx['train']
         self.val_ids = idx['valid']
         self.test_ids = idx['test']
-
-    @property
-    def raw_dir(self):
-        directory = super(OGBDataset, self).raw_dir
-        return osp.join(directory, self.name, 'processed')
         
     @property
     def raw_file_names(self):
-        name = self.name
+        name = self.name.replace('-', '_')  # Replacing is to follow OGB folder naming convention
         # The processed graph files are our raw files.
-        return ['geometric_data_processed.pt', 'pre_filter.pt', 'pre_transform.pt']
+        return [f'{name}/processed/geometric_data_processed.pt']
 
     @property
     def processed_file_names(self):
@@ -48,7 +43,7 @@ class OGBDataset(InMemoryComplexDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset.
-        dataset = PygGraphPropPredDataset(self.name, self.root)
+        dataset = PygGraphPropPredDataset(self.name, self.raw_dir)
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
@@ -61,7 +56,7 @@ class OGBDataset(InMemoryComplexDataset):
     def process(self):
         
         # At this stage, the graph dataset is already downloaded and processed
-        dataset = PygGraphPropPredDataset(self.name, self.root)
+        dataset = PygGraphPropPredDataset(self.name, self.raw_dir)
         split_idx = dataset.get_idx_split()
         if not self._full:  # Only retain the top two node/edge features
             print('Using simple features')

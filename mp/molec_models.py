@@ -177,9 +177,10 @@ class EmbedSparseSIN(torch.nn.Module):
         return self.__class__.__name__
 
 
-class MolhivSparseSIN(torch.nn.Module):
+class OGBEmbedSparseSIN(torch.nn.Module):
     """
-    A simplicial version of GIN with some tailoring to nimbly work on molecules from the ogbg-molhiv dataset
+    A simplicial version of GIN with some tailoring to nimbly work on molecules from the ogbg-mol* dataset.
+    It uses OGB atom and bond encoders.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -190,7 +191,7 @@ class MolhivSparseSIN(torch.nn.Module):
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
-        super(MolhivSparseSIN, self).__init__()
+        super(OGBEmbedSparseSIN, self).__init__()
 
         self.max_dim = max_dim
         if readout_dims is not None:
