@@ -203,13 +203,10 @@ class MolhivSparseSIN(torch.nn.Module):
         self.v_embed_init = AtomEncoder(embed_dim)
 
         self.e_embed_init = None
-        self.c_merge_layer = None
         if embed_edge:
             self.e_embed_init = BondEncoder(embed_dim)
-            self.c_merge_layer = Linear(embed_dim*2, embed_dim)
         self.reduce_init = InitReduceConv(reduce=init_reduce)
-        self.init_conv = OGBEmbedVEWithReduce(self.v_embed_init, self.e_embed_init,
-                                              self.c_merge_layer, self.reduce_init)
+        self.init_conv = OGBEmbedVEWithReduce(self.v_embed_init, self.e_embed_init, self.reduce_init)
 
         self.final_readout = final_readout
         self.dropout_rate = dropout_rate
