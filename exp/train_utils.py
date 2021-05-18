@@ -57,7 +57,7 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
             targets = batch.y.view(-1, 1)
         else:
             targets = batch.y.to(torch.float32).view(pred.shape)
-        mask = ~torch.isnan(targets)
+        mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
         loss = loss_fn(pred[mask], targets[mask])
         loss.backward()
         optimizer.step()
@@ -108,7 +108,7 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
                 targets = batch.y.view(-1, 1)
             else:
                 targets = batch.y.to(torch.float32).view(pred.shape)
-            mask = ~torch.isnan(targets)
+            mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
             
             if task_type != 'isomorphism':
                 loss = loss_fn(pred[mask], targets[mask])
