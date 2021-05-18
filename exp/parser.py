@@ -18,6 +18,8 @@ def get_parser():
     parser.add_argument('--use_cofaces', type=str, default='False',
                         help='whether to use coface features for up-messages in sparse_sin (default: False)')
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
+    parser.add_argument('--indrop_rate', type=float, default=0.0,
+                        help='inputs dropout rate for molec models(default: 0.0)')
     parser.add_argument('--drop_rate', type=float, default=0.5,
                         help='dropout rate (default: 0.5)')
     parser.add_argument('--drop_position', type=str, default='lin2',
@@ -55,7 +57,7 @@ def get_parser():
     parser.add_argument('--dataset', type=str, default="PROTEINS",
                         help='dataset name (default: PROTEINS)')
     parser.add_argument('--task_type', type=str, default='classification',
-                        help='task type, either classification, regression or isomorphism (default: classification)')    
+                        help='task type, either (bin_)classification, regression or isomorphism (default: classification)')    
     parser.add_argument('--eval_metric', type=str, default='accuracy',
                         help='evaluation metric (default: accuracy)')
     parser.add_argument('--minimize', action='store_true',
@@ -118,7 +120,7 @@ def validate_args(args):
         assert args.task_type == 'bin_classification'
         assert not args.minimize
         assert args.eval_metric == 'ogbg-molhiv'
-        assert args.lr_scheduler == 'None'
+        # assert args.lr_scheduler == 'None'
         
 
 

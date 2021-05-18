@@ -186,9 +186,9 @@ class OGBEmbedSparseSIN(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
 
-    def __init__(self, out_size, num_layers, hidden,
-                 dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
-                 readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
+    def __init__(self, out_size, num_layers, hidden, dropout_rate: float = 0.5, 
+                 indropout_rate: float = 0.0, max_dim: int = 2, jump_mode=None,
+                 nonlinearity='relu', readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
         super(OGBEmbedSparseSIN, self).__init__()
@@ -211,6 +211,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
 
         self.final_readout = final_readout
         self.dropout_rate = dropout_rate
+        self.in_dropout_rate = indropout_rate
         self.apply_dropout_before = apply_dropout_before
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
@@ -283,9 +284,9 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
         xs = list(self.init_conv(*params))
 
-        # Apply dropout on the input features like all models do on ZINC.
+        # Apply dropout on the input features?
         for i, x in enumerate(xs):
-            xs[i] = F.dropout(xs[i], p=self.dropout_rate, training=self.training)
+            xs[i] = F.dropout(xs[i], p=self.in_dropout_rate, training=self.training)
 
         data.set_xs(xs)
 
@@ -293,6 +294,9 @@ class OGBEmbedSparseSIN(torch.nn.Module):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
+            # Apply dropout on the output of the conv layer?
+            for i, x in enumerate(xs):
+                xs[i] = F.dropout(xs[i], p=self.dropout_rate, training=self.training)
             data.set_xs(xs)
 
             if include_partial:
