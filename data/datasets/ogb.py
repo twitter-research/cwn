@@ -17,6 +17,9 @@ class OGBDataset(InMemoryComplexDataset):
         self._simple = simple
         super(OGBDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                          max_dim=2, init_method=init_method, cellular=True)
+        print(self.processed_paths)
+        print(self.processed_dir)
+        print(self.processed_file_names)
         self.data, self.slices, idx, self.num_tasks = self.load_dataset()
         self.train_ids = idx['train']
         self.val_ids = idx['valid']
@@ -68,6 +71,7 @@ class OGBDataset(InMemoryComplexDataset):
             dataset,
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
+            init_method=self._init_method,
             init_edges=self._use_edge_features,
             init_rings=False)
         
