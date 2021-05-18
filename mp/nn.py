@@ -32,7 +32,8 @@ def get_pooling_fn(readout):
     else:
         raise NotImplementError('Readout {} is not currently supported.'.format(readout))
 
-def pool_complex(xs, data, max_dim, pooling_fn):
+def pool_complex(xs, data, max_dim, readout_type):
+        pooling_fn = get_pooling_fn(readout_type)
         # All complexes have nodes so we can extract the batch size from chains[0]
         batch_size = data.chains[0].batch.max() + 1
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]

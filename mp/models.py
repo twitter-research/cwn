@@ -589,7 +589,7 @@ class MessagePassingAgnostic(torch.nn.Module):
 
         self.max_dim = max_dim
         self.dropout_rate = dropout_rate
-        self.pooling_fn = get_pooling_fn(readout) 
+        self.readout_type = readout
         self.act = get_nonlinearity(nonlinearity, return_module=False)
         self.lin0s = torch.nn.ModuleList()
         for dim in range(max_dim + 1):
@@ -611,7 +611,7 @@ class MessagePassingAgnostic(torch.nn.Module):
             x_dim = params[dim].x
             x_dim = self.lin0s[dim](x_dim)
             xs.append(self.act(x_dim))
-        pooled_xs = pool_complex(xs, data, self.max_dim, self.pooling_fn)
+        pooled_xs = pool_complex(xs, data, self.max_dim, self.readout_type)
         pooled_xs = self.act(self.lin1(pooled_xs))
         x = pooled_xs.sum(dim=0)
         # NB: as an alternative, we can instead defer the application of lin1
