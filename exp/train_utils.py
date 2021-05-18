@@ -5,8 +5,10 @@ import logging
 from tqdm import tqdm
 from sklearn import metrics as met
 from data.complex import ComplexBatch
+from ogb.graphproppred import Evaluator as OGBEvaluator
 
 cls_criterion = torch.nn.CrossEntropyLoss()
+bicls_criterion = torch.nn.BCEWithLogitsLoss()
 reg_criterion = torch.nn.L1Loss()
 
 
@@ -17,6 +19,8 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
 
     if task_type == 'classification':
         loss_fn = cls_criterion
+    elif task_type == 'bin_classification':
+        loss_fn = bicls_criterion
     elif task_type == 'regression':
         loss_fn = reg_criterion
     else:
@@ -49,10 +53,12 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
 
         optimizer.zero_grad()
         pred = model(batch)
-        if task_type == 'regression':
-            loss = loss_fn(pred, batch.y.view(-1, 1))
+        if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
+            targets = batch.y.view(-1, 1)
         else:
-            loss = loss_fn(pred, batch.y.view(-1))
+            targets = batch.y.to(torch.float32).view(pred.shape)
+        mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
+        loss = loss_fn(pred[mask], targets[mask])
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
@@ -82,6 +88,8 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
 
     if task_type == 'classification':
         loss_fn = cls_criterion
+    elif task_type == 'bin_classification':
+        loss_fn = bicls_criterion
     elif task_type == 'regression':
         loss_fn = reg_criterion
     else:
@@ -95,16 +103,27 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
-            if task_type == 'regression':
-                loss = loss_fn(pred, batch.y.view(-1, 1))
-            elif task_type == 'classification':
-                loss = loss_fn(pred, batch.y.view(-1))
+            
+            if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
+                targets = batch.y.view(-1, 1)
             else:
-                assert task_type == 'isomorphism'
+                targets = batch.y.to(torch.float32).view(pred.shape)
+            mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
+            
+            if task_type != 'isomorphism':
+                loss = loss_fn(pred[mask], targets[mask])
+            else:
                 assert loss_fn is None
+                
         if loss_fn is not None:
             losses.append(loss.detach().cpu().item())
-            y_true.append(batch.y.detach().cpu())
+            
+        if task_type != 'isomorphism':
+            targets = batch.y
+            if not isinstance(loss_fn, torch.nn.CrossEntropyLoss):
+                targets = batch.y.view(pred.shape)
+            y_true.append(targets.detach().cpu())
+            
         y_pred.append(pred.detach().cpu())
 
     
@@ -125,6 +144,10 @@ class Evaluator(object):
             self.eval_fn = self._accuracy
         elif metric == 'mae':
             self.eval_fn = self._mae
+        elif metric == 'ogbg-molhiv':
+            self._ogb_evaluator = OGBEvaluator(metric)
+            self._key = 'rocauc'
+            self.eval_fn = self._ogb
         else:
             raise NotImplementedError('Metric {} is not yet supported.'.format(metric))
     
@@ -157,3 +180,10 @@ class Evaluator(object):
         assert y_pred is not None
         metric = met.mean_absolute_error(y_true, y_pred)
         return metric
+    
+    def _ogb(self, input_dict, **kwargs):
+        assert 'y_true' in input_dict
+        assert input_dict['y_true'] is not None
+        assert 'y_pred' in input_dict
+        assert input_dict['y_pred'] is not None
+        return self._ogb_evaluator.eval(input_dict)[self._key]

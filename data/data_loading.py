@@ -7,10 +7,10 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
+from data.datasets import load_sr_graph_dataset, load_tu_graph_dataset
 from data.datasets import (
-    SRDataset, ClusterDataset, TUDataset, ComplexDataset, load_sr_graph_dataset, FlowDataset,
-    load_tu_graph_dataset, OceanDataset, ZincDataset, CSLDataset)
-
+    SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
+    OceanDataset, ZincDataset, CSLDataset, OGBDataset)
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -114,6 +114,9 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                              fold=fold)
+    elif name == 'MOLHIV':
+        dataset = OGBDataset(os.path.join(root, name), 'ogbg-molhiv', max_ring_size=kwargs['max_ring_size'],
+                              use_edge_features=kwargs['use_edge_features'], simple=kwargs['simple_features'])
     else:
         raise NotImplementedError(name)
     return dataset

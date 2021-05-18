@@ -433,7 +433,6 @@ def extract_labels(y, size):
         return v_y, complex_y
 
     y_shape = list(y.size())
-    assert len(y_shape) == 1
 
     if y_shape[0] == 1:
         # This is a label for the whole graph (for graph classification).
