@@ -135,10 +135,8 @@ class InMemoryComplexDataset(ComplexDataset):
             s = list(repeat(slice(None), targets.dim()))
             cat_dim = 0
             s[cat_dim] = slice(start, end)
-        elif start + 1 == end:
+        else:
             s = slices[start]
-        # else:
-        #     s = slice(start, end)
         target = targets[s]
         
         dim = self.data['dims'][idx].item()
