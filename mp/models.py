@@ -614,8 +614,10 @@ class MessagePassingAgnostic(torch.nn.Module):
         pooled_xs = pool_complex(xs, data, self.max_dim, self.readout_type)
         pooled_xs = self.act(self.lin1(pooled_xs))
         x = pooled_xs.sum(dim=0)
+        # TODO: eventually remove the following comment
         # NB: as an alternative, we can instead defer the application of lin1
-        # here, after final readout.
+        # to here, after final readout. As default option we instead apply lin1
+        # before that, as it is more similiar to SparseSIN as an approach.
         # That was the original implementation used in rebuttal. However,
         # according to May experiments there were no differences in results
         # over the SR benchmark.
