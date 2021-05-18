@@ -5,39 +5,8 @@ from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as L
 from torch_geometric.nn import global_mean_pool, global_add_pool, JumpingKnowledge
 from mp.layers import (
     SINConv, EdgeSINConv, SparseSINConv, DummySimplicialMessagePassing, OrientedConv)
+from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex
 from data.complex import Complex, ComplexBatch, ChainBatch
-
-
-def get_nonlinearity(nonlinearity, return_module=True):
-    if nonlinearity == 'relu':
-        module = torch.nn.ReLU
-        function = F.relu
-    elif nonlinearity == 'elu':
-        module = torch.nn.ELU
-        function = F.elu
-    elif nonlinearity == 'id':
-        module = torch.nn.Identity
-        function = lambda x: x
-    elif nonlinearity == 'sigmoid':
-        module = torch.nn.Sigmoid
-        function = F.sigmoid
-    elif nonlinearity == 'tanh':
-        module = torch.nn.Tanh
-        function = F.tanh
-    else:
-        raise NotImplementError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
-    if return_module:
-        return module
-    return function
-
-
-def get_pooling_fn(readout):
-    if readout == 'sum':
-        return global_add_pool
-    elif readout == 'mean':
-        return global_mean_pool
-    else:
-        raise NotImplementError('Readout {} is not currently supported.'.format(readout))
 
 
 class SIN0(torch.nn.Module):
@@ -620,40 +589,34 @@ class MessagePassingAgnostic(torch.nn.Module):
 
         self.max_dim = max_dim
         self.dropout_rate = dropout_rate
-        self.nonlinearity = nonlinearity
         self.pooling_fn = get_pooling_fn(readout) 
-        self.lin0 = Linear(num_input_features, hidden)
+        self.act = get_nonlinearity(nonlinearity, return_module=False)
+        self.lin0s = torch.nn.ModuleList()
+        for dim in range(max_dim + 1):
+            self.lin0s.append(Linear(num_input_features, hidden))
         self.lin1 = Linear(hidden, hidden)
         self.lin2 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
-        self.lin0.reset_parameters()
+        for lin0 in self.lin0s:
+            lin0.reset_parameters()
         self.lin1.reset_parameters()
         self.lin2.reset_parameters()
 
-    def pool_complex(self, xs, data):
-        # All complexes have nodes so we can extract the batch size from chains[0]
-        batch_size = data.chains[0].batch.max() + 1
-        # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
-        pooled_xs = torch.zeros(self.max_dim+1, batch_size, xs[0].size(-1),
-                                device=batch_size.device)
-        for i in range(len(xs)):
-            # It's very important that size is supplied.
-            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
-        return pooled_xs
-
     def forward(self, data: ComplexBatch):
-        model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
+        
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
         xs = list()
         for dim in range(len(params)):
-            xs.append(model_nonlinearity(self.lin0(params[dim].x)))
-        pooled_xs = self.pool_complex(xs, data)
-        pooled_xs = model_nonlinearity(self.lin1(pooled_xs))
+            x_dim = params[dim].x
+            x_dim = self.lin0s[dim](x_dim)
+            xs.append(self.act(x_dim))
+        pooled_xs = pool_complex(xs, data, self.max_dim, self.pooling_fn)
+        pooled_xs = self.act(self.lin1(pooled_xs))
         x = pooled_xs.sum(dim=0)
         # NB: as an alternative, we can instead defer the application of lin1
         # here, after final readout.
-        # This was the original implementation used in rebuttal. However,
+        # That was the original implementation used in rebuttal. However,
         # according to May experiments there were no differences in results
         # over the SR benchmark.
         # x = model_nonlinearity(self.lin1(x))
