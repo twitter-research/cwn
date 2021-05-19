@@ -91,6 +91,8 @@ def get_parser():
     parser.add_argument('--simple_features', action='store_true',
                         help="Whether to use only a subset of original features, specific to ogb-mol*")
     parser.add_argument('--early_stop', action='store_true', help='Stop when minimum LR is reached.')
+    parser.add_argument('--paraid',  type=int, default=0,
+                        help='model id')
     return parser
 
 
