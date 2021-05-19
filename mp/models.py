@@ -5,39 +5,8 @@ from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as L
 from torch_geometric.nn import global_mean_pool, global_add_pool, JumpingKnowledge
 from mp.layers import (
     SINConv, EdgeSINConv, SparseSINConv, DummySimplicialMessagePassing, OrientedConv)
+from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex
 from data.complex import Complex, ComplexBatch, ChainBatch
-
-
-def get_nonlinearity(nonlinearity, return_module=True):
-    if nonlinearity == 'relu':
-        module = torch.nn.ReLU
-        function = F.relu
-    elif nonlinearity == 'elu':
-        module = torch.nn.ELU
-        function = F.elu
-    elif nonlinearity == 'id':
-        module = torch.nn.Identity
-        function = lambda x: x
-    elif nonlinearity == 'sigmoid':
-        module = torch.nn.Sigmoid
-        function = F.sigmoid
-    elif nonlinearity == 'tanh':
-        module = torch.nn.Tanh
-        function = F.tanh
-    else:
-        raise NotImplementError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
-    if return_module:
-        return module
-    return function
-
-
-def get_pooling_fn(readout):
-    if readout == 'sum':
-        return global_add_pool
-    elif readout == 'mean':
-        return global_mean_pool
-    else:
-        raise NotImplementError('Readout {} is not currently supported.'.format(readout))
 
 
 class SIN0(torch.nn.Module):
@@ -602,6 +571,59 @@ class EdgeMPNN(torch.nn.Module):
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
 
+        return x
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+
+class MessagePassingAgnostic(torch.nn.Module):
+    """
+    A model which does not perform any message passing.
+    Initial simplicial/cell representations are obtained by applying a dense layer, instead.
+    Sort of resembles a 'DeepSets'-likes architecture but on Simplicial/Cell Complexes.
+    """
+    def __init__(self, num_input_features, num_classes, hidden, dropout_rate: float = 0.5,
+                 max_dim: int = 2, nonlinearity='relu', readout='sum'):
+        super(MessagePassingAgnostic, self).__init__()
+
+        self.max_dim = max_dim
+        self.dropout_rate = dropout_rate
+        self.readout_type = readout
+        self.act = get_nonlinearity(nonlinearity, return_module=False)
+        self.lin0s = torch.nn.ModuleList()
+        for dim in range(max_dim + 1):
+            self.lin0s.append(Linear(num_input_features, hidden))
+        self.lin1 = Linear(hidden, hidden)
+        self.lin2 = Linear(hidden, num_classes)
+
+    def reset_parameters(self):
+        for lin0 in self.lin0s:
+            lin0.reset_parameters()
+        self.lin1.reset_parameters()
+        self.lin2.reset_parameters()
+
+    def forward(self, data: ComplexBatch):
+        
+        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+        xs = list()
+        for dim in range(len(params)):
+            x_dim = params[dim].x
+            x_dim = self.lin0s[dim](x_dim)
+            xs.append(self.act(x_dim))
+        pooled_xs = pool_complex(xs, data, self.max_dim, self.readout_type)
+        pooled_xs = self.act(self.lin1(pooled_xs))
+        x = pooled_xs.sum(dim=0)
+        # TODO: eventually remove the following comment
+        # NB: as an alternative, we can instead defer the application of lin1
+        # to here, after final readout. As default option we instead apply lin1
+        # before that, as it is more similiar to SparseSIN as an approach.
+        # That was the original implementation used in rebuttal. However,
+        # according to May experiments there were no differences in results
+        # over the SR benchmark.
+        # x = model_nonlinearity(self.lin1(x))
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        x = self.lin2(x)
         return x
 
     def __repr__(self):
