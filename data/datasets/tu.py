@@ -61,7 +61,7 @@ class TUDataset(InMemoryComplexDataset):
             self.train_ids = np.loadtxt(train_filename, dtype=int).tolist()
             self.val_ids = np.loadtxt(test_filename, dtype=int).tolist()
         else:
-            train_ids, val_ids = get_fold_indices(self._data_list, self.seed, self.fold)
+            train_ids, val_ids = get_fold_indices(self, self.seed, self.fold)
             self.train_ids = train_ids
             self.val_ids = val_ids
         self.test_ids = None
@@ -111,8 +111,8 @@ class TUDataset(InMemoryComplexDataset):
                                                                init_edges=True, init_rings=True)
         else:
             print("Converting the dataset with gudhi...")
+            # TODO: eventually remove the following comment
             # What about the init_method here? Adding now, although I remember we had handled this
-            print(self.include_down_adj)
             complexes, _, _ = convert_graph_dataset_with_gudhi(graph_list, expansion_dim=self.max_dim,
                                                                include_down_adj=self.include_down_adj,
                                                                init_method=self._init_method)
