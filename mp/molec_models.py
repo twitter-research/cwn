@@ -52,7 +52,7 @@ class EmbedSparseSIN(torch.nn.Module):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=lambda x: x,
+                    face_msg_size=layer_dim, msg_faces_nn=None,
                     msg_up_nn=None, inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
@@ -222,8 +222,8 @@ class OGBEmbedSparseSIN(torch.nn.Module):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=None,
-                    msg_up_nn=lambda x: x[0], inp_update_up_nn=None,
+                    face_msg_size=layer_dim, msg_faces_nn=None
+                    msg_up_nn=None, inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
                     apply_norm=(embed_dim>1), use_cofaces=use_cofaces)) # TODO: turn this into a less hacky trick
