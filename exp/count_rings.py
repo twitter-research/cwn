@@ -35,6 +35,7 @@ def combine_all_counts(*stats):
 
     for stat in stats:
         for k, v in stat.items():
+            # Extend the list
             all_stats[k] += v
     return all_stats
 
