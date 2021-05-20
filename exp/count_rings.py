@@ -65,11 +65,14 @@ def exp_main(passed_args):
     if test_ids is not None:
         test = [graph_list[i] for i in test_ids]
 
+    print("Counting rings on the training set ....")
     train_stats = get_ring_stats(train, args.max_ring_size)
+    print("Counting rings on the validation set ....")
     val_stats = get_ring_stats(val, args.max_ring_size)
 
     test_stats = None
     if test is not None:
+        print("Counting rings on the test set ....")
         test_stats = get_ring_stats(test, args.max_ring_size)
         all_stats = combine_all_stats(train_stats, val_stats, test_stats)
     else:
