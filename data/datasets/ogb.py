@@ -79,3 +79,12 @@ class OGBDataset(InMemoryComplexDataset):
         
         print(f'Saving num_tasks in {self.processed_paths[2]}...')
         torch.save(dataset.num_tasks, self.processed_paths[2])
+
+
+def load_ogb_graph_dataset(root, name):
+    raw_dir = osp.join(root, name, 'raw')
+
+    dataset = PygGraphPropPredDataset(name, raw_dir)
+    idx = dataset.get_idx_split()
+
+    return dataset, idx['train'], idx['valid'], idx['test']

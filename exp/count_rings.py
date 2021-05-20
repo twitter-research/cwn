@@ -17,7 +17,7 @@ def get_ring_stats(dataset, max_ring):
     keys = list(range(3, max_ring))
     ring_cards = {key: list() for key in keys}
     for graph in tqdm(dataset):
-        rings = get_rings(graph.edge_index, max_k=max_ring-1)
+        rings = get_rings(graph.edge_index, max_k=max_ring - 1)
         rings_per_graph = {key: 0 for key in keys}
         for ring in rings:
             k = len(ring)
@@ -47,8 +47,9 @@ def print_stats(stats):
         med = np.median(stats[k])
         sum = np.sum(stats[k])
         nz = np.count_nonzero(stats[k])
-        print(f'Ring {k:02d} => Min: {min:.3f}, Max: {max:.3f}, Mean:{mean:.3f}, Median: {med:.3f}, '
-              f'Sum: {sum}, Non-zero: {nz}')
+        print(
+            f'Ring {k:02d} => Min: {min:.3f}, Max: {max:.3f}, Mean:{mean:.3f}, Median: {med:.3f}, '
+            f'Sum: {sum}, Non-zero: {nz}')
 
 
 def exp_main(passed_args):
@@ -56,6 +57,7 @@ def exp_main(passed_args):
 
     print('----==== {} ====----'.format(args.dataset))
     graph_list, train_ids, val_ids, test_ids, _ = load_graph_dataset(args.dataset)
+    graph_list = list(graph_list)  # Needed to bring OGB in the right format
 
     train = [graph_list[i] for i in train_ids]
     val = [graph_list[i] for i in val_ids]

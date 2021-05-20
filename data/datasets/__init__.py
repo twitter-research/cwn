@@ -7,4 +7,4 @@ from data.datasets.ocean import OceanDataset
 from data.datasets.zinc import ZincDataset, load_zinc_graph_dataset
 from data.datasets.dummy import DummyDataset, DummyMolecularDataset
 from data.datasets.csl import CSLDataset
-from data.datasets.ogb import OGBDataset
+from data.datasets.ogb import OGBDataset, load_ogb_graph_dataset
