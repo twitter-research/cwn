@@ -758,6 +758,8 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
     dimension = -1
     complexes = []
     num_features = [None, None, None]
+
+    print(f"Max ring size {max_ring_size}")
     
     for data in tqdm(dataset):
         complex = compute_ring_2complex(data.x, data.edge_index, data.edge_attr,

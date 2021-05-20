@@ -1,4 +1,5 @@
 import torch
+import os.path as osp
 
 from data.utils import convert_graph_dataset_with_rings
 from data.datasets import InMemoryComplexDataset
@@ -44,9 +45,17 @@ class ZincDataset(InMemoryComplexDataset):
         idx = torch.load(self.processed_paths[1])
         return data, slices, idx
 
+    def get_graph_dataset(self):
+        train_data = ZINC(self.raw_dir, subset=True, split='train')
+        val_data = ZINC(self.raw_dir, subset=True, split='val')
+        test_data = ZINC(self.raw_dir, subset=True, split='test')
+        data = train_data + val_data + test_data
+        idx = self.get_idx_split()
+        return data, idx["train"], idx["valid"], idx["test"]
+
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
-        print(f"Processing simplicial complex dataset for {self.name}")
+        print(f"Processing cell complex dataset for {self.name}")
         train_data = ZINC(self.raw_dir, subset=True, split='train')
         val_data = ZINC(self.raw_dir, subset=True, split='val')
         test_data = ZINC(self.raw_dir, subset=True, split='test')
@@ -99,3 +108,24 @@ class ZincDataset(InMemoryComplexDataset):
         suffix1 = f"_{self._max_ring_size}rings" if self._cellular else ""
         suffix2 = "-E" if self._use_edge_features else ""
         return directory + suffix1 + suffix2
+
+
+def load_zinc_graph_dataset(root):
+    raw_dir = osp.join(root, 'ZINC', 'raw')
+
+    train_data = ZINC(raw_dir, subset=True, split='train')
+    val_data = ZINC(raw_dir, subset=True, split='val')
+    test_data = ZINC(raw_dir, subset=True, split='test')
+    data = train_data + val_data + test_data
+
+    idx = []
+    start = 0
+    idx.append(list(range(start, len(train_data))))
+    start = len(train_data)
+    idx.append(list(range(start, start + len(val_data))))
+    start = len(train_data) + len(val_data)
+    idx.append(list(range(start, start + len(test_data))))
+
+    return data, idx[0], idx[1], idx[2]
+
+
