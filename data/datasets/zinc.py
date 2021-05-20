@@ -45,14 +45,6 @@ class ZincDataset(InMemoryComplexDataset):
         idx = torch.load(self.processed_paths[1])
         return data, slices, idx
 
-    def get_graph_dataset(self):
-        train_data = ZINC(self.raw_dir, subset=True, split='train')
-        val_data = ZINC(self.raw_dir, subset=True, split='val')
-        test_data = ZINC(self.raw_dir, subset=True, split='test')
-        data = train_data + val_data + test_data
-        idx = self.get_idx_split()
-        return data, idx["train"], idx["valid"], idx["test"]
-
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
         print(f"Processing cell complex dataset for {self.name}")
