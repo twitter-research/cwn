@@ -110,6 +110,10 @@ def load_zinc_graph_dataset(root):
     test_data = ZINC(raw_dir, subset=True, split='test')
     data = train_data + val_data + test_data
 
+    assert len(train_data) == 10000
+    assert len(val_data) == 1000
+    assert len(test_data) == 1000
+
     idx = []
     start = 0
     idx.append(list(range(start, len(train_data))))

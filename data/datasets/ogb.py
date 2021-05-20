@@ -82,8 +82,7 @@ class OGBDataset(InMemoryComplexDataset):
 
 
 def load_ogb_graph_dataset(root, name):
-    raw_dir = osp.join(root, name, 'raw')
-
+    raw_dir = osp.join(root, 'raw')
     dataset = PygGraphPropPredDataset(name, raw_dir)
     idx = dataset.get_idx_split()
 
