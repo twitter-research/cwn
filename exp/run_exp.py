@@ -233,6 +233,7 @@ def main(args):
         raise NotImplementedError(f'Scheduler {args.lr_scheduler} is not currently supported.')
 
     # (!) start training/evaluation
+    best_val_epoch = 0
     valid_curve = []
     test_curve = []
     train_curve = []
@@ -304,19 +305,12 @@ def main(args):
         if test_loader is not None:
             print(f'Test score: {test_curve[best_val_epoch]}')
         
-    else:
-        print('Evaluating...')
-        train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
-        train_curve.append(train_perf)
-        val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
-        valid_curve.append(val_perf)
-        if test_loader is not None:
-            test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
-            test_curve.append(test_perf)
-        else:
-            test_curve.append(np.nan)
-        best_val_epoch = 0
-        train_loss_curve.append(np.nan)
+    print('Final Evaluation...')
+    final_train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
+    final_val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
+    final_test_perf = np.nan
+    if test_loader is not None:
+        final_test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
 
     # save results
     curves = {
@@ -324,6 +318,9 @@ def main(args):
         'train': train_curve,
         'val': valid_curve,
         'test': test_curve,
+        'last_val': final_val_perf,
+        'last_test': final_test_perf,
+        'last_train': final_train_perf,
         'best': best_val_epoch}
     msg = (
        f'Dataset:        {args.dataset}\n'
