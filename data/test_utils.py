@@ -594,6 +594,7 @@ def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
     assert house_cell_a.edges.num_simplices_down == house_cell_b.edges.num_simplices_down
     assert house_cell_a.edges.num_simplices_up == house_cell_b.edges.num_simplices_up
     assert list(house_cell_a.edges.face_index.size()) == list(house_cell_b.edges.face_index.size())
+    assert house_cell_a.triangles.num_simplices == 2  # We have 2 rings in the house complex
     assert house_cell_a.triangles.num_simplices == house_cell_b.triangles.num_simplices
     assert house_cell_a.triangles.num_simplices_down == house_cell_b.triangles.num_simplices_down
     assert house_cell_a.triangles.num_simplices_up == house_cell_b.triangles.num_simplices_up
@@ -628,6 +629,7 @@ def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
     # Check the returned ring parameters
     t_params_a = house_cell_a.get_chain_params(dim=2)
     t_params_b = house_cell_b.get_chain_params(dim=2)
+    assert t_params_a.x.size(0) == 2
     assert torch.equal(t_params_a.x, t_params_b.x)
     assert torch.equal(t_params_a.down_index, t_params_b.down_index)
     assert torch.equal(t_params_a.kwargs['down_attr'], t_params_b.kwargs['down_attr'])
@@ -664,6 +666,7 @@ def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
     assert house_cell.edges.num_simplices_down == house_simp.edges.num_simplices_down
     assert house_cell.edges.num_simplices_up == house_simp.edges.num_simplices_up
     assert list(house_cell.edges.face_index.size()) == list(house_simp.edges.face_index.size())
+    assert house_cell.triangles.num_simplices == 1
     assert house_cell.triangles.num_simplices == house_simp.triangles.num_simplices
     assert house_cell.triangles.num_simplices_down == house_simp.triangles.num_simplices_down
     assert house_cell.triangles.num_simplices_up == house_simp.triangles.num_simplices_up
@@ -698,6 +701,7 @@ def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
     # Check the returned ring parameters
     t_params_a = house_cell.get_chain_params(dim=2)
     t_params_b = house_simp.get_chain_params(dim=2)
+    assert t_params_a.x.size(0) == 1
     assert torch.equal(t_params_a.x, t_params_b.x)
     assert t_params_a.down_index is None
     assert t_params_b.down_index is None
@@ -727,6 +731,8 @@ def test_ring_2complex_dataset_conversion(house_edge_index):
     assert len(complexes) == 3
     for i in range(len(complexes)):
         # Do some basic checks for each complex.
+        # Checks the number of rings in `face_index`
+        assert complexes[i].chains[2].face_index[:, 1].max().item() == 1
         assert complexes[i].dimension == 2
         assert complexes[i].nodes.face_index is None
         assert list(complexes[i].edges.face_index.size()) == [2, 2*6]

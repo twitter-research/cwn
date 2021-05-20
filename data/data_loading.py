@@ -7,10 +7,12 @@ from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
-from data.datasets import load_sr_graph_dataset, load_tu_graph_dataset
+from data.datasets import (
+    load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset)
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
     OceanDataset, ZincDataset, CSLDataset, OGBDataset)
+
 
 class Collater(object):
     def __init__(self, follow_batch, max_dim=2):
@@ -150,6 +152,13 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
     elif name == 'MUTAG':
         graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=False, fold=fold, seed=0)
         data = (graph_list, train_ids, val_ids, test_ids, 2)
+    elif name == 'ZINC':
+        graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root)
+        data = (graph_list, train_ids, val_ids, test_ids, 1)
+    elif name == 'MOLHIV':
+        graph_list, train_ids, val_ids, test_ids = load_ogb_graph_dataset(
+            os.path.join(root, name), 'ogbg-molhiv')
+        data = (graph_list, train_ids, val_ids, test_ids, graph_list.num_tasks)
     else:
         raise NotImplementedError
     return data
