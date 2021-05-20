@@ -116,8 +116,9 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                              fold=fold)
-    elif name == 'MOLHIV':
-        dataset = OGBDataset(os.path.join(root, name), 'ogbg-molhiv', max_ring_size=kwargs['max_ring_size'],
+    elif name in ['MOLHIV', 'MOLPCBA']:
+        official_name = 'ogbg-'+name.lower()
+        dataset = OGBDataset(os.path.join(root, name), official_name, max_ring_size=kwargs['max_ring_size'],
                              use_edge_features=kwargs['use_edge_features'], simple=kwargs['simple_features'],
                              init_method=init_method)
     else:

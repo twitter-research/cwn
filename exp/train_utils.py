@@ -152,6 +152,10 @@ class Evaluator(object):
             self._ogb_evaluator = OGBEvaluator(metric)
             self._key = 'rocauc'
             self.eval_fn = self._ogb
+        elif metric == 'ogbg-molpcba':
+            self._ogb_evaluator = OGBEvaluator(metric)
+            self._key = 'average_precision'
+            self.eval_fn = self._ogb
         else:
             raise NotImplementedError('Metric {} is not yet supported.'.format(metric))
     
