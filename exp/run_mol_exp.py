@@ -15,11 +15,12 @@ def exp_main(passed_args):
 
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
+    assert args.stop_seed > args.start_seed
 
     # run each experiment separately and gather results
     results = list()
     if args.folds is None:
-        for seed in range(args.seeds):
+        for seed in range(args.start_seed, args.stop_seed+1):
             current_args = copy.copy(passed_args) + ['--seed', str(seed)]
             parsed_args = parser.parse_args(current_args)
             curves = main(parsed_args)
@@ -101,4 +102,6 @@ if __name__ == "__main__":
     passed_args = sys.argv[1:]
     assert 'seed' not in passed_args
     assert 'fold' not in passed_args
+    assert 'start_seed' in passed_args
+    assert 'stop_seed' in passed_args
     exp_main(passed_args)

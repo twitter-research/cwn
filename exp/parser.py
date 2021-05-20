@@ -9,8 +9,10 @@ def get_parser():
     parser = argparse.ArgumentParser(description='SCN experiment.')
     parser.add_argument('--seed', type=int, default=43,
                         help='random seed to set (default: 43, i.e. the non-meaning of life))')
-    parser.add_argument('--seeds', type=int, default=10,
-                        help='The number of seeds to use when evaluating on multiple seeds.')
+    parser.add_argument('--start_seed', type=int, default=0,
+                        help='The initial seed when evaluating on multiple seeds.')
+    parser.add_argument('--stop_seed', type=int, default=0,
+                        help='The final seed when evaluating on multiple seeds.')
     parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sparse_sin',
