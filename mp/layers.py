@@ -231,8 +231,6 @@ class SparseSINConv(torch.nn.Module):
         for dim in range(max_dim+1):
             if msg_up_nn is None:
                 if use_cofaces:
-                    # DEBUG
-                    print('Using cofaces...')
                     msg_up_nn = Sequential(
                             Catter(),
                             Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),

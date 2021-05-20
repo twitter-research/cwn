@@ -20,7 +20,7 @@ def exp_main(passed_args):
     # run each experiment separately and gather results
     results = list()
     if args.folds is None:
-        for seed in range(args.start_seed, args.stop_seed+1):
+        for seed in range(args.start_seed, args.stop_seed + 1):
             current_args = copy.copy(passed_args) + ['--seed', str(seed)]
             parsed_args = parser.parse_args(current_args)
             curves = main(parsed_args)

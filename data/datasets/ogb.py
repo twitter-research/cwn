@@ -17,9 +17,6 @@ class OGBDataset(InMemoryComplexDataset):
         self._simple = simple
         super(OGBDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                          max_dim=2, init_method=init_method, cellular=True)
-        print(self.processed_paths)
-        print(self.processed_dir)
-        print(self.processed_file_names)
         self.data, self.slices, idx, self.num_tasks = self.load_dataset()
         self.train_ids = idx['train']
         self.val_ids = idx['valid']
@@ -66,6 +63,8 @@ class OGBDataset(InMemoryComplexDataset):
             dataset.data.x = dataset.data.x[:,:2]
             dataset.data.edge_attr = dataset.data.edge_attr[:,:2]
         
+        # NB: the init method would basically have no effect if 
+        # we use edge features and do not initialize rings. 
         print(f"Converting the {self.name} dataset to a cell complex...")
         complexes, _, _ = convert_graph_dataset_with_rings(
             dataset,

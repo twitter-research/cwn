@@ -284,7 +284,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
         xs = list(self.init_conv(*params))
 
-        # Apply dropout on the input features?
+        # Apply dropout on the input features
         for i, x in enumerate(xs):
             xs[i] = F.dropout(xs[i], p=self.in_dropout_rate, training=self.training)
 
@@ -294,7 +294,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
-            # Apply dropout on the output of the conv layer?
+            # Apply dropout on the output of the conv layer
             for i, x in enumerate(xs):
                 xs[i] = F.dropout(xs[i], p=self.dropout_rate, training=self.training)
             data.set_xs(xs)
