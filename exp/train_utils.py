@@ -54,12 +54,13 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         optimizer.zero_grad()
         pred = model(batch)
         if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
-            targets = batch.y.view(-1, 1)
-            loss = loss_fn(pred, targets)
+            targets = batch.y.view(-1,)
         else:
-            mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
             targets = batch.y.to(torch.float32).view(pred.shape)
-            loss = loss_fn(pred[mask], targets[mask])
+
+        mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
+        loss = loss_fn(pred[mask], targets[mask])
+
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
@@ -106,7 +107,7 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
             pred = model(batch)
             
             if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
-                targets = batch.y.view(-1, 1)
+                targets = batch.y.view(-1,)
             else:
                 targets = batch.y.to(torch.float32).view(pred.shape)
             mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
@@ -127,7 +128,6 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
             
         y_pred.append(pred.detach().cpu())
 
-    
     y_true = torch.cat(y_true, dim=0).numpy()  if len(y_true) > 0 else None
     y_pred = torch.cat(y_pred, dim=0).numpy()
 
