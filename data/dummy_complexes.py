@@ -7,10 +7,11 @@ from data.complex import Chain, Complex
 
 
 def get_testing_complex_list():
-    return [get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
-            get_square_dot_complex(), get_square_complex(), get_house_complex(),
-            get_kite_complex(), get_pyramid_complex(), get_square_dot_complex(),
-            get_filled_square_complex(), get_molecular_complex()]
+    return [get_fullstop_complex(), get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
+            get_square_dot_complex(), get_square_complex(), get_fullstop_complex(), get_house_complex(),
+            get_kite_complex(), get_pyramid_complex(), get_square_dot_complex(), get_colon_complex(),
+            get_filled_square_complex(), get_molecular_complex(), get_fullstop_complex(), get_colon_complex(),
+            get_fullstop_complex(), get_fullstop_complex(), get_colon_complex()]
 
 
 def get_house_complex():
@@ -69,6 +70,36 @@ def get_house_complex():
     yt = torch.tensor([2], dtype=torch.long)
     t_chain = Chain(dim=2, x=t_x, y=yt, face_index=t_face_index)
     return Complex(v_chain, e_chain, t_chain)
+
+
+def get_fullstop_complex():
+    """
+    Returns the `fullstop graph` below with dummy features.
+    The `fullstop graph` is a single isolated node:
+
+    0
+
+    """
+    v_x = torch.tensor([[1]], dtype=torch.float)
+    yv = torch.tensor([0], dtype=torch.long)
+    v_chain = Chain(dim=0, x=v_x, y=yv)
+    return Complex(v_chain)
+
+
+def get_colon_complex():
+    """
+    Returns the `colon graph` below with dummy features.
+    The `colon graph` is made up of two isolated nodes:
+
+    1
+
+    0
+
+    """
+    v_x = torch.tensor([[1], [2]], dtype=torch.float)
+    yv = torch.tensor([0, 0], dtype=torch.long)
+    v_chain = Chain(dim=0, x=v_x, y=yv)
+    return Complex(v_chain)
 
 
 def get_square_complex():

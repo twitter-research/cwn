@@ -29,7 +29,8 @@ def test_zinc_sparse_sin0_model_with_batching():
         batched_res = {}
         for batch in data_loader:
             # Simulate no edge and triangle features to test init layer
-            batch.chains[1].x = None
+            if len(batch.chains) >= 2:
+                batch.chains[1].x = None
             if len(batch.chains) == 3:
                 batch.chains[2].x = None
 
@@ -47,7 +48,8 @@ def test_zinc_sparse_sin0_model_with_batching():
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
             # Simulate no edge and triangle features to test init layer
-            batch.chains[1].x = None
+            if len(batch.chains) >= 2:
+                batch.chains[1].x = None
             if len(batch.chains) == 3:
                 batch.chains[2].x = None
 

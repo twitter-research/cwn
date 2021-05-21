@@ -3,7 +3,8 @@ import torch
 
 from mp.smp import ChainMessagePassing
 from torch_geometric.nn.conv import MessagePassing
-from data.dummy_complexes import get_square_dot_complex, get_house_complex
+from data.dummy_complexes import (get_square_dot_complex, get_house_complex,
+                                  get_colon_complex, get_fullstop_complex)
 
 
 def test_edge_propagate_in_cmp():
@@ -128,3 +129,45 @@ def test_smp_messaging_with_isolated_nodes():
                                         x=params.x, up_attr=None)
     assert torch.equal(out, up_msg)
     assert torch.equal(down_msg, torch.zeros_like(down_msg))
+
+
+def test_cmp_messaging_with_isolated_node_only():
+    """
+    This checks how pyG handles messages for one isolated node.
+    """
+    fullstop_complex = get_fullstop_complex()
+    params = fullstop_complex.get_chain_params(dim=0)
+    empty_edge_index = torch.LongTensor([[],[]])
+
+    mp = MessagePassing()
+    mp_out = mp.propagate(edge_index=empty_edge_index, x=params.x)
+
+    # This confirms pyG returns a zero message when edge_index is empty
+    assert torch.equal(mp_out, torch.zeros_like(mp_out))
+
+    # This confirms behavior is consistent with our framework
+    cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
+    up_msg, _, _ = cmp.propagate(up_index=params.up_index, down_index=None, face_index=None, 
+                                        x=params.x, up_attr=None)
+    assert torch.equal(mp_out, up_msg)
+
+
+def test_cmp_messaging_with_two_isolated_nodes_only():
+    """
+    This checks how pyG handles messages for two isolated nodes.
+    """
+    colon_complex = get_colon_complex()
+    params = colon_complex.get_chain_params(dim=0)
+    empty_edge_index = torch.LongTensor([[],[]])
+
+    mp = MessagePassing()
+    mp_out = mp.propagate(edge_index=empty_edge_index, x=params.x)
+    
+    # This confirms pyG returns a zero message when edge_index is empty
+    assert torch.equal(mp_out, torch.zeros_like(mp_out))
+
+    # This confirms behavior is consistent with our framework
+    cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
+    up_msg, _, _ = cmp.propagate(up_index=params.up_index, down_index=None, face_index=None, 
+                                        x=params.x, up_attr=None)
+    assert torch.equal(mp_out, up_msg)

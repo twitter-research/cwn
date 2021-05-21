@@ -392,27 +392,42 @@ class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
         pass
     
     def forward(self, *chain_params: ChainMessagePassingParams):
-        assert 2 <= len(chain_params) <= 3
+        assert 1 <= len(chain_params) <= 3
         v_params = chain_params[0]
-        e_params = chain_params[1]
+        e_params = chain_params[1] if len(chain_params) >= 2 else None
         c_params = chain_params[2] if len(chain_params) == 3 else None
 
         vx = self.v_embed_layer(self._prepare_v_inputs(v_params))
-        reduced_ex = self.init_reduce(vx, e_params.face_index)
+        if vx.dim() == 1:
+            assert v_params.x.shape[0] == 1
+            vx = vx.unsqueeze(0)
+        out = [vx]
 
-        ex = reduced_ex
-        if e_params.x is not None:
-            ex = self.e_embed_layer(self._prepare_e_inputs(e_params))
-            # The output of this should be the same size as the vertex features.
-            assert ex.size(1) == vx.size(1)
+        if e_params is not None:
+            reduced_ex = self.init_reduce(vx, e_params.face_index)
+            ex = reduced_ex
+            if e_params.x is not None:
+                ex = self.e_embed_layer(self._prepare_e_inputs(e_params))
+                # The output of this should be the same size as the vertex features.
+                assert ex.size(1) == vx.size(1)
+            if ex.dim() == 1:
+                if e_params.x is not None:
+                    assert e_params.x.shape[0] == 1
+                else:
+                    assert e_params.face_index[1].max() == 0
+                ex = ex.unsqueeze(0)
+            out.append(ex)
 
         if c_params is not None:
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
             cx = self.init_reduce(reduced_ex, c_params.face_index) / 2.
-            return vx, ex, cx
+            if cx.dim() == 1:
+                assert c_params.face_index[1].max() == 0
+                cx = cx.unsqueeze(0)
+            out.append(cx)
 
-        return vx, ex
+        return out
     
     def reset_parameters(self):
         reset(self.v_embed_layer)

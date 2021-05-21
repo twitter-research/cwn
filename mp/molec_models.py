@@ -107,7 +107,7 @@ class EmbedSparseSIN(torch.nn.Module):
 
         # Check input node/edge features are scalars.
         assert data.chains[0].x.size(-1) == 1
-        if data.chains[1].x is not None:
+        if 1 in data.chains and data.chains[1].x is not None:
             assert data.chains[1].x.size(-1) == 1
 
         # Embed and populate higher-levels
@@ -274,11 +274,6 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
         xs, jump_xs = None, None
         res = {}
-
-        # Check input node/edge features are scalars.
-        # assert data.chains[0].x.size(-1) == 1, data.chains[0].x.size(-1)
-        # if data.chains[1].x is not None:
-        #     assert data.chains[1].x.size(-1) == 1
 
         # Embed and populate higher-levels
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
