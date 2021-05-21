@@ -55,10 +55,11 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         pred = model(batch)
         if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
             targets = batch.y.view(-1, 1)
+            loss = loss_fn(pred, targets)
         else:
+            mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
             targets = batch.y.to(torch.float32).view(pred.shape)
-        mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
-        loss = loss_fn(pred[mask], targets[mask])
+            loss = loss_fn(pred[mask], targets[mask])
         loss.backward()
         optimizer.step()
         curve.append(loss.detach().cpu().item())
