@@ -690,6 +690,8 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     # Creates the gudhi-based simplicial complex up to edges
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
     assert simplex_tree.dimension() <= 1
+    if simplex_tree.dimension() == 0:
+        assert edge_index.size(1) == 0
 
     # Builds tables of the simplicial complexes at each level and their IDs
     simplex_tables, id_maps = build_tables_with_rings(edge_index, simplex_tree, size, max_k)

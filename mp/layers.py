@@ -398,33 +398,24 @@ class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
         c_params = chain_params[2] if len(chain_params) == 3 else None
 
         vx = self.v_embed_layer(self._prepare_v_inputs(v_params))
-        if vx.dim() == 1:
-            assert v_params.x.shape[0] == 1
-            vx = vx.unsqueeze(0)
         out = [vx]
 
-        if e_params is not None:
-            reduced_ex = self.init_reduce(vx, e_params.face_index)
-            ex = reduced_ex
-            if e_params.x is not None:
-                ex = self.e_embed_layer(self._prepare_e_inputs(e_params))
-                # The output of this should be the same size as the vertex features.
-                assert ex.size(1) == vx.size(1)
-            if ex.dim() == 1:
-                if e_params.x is not None:
-                    assert e_params.x.shape[0] == 1
-                else:
-                    assert e_params.face_index[1].max() == 0
-                ex = ex.unsqueeze(0)
-            out.append(ex)
+        if e_params is None:
+           assert c_params is None
+           return out
+
+        reduced_ex = self.init_reduce(vx, e_params.face_index)
+        ex = reduced_ex
+        if e_params.x is not None:
+            ex = self.e_embed_layer(self._prepare_e_inputs(e_params))
+            # The output of this should be the same size as the vertex features.
+            assert ex.size(1) == vx.size(1)
+        out.append(ex)
 
         if c_params is not None:
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
             cx = self.init_reduce(reduced_ex, c_params.face_index) / 2.
-            if cx.dim() == 1:
-                assert c_params.face_index[1].max() == 0
-                cx = cx.unsqueeze(0)
             out.append(cx)
 
         return out
@@ -444,15 +435,17 @@ class EmbedVEWithReduce(AbstractEmbedVEWithReduce):
         
     def _prepare_v_inputs(self, v_params):
         assert v_params.x is not None
-        assert v_params.x.size(-1) == 1
+        assert v_params.x.dim() == 2
+        assert v_params.x.size(1) == 1
         # The embedding layer expects integers so we convert the tensor to int.
-        return v_params.x.squeeze().to(dtype=torch.long)
+        return v_params.x.squeeze(1).to(dtype=torch.long)
     
     def _prepare_e_inputs(self, e_params):
         assert self.e_embed_layer is not None
-        assert e_params.x.size(-1) == 1
+        assert e_params.x.dim() == 2
+        assert e_params.x.size(1) == 1
         # The embedding layer expects integers so we convert the tensor to int.
-        return e_params.x.squeeze().to(dtype=torch.long)
+        return e_params.x.squeeze(1).to(dtype=torch.long)
 
 
 class OGBEmbedVEWithReduce(AbstractEmbedVEWithReduce):
@@ -465,12 +458,10 @@ class OGBEmbedVEWithReduce(AbstractEmbedVEWithReduce):
 
     def _prepare_v_inputs(self, v_params):
         assert v_params.x is not None
-        # assert v_params.x.size(-1) == 1
         assert v_params.x.dim() == 2
         return v_params.x
     
     def _prepare_e_inputs(self, e_params):
         assert self.e_embed_layer is not None
-        # assert e_params.x.size(-1) == 1
         assert e_params.x.dim() == 2
         return e_params.x

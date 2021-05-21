@@ -7,8 +7,8 @@ from data.dummy_complexes import (get_house_complex, get_kite_complex, get_squar
 from data.dummy_complexes import get_testing_complex_list
 
 __cell_dummy_mol_complexes__ = [
-            get_house_complex, get_kite_complex, get_square_complex, get_fullstop_complex
-            get_square_dot_complex, get_square_complex, get_filled_square_complex, get_colon_complex
+            get_house_complex, get_kite_complex, get_square_complex, get_fullstop_complex,
+            get_square_dot_complex, get_square_complex, get_filled_square_complex, get_colon_complex,
             get_kite_complex, get_square_dot_complex, get_colon_complex, get_molecular_complex,
             get_filled_square_complex, get_molecular_complex, get_fullstop_complex, get_colon_complex]
 
