@@ -300,11 +300,7 @@ def main(args):
             best_val_epoch = np.argmax(np.array(valid_curve))
         else:
             best_val_epoch = np.argmin(np.array(valid_curve))
-        print('Finished training!')
-        print(f'Best validation score: {valid_curve[best_val_epoch]}')
-        if test_loader is not None:
-            print(f'Test score: {test_curve[best_val_epoch]}')
-        
+
     print('Final Evaluation...')
     final_train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
     final_val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
@@ -334,6 +330,8 @@ def main(args):
        f'Validation:     {final_val_perf}\n'
        f'Test:           {final_test_perf}\n'
        '-------------------------------\n')
+    print(msg)
+
     msg += str(args)
     with open(filename, 'w') as handle:
         handle.write(msg)

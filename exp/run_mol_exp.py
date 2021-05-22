@@ -90,15 +90,11 @@ def exp_main(passed_args):
     print(msg)
     
     # additionally write msg and configuration on file
+    msg += str(args)
     filename = os.path.join(args.result_folder, f'{args.dataset}-{args.exp_name}/result.txt')
     print('Writing results at: {}'.format(filename))
     with open(filename, 'w') as handle:
         handle.write(msg)
-        for arg in passed_args:
-            if arg.startswith('--'):
-                handle.write(arg+': ')
-            else:
-                handle.write(arg+'\n')
 
 
 if __name__ == "__main__":
