@@ -58,7 +58,10 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         else:
             targets = batch.y.to(torch.float32).view(pred.shape)
 
-        mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
+        # In some ogbg-mol* datasets we may have null targets.
+        # When the cross entropy loss is used and targets are of shape (N,)
+        # the maks is broadcasted automatically to the shape of the predictions.
+        mask = ~torch.isnan(targets)
         loss = loss_fn(pred[mask], targets[mask])
 
         loss.backward()
