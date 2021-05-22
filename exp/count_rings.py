@@ -6,7 +6,7 @@ import time
 from data.parallel import ProgressParallel
 from data.data_loading import load_graph_dataset
 from data.utils import get_rings
-from joblib import Parallel, delayed
+from joblib import delayed
 
 parser = argparse.ArgumentParser(description='Ring counting experiment.')
 parser.add_argument('--dataset', type=str, default="ZINC",

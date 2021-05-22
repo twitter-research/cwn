@@ -1,4 +1,3 @@
-import networkx as nx
 import matplotlib.pyplot as plt
 import itertools as it
 import torch
@@ -7,15 +6,16 @@ import itertools
 import graph_tool as gt
 import graph_tool.topology as top
 import networkx as nx
-import numpy as np
 
 from tqdm import tqdm
 from data.complex import Chain, Complex
-from collections import OrderedDict
 from typing import List, Dict, Optional
 from torch import Tensor
 from torch_geometric.typing import Adj
 from torch_scatter import scatter
+from data.parallel import ProgressParallel
+from joblib import delayed
+
 
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
@@ -761,14 +761,18 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
 def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=True,
                                      init_method: str = 'sum', init_edges=True, init_rings=False):
     dimension = -1
-    complexes = []
     num_features = [None, None, None]
 
-    for data in tqdm(dataset):
-        complex = compute_ring_2complex(data.x, data.edge_index, data.edge_attr,
-                                        data.num_nodes, y=data.y, max_k=max_ring_size,
-                                        include_down_adj=include_down_adj, init_method=init_method,
-                                        init_edges=init_edges, init_rings=init_rings)
+    # Process the dataset in parallel
+    parallel = ProgressParallel(n_jobs=12, use_tqdm=True, total=len(dataset))
+    # It is important we supply a numpy array here. tensors seem to slow joblib down significantly.
+    complexes = parallel(delayed(compute_ring_2complex)(
+        data.x, data.edge_index, data.edge_attr,
+        data.num_nodes, y=data.y, max_k=max_ring_size,
+        include_down_adj=include_down_adj, init_method=init_method,
+        init_edges=init_edges, init_rings=init_rings) for data in dataset)
+
+    for complex in complexes:
         if complex.dimension > dimension:
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
@@ -776,6 +780,5 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
                 num_features[dim] = complex.chains[dim].num_features
             else:
                 assert num_features[dim] == complex.chains[dim].num_features
-        complexes.append(complex)
 
     return complexes, dimension, num_features[:dimension+1]
