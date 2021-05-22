@@ -105,7 +105,7 @@ class ZincDataset(InMemoryComplexDataset):
 
 
 def load_zinc_graph_dataset(root, subset=True):
-    raw_dir = osp.join(root, 'raw')
+    raw_dir = osp.join(root, 'ZINC', 'raw')
 
     train_data = ZINC(raw_dir, subset=subset, split='train')
     val_data = ZINC(raw_dir, subset=subset, split='val')

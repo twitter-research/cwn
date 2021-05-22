@@ -569,8 +569,9 @@ def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_a
 # ---- support for rings as cells
 
 def get_rings(edge_index, max_k=7):
- 
-    edge_list = edge_index.numpy().T
+    if isinstance(edge_index, torch.Tensor):
+        edge_index = edge_index.numpy()
+    edge_list = edge_index.T
     # Note: the line above was/is for convenient testing.
     # edge_list = edge_index
     graph_gt = gt.Graph(directed=False)
