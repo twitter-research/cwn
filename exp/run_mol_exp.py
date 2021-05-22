@@ -70,8 +70,8 @@ def exp_main(passed_args):
     final_test_min = np.min(last_test)
     final_test_max = np.max(last_test)
 
-    print(" ===== Final result ======")
     msg = (
+        f"========= Final result ==========\n"
         f'Dataset:                {args.dataset}\n'
         f'SHA:                    {sha}\n'
         f'----------- Best epoch ----------\n'
@@ -80,13 +80,13 @@ def exp_main(passed_args):
         f'Test:                   {mean_test_perf} ± {std_test_perf}\n'
         f'Test Min:               {min_perf}\n'
         f'Test Max:               {max_perf}\n'
-        f'----------- Last epoch --------\n'
+        f'----------- Last epoch ----------\n'
         f'Train:                  {mean_final_train_perf} ± {std_final_train_perf}\n'
         f'Valid:                  {mean_final_val_perf} ± {std_final_val_perf}\n'
         f'Test:                   {mean_final_test_perf} ± {std_final_test_perf}\n'
         f'Test Min:               {final_test_min}\n'
         f'Test Max:               {final_test_max}\n'
-        f'-------------------------------\n')
+        f'---------------------------------\n\n')
     print(msg)
     
     # additionally write msg and configuration on file
