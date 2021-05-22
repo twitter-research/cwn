@@ -459,9 +459,11 @@ class OGBEmbedVEWithReduce(AbstractEmbedVEWithReduce):
     def _prepare_v_inputs(self, v_params):
         assert v_params.x is not None
         assert v_params.x.dim() == 2
-        return v_params.x
+        # NB: Inputs in ogbg-mol* datasets are already long; this is to test the layer with other datasets.
+        return v_params.x.to(dtype=torch.long)
     
     def _prepare_e_inputs(self, e_params):
         assert self.e_embed_layer is not None
         assert e_params.x.dim() == 2
-        return e_params.x
+        # NB: Inputs in ogbg-mol* datasets are already long; this is to test the layer with other datasets.
+        return e_params.x.to(dtype=torch.long)

@@ -120,7 +120,7 @@ class EmbedSparseSIN(torch.nn.Module):
 
         data.set_xs(xs)
 
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
@@ -128,7 +128,7 @@ class EmbedSparseSIN(torch.nn.Module):
 
             if include_partial:
                 for k in range(len(xs)):
-                    res[f"layer{i}_{k}"] = xs[k]
+                    res[f"layer{c}_{k}"] = xs[k]
 
             if self.jump_mode is not None:
                 if jump_xs is None:
@@ -285,7 +285,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
 
         data.set_xs(xs)
 
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
@@ -296,7 +296,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
 
             if include_partial:
                 for k in range(len(xs)):
-                    res[f"layer{i}_{k}"] = xs[k]
+                    res[f"layer{c}_{k}"] = xs[k]
 
             if self.jump_mode is not None:
                 if jump_xs is None:
@@ -343,4 +343,3 @@ class OGBEmbedSparseSIN(torch.nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__
-
