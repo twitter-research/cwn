@@ -121,6 +121,13 @@ def validate_args(args):
         assert args.model == 'ogb_embed_sparse_sin'
         assert args.task_type == 'bin_classification'
         assert not args.minimize
-        assert args.eval_metric == 'ogbg-molhiv'        
+        assert args.eval_metric == 'ogbg-molhiv'
+        assert args.jump_mode is None
+    elif args.dataset == 'MOLPCBA:
+        assert args.model == 'ogb_embed_sparse_sin'
+        assert args.task_type == 'bin_classification'
+        assert not args.minimize
+        assert args.eval_metric == 'ogbg-molpcba'
+        assert args.jump_mode is None
 
 

@@ -709,10 +709,12 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
     # Construct features for the higher dimensions
     xs = [x, None, None]
     constructed_features = construct_features(x, simplex_tables, init_method)
+    if simplex_tree.dimension() == 0:
+        assert len(constructed_features) == 1
     if init_rings and len(constructed_features) > 2:
         xs[2] = constructed_features[2]
-
-    if init_edges:
+    
+    if init_edges and simplex_tree.dimension() >= 1:
         if edge_attr is None:
             xs[1] = constructed_features[1]
         # If we have edge-features we simply use them for 1-cells

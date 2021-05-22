@@ -5,6 +5,7 @@ from data.utils import convert_graph_dataset_with_gudhi, compute_ring_2complex, 
 from data.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 from data.complex import ComplexBatch
+from data.dummy_complexes import convert_to_graph, get_testing_complex_list
 import numpy as np
 import pytest
 
@@ -785,3 +786,13 @@ def test_ring_2complex_dataset_conversion_with_edge_feats(house_edge_index):
         assert torch.equal(complexes[i].edges.x, e_x)
         assert complexes[i].triangles.x is None
         assert torch.equal(complexes[i].y, house1.y)
+
+        
+def test_simp_complex_conversion_completes():
+    graphs = list(map(convert_to_graph, get_testing_complex_list()))
+    _ = convert_graph_dataset_with_gudhi(graphs, expansion_dim=3)
+
+
+def test_cell_complex_conversion_completes():
+    graphs = list(map(convert_to_graph, get_testing_complex_list()))
+    _ = convert_graph_dataset_with_rings(graphs, init_rings=True)
