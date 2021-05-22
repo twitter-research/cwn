@@ -62,11 +62,10 @@ if __name__ == "__main__":
     msg = ''
     for f, family in enumerate(__families__):
         curves = results[f]
+        test_perf = curves['last_test']
         msg += (
-            'Dataset:        {0}\n'
-            'Failure rate:   {1}\n'
-            '-----------------------------------------------\n').format(family, curves['test'][0])
+            f'Dataset:        {family}\n'
+            f'Failure rate:   {test_perf}\n'
+            '-----------------------------------------------\n')
     print(msg)
-    
-        
-    
+

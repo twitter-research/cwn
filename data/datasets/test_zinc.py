@@ -88,11 +88,10 @@ def get_rings(n, edge_index, max_ring):
         # as a cycle. So we skip these together with cycles above the maximum length.
         if len(cycle) <= 2 or len(cycle) > max_ring:
             continue
-
-        # We remove the chordless cycles
+        # We skip the cycles with chords
         if not is_chordless(cycle):
             continue
-
+        # Store the cycle in a canonical form
         nx_rings.add(tuple(sorted(cycle)))
 
     return nx_rings
@@ -106,14 +105,11 @@ def get_complex_rings(r_face_index, e_face_index):
     rings = set()
     for ring, edges in id_to_ring.items():
         # Compose the two tables to extract the vertices in the ring.
-        vertices = []
-        for edge in edges:
-            vertices += id_to_edge[edge]
+        vertices = [vertex for edge in edges for vertex in id_to_edge[edge]]
         # Eliminate duplicates.
         vertices = set(vertices)
-        # Store the vertices in sorted order.
-        vertices = tuple(sorted(vertices))
-        rings.add(vertices)
+        # Store the ring in sorted order.
+        rings.add(tuple(sorted(vertices)))
     return rings
 
 
@@ -146,7 +142,7 @@ def test_zinc_splits_are_retained():
 
 
 @pytest.mark.slow
-def test_we_find_all_the_induced_cycles_on_zinc():
+def test_we_find_only_the_induced_cycles_on_zinc():
     max_ring = 7
     dataset = load_dataset("ZINC", max_ring_size=max_ring, use_edge_features=True)
     # Check only on validation to save time. I've also run once on the whole dataset and passes.
