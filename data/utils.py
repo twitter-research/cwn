@@ -11,7 +11,7 @@ import networkx as nx
 
 from tqdm import tqdm
 from data.complex import Chain, Complex
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from torch import Tensor
 from torch_geometric.typing import Adj
 from torch_scatter import scatter
@@ -671,8 +671,9 @@ def extract_faces_and_cofaces_with_rings(simplex_tree, id_maps):
     return faces_tables, faces, cofaces
 
 
-def compute_ring_2complex(x: np.ndarray, edge_index: np.ndarray, edge_attr: Optional[np.ndarray],
-                          size: int, y: np.ndarray = None, max_k: int = 7,
+def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor, np.ndarray],
+                          edge_attr: Optional[Union[Tensor, np.ndarray]],
+                          size: int, y: Optional[Union[Tensor, np.ndarray]] = None, max_k: int = 7,
                           include_down_adj=True, init_method: str = 'sum',
                           init_edges=True, init_rings=False) -> Complex:
     """Generates a ring 2-complex of a pyG graph via graph-tool.
