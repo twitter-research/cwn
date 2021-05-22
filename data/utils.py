@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import itertools as it
+
+import numpy as np
 import torch
 import gudhi as gd
 import itertools
@@ -669,8 +671,8 @@ def extract_faces_and_cofaces_with_rings(simplex_tree, id_maps):
     return faces_tables, faces, cofaces
 
 
-def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor],
-                          size: int, y: Tensor = None, max_k: int = 7,
+def compute_ring_2complex(x: np.ndarray, edge_index: np.ndarray, edge_attr: Optional[np.ndarray],
+                          size: int, y: np.ndarray = None, max_k: int = 7,
                           include_down_adj=True, init_method: str = 'sum',
                           init_edges=True, init_rings=False) -> Complex:
     """Generates a ring 2-complex of a pyG graph via graph-tool.
@@ -686,7 +688,13 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
         init_method: How to initialise features at higher levels.
     """
     assert x is not None
-    assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
+    assert isinstance(edge_index, np.ndarray)
+
+    # Convert everything to a tensor.
+    x = torch.tensor(x)
+    edge_index = torch.tensor(edge_index)
+    edge_attr = torch.tensor(edge_attr)
+    y = torch.tensor(y)
 
     # Creates the gudhi-based simplicial complex up to edges
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
@@ -767,8 +775,8 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
     parallel = ProgressParallel(n_jobs=12, use_tqdm=True, total=len(dataset))
     # It is important we supply a numpy array here. tensors seem to slow joblib down significantly.
     complexes = parallel(delayed(compute_ring_2complex)(
-        data.x, data.edge_index, data.edge_attr,
-        data.num_nodes, y=data.y, max_k=max_ring_size,
+        data.x.numpy(), data.edge_index.numpy(), data.edge_attr.numpy(),
+        data.num_nodes, y=data.y.numpy(), max_k=max_ring_size,
         include_down_adj=include_down_adj, init_method=init_method,
         init_edges=init_edges, init_rings=init_rings) for data in dataset)
 
