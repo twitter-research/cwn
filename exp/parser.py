@@ -117,17 +117,15 @@ def validate_args(args):
         assert args.eval_metric == 'mae'
         assert args.lr_scheduler == 'ReduceLROnPlateau'
         assert not args.simple_features
-    elif args.dataset == 'MOLHIV':
+    elif args.dataset in ['MOLHIV', 'MOLPCBA', 'MOLTOX21', 'MOLTOXCAST', 'MOLMUV',
+                          'MOLBACE', 'MOLBBBP', 'MOLCLINTOX', 'MOLSIDER', 'MOLESOL',
+                          'MOLFREESOLV', 'MOLLIPO']:
         assert args.model == 'ogb_embed_sparse_sin'
-        assert args.task_type == 'bin_classification'
-        assert not args.minimize
-        assert args.eval_metric == 'ogbg-molhiv'
+        assert args.eval_metric == 'ogbg-'+args.dataset.lower()
         assert args.jump_mode is None
-    elif args.dataset == 'MOLPCBA:
-        assert args.model == 'ogb_embed_sparse_sin'
-        assert args.task_type == 'bin_classification'
-        assert not args.minimize
-        assert args.eval_metric == 'ogbg-molpcba'
-        assert args.jump_mode is None
-
-
+        if args.dataset in ['MOLESOL', 'MOLFREESOLV', 'MOLLIPO']:
+            assert args.task_type == 'mse_regression'
+            assert args.minimize
+        else:
+            assert args.task_type == 'bin_classification'
+            assert not args.minimize

@@ -10,6 +10,7 @@ from ogb.graphproppred import Evaluator as OGBEvaluator
 cls_criterion = torch.nn.CrossEntropyLoss()
 bicls_criterion = torch.nn.BCEWithLogitsLoss()
 reg_criterion = torch.nn.L1Loss()
+msereg_criterion = torch.nn.MSELoss()
 
 
 def train(model, device, loader, optimizer, task_type='classification', ignore_unlabeled=False):
@@ -23,6 +24,8 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         loss_fn = bicls_criterion
     elif task_type == 'regression':
         loss_fn = reg_criterion
+    elif task_type == 'mse_regression':
+        loss_fn = msereg_criterion
     else:
         raise NotImplementedError('Training on task type {} not yet supported.'.format(task_type))
     
@@ -97,6 +100,8 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         loss_fn = bicls_criterion
     elif task_type == 'regression':
         loss_fn = reg_criterion
+    elif task_type == 'mse_regression':
+        loss_fn = msereg_criterion
     else:
         loss_fn = None
             
@@ -148,13 +153,9 @@ class Evaluator(object):
             self.eval_fn = self._accuracy
         elif metric == 'mae':
             self.eval_fn = self._mae
-        elif metric == 'ogbg-molhiv':
+        elif metric.startswith('ogbg-mol'):
             self._ogb_evaluator = OGBEvaluator(metric)
-            self._key = 'rocauc'
-            self.eval_fn = self._ogb
-        elif metric == 'ogbg-molpcba':
-            self._ogb_evaluator = OGBEvaluator(metric)
-            self._key = 'average_precision'
+            self._key = self._ogb_evaluator.eval_metric
             self.eval_fn = self._ogb
         else:
             raise NotImplementedError('Metric {} is not yet supported.'.format(metric))
