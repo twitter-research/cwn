@@ -10,10 +10,11 @@ class ZincDataset(InMemoryComplexDataset):
     """This is ZINC from the Benchmarking GNNs paper. This is a graph regression task."""
 
     def __init__(self, root, max_ring_size, use_edge_features=False, transform=None,
-                 pre_transform=None, pre_filter=None):
+                 pre_transform=None, pre_filter=None, subset=True):
         self.name = 'ZINC'
         self._max_ring_size = max_ring_size
         self._use_edge_features = use_edge_features
+        self._subset = subset
         super(ZincDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                           max_dim=2, cellular=True, num_classes=1)
 
@@ -36,7 +37,7 @@ class ZincDataset(InMemoryComplexDataset):
 
     def download(self):
         # Instantiating this will download and process the graph dataset.
-        ZINC(self.raw_dir, subset=True)
+        ZINC(self.raw_dir, subset=self._subset)
 
     def load_dataset(self):
         """Load the dataset from here and process it if it doesn't exist"""
@@ -48,9 +49,9 @@ class ZincDataset(InMemoryComplexDataset):
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
         print(f"Processing cell complex dataset for {self.name}")
-        train_data = ZINC(self.raw_dir, subset=True, split='train')
-        val_data = ZINC(self.raw_dir, subset=True, split='val')
-        test_data = ZINC(self.raw_dir, subset=True, split='test')
+        train_data = ZINC(self.raw_dir, subset=self._subset, split='train')
+        val_data = ZINC(self.raw_dir, subset=self._subset, split='val')
+        test_data = ZINC(self.raw_dir, subset=self._subset, split='test')
 
         data_list = []
         idx = []
@@ -97,22 +98,28 @@ class ZincDataset(InMemoryComplexDataset):
     def processed_dir(self):
         """Overwrite to change name based on edges"""
         directory = super(ZincDataset, self).processed_dir
+        suffix0 = "_full" if self._subset is False else ""
         suffix1 = f"_{self._max_ring_size}rings" if self._cellular else ""
         suffix2 = "-E" if self._use_edge_features else ""
-        return directory + suffix1 + suffix2
+        return directory + suffix0 + suffix1 + suffix2
 
 
-def load_zinc_graph_dataset(root):
+def load_zinc_graph_dataset(root, subset=True):
     raw_dir = osp.join(root, 'raw')
 
-    train_data = ZINC(raw_dir, subset=True, split='train')
-    val_data = ZINC(raw_dir, subset=True, split='val')
-    test_data = ZINC(raw_dir, subset=True, split='test')
+    train_data = ZINC(raw_dir, subset=subset, split='train')
+    val_data = ZINC(raw_dir, subset=subset, split='val')
+    test_data = ZINC(raw_dir, subset=subset, split='test')
     data = train_data + val_data + test_data
 
-    assert len(train_data) == 10000
-    assert len(val_data) == 1000
-    assert len(test_data) == 1000
+    if subset:
+        assert len(train_data) == 10000
+        assert len(val_data) == 1000
+        assert len(test_data) == 1000
+    else:
+        assert len(train_data) == 220011
+        assert len(val_data) == 24445
+        assert len(test_data) == 5000
 
     idx = []
     start = 0

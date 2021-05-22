@@ -110,7 +110,7 @@ def validate_args(args):
         assert args.eval_metric == 'accuracy'
         assert args.fold is not None
         assert not args.simple_features
-    elif args.dataset == 'ZINC':
+    elif args.dataset.startswith('ZINC'):
         assert args.model == 'embed_sparse_sin'
         assert args.task_type == 'regression'
         assert args.minimize

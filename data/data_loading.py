@@ -113,6 +113,9 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'])
+    elif name == 'ZINC-FULL':
+        dataset = ZincDataset(os.path.join(root, name), subset=False, max_ring_size=kwargs['max_ring_size'],
+                              use_edge_features=kwargs['use_edge_features'])
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                              fold=fold)
@@ -158,6 +161,9 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
         data = (graph_list, train_ids, val_ids, test_ids, 2)
     elif name == 'ZINC':
         graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root)
+        data = (graph_list, train_ids, val_ids, test_ids, 1)
+    elif name == 'ZINC-FULL':
+        graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root, subset=False)
         data = (graph_list, train_ids, val_ids, test_ids, 1)
     elif name == 'MOLHIV':
         graph_list, train_ids, val_ids, test_ids = load_ogb_graph_dataset(
