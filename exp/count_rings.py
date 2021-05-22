@@ -36,11 +36,11 @@ def combine_all_cards(*cards):
     return ring_cards
 
 
-def get_ring_counts(dataset, max_ring):
+def get_ring_counts(dataset, max_ring, jobs):
     start = time.time()
     keys = list(range(3, max_ring+1))
 
-    parallel = ProgressParallel(n_jobs=-1, use_tqdm=True, total=len(dataset))
+    parallel = ProgressParallel(n_jobs=jobs, use_tqdm=True, total=len(dataset))
     # It is important we supply a numpy array here. tensors seem to slow joblib down significantly.
     cards = parallel(delayed(get_ring_count_for_graph)(
         graph.edge_index.numpy(), max_ring, keys) for graph in dataset)
@@ -91,14 +91,14 @@ def exp_main(passed_args):
 
     print("Counting rings on the training set ....")
     print("First, it will take a while to set up the processes...")
-    train_stats = get_ring_counts(train, args.max_ring_size)
+    train_stats = get_ring_counts(train, args.max_ring_size, args.n_jobs)
     print("Counting rings on the validation set ....")
-    val_stats = get_ring_counts(val, args.max_ring_size)
+    val_stats = get_ring_counts(val, args.max_ring_size, args.n_jobs)
 
     test_stats = None
     if test is not None:
         print("Counting rings on the test set ....")
-        test_stats = get_ring_counts(test, args.max_ring_size)
+        test_stats = get_ring_counts(test, args.max_ring_size, args.n_jobs)
         all_stats = combine_all_counts(train_stats, val_stats, test_stats)
     else:
         all_stats = combine_all_counts(train_stats, val_stats)
