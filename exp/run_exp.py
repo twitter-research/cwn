@@ -318,9 +318,11 @@ def main(args):
         'last_test': final_test_perf,
         'last_train': final_train_perf,
         'best': best_val_epoch}
+    
     msg = (
+       f'========== Result ============\n'
        f'Dataset:        {args.dataset}\n'
-       '------------ Best epoch -----------\n'
+       f'------------ Best epoch -----------\n'
        f'Train:          {train_curve[best_val_epoch]}\n'
        f'Validation:     {valid_curve[best_val_epoch]}\n'
        f'Test:           {test_curve[best_val_epoch]}\n'
@@ -329,7 +331,7 @@ def main(args):
        f'Train:          {final_train_perf}\n'
        f'Validation:     {final_val_perf}\n'
        f'Test:           {final_test_perf}\n'
-       '-------------------------------\n')
+       '-------------------------------\n\n')
     print(msg)
 
     msg += str(args)
