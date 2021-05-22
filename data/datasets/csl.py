@@ -15,9 +15,11 @@ class CSLDataset(InMemoryComplexDataset):
     """
 
     def __init__(self, root, transform=None,
-                 pre_transform=None, pre_filter=None, max_ring_size=6, fold=0, init_method='sum'):
+                 pre_transform=None, pre_filter=None, max_ring_size=6, fold=0, init_method='sum',
+                 n_jobs=2):
         self.name = 'CSL'
         self._max_ring_size = max_ring_size
+        self._n_jobs = n_jobs
         super(CSLDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                          max_dim=2, cellular=True, init_method=init_method,
                                          num_classes=10)
@@ -104,7 +106,8 @@ class CSLDataset(InMemoryComplexDataset):
             max_ring_size=self._max_ring_size,
             include_down_adj=False,
             init_edges=True,
-            init_rings=False)
+            init_rings=False,
+            n_jobs=self._n_jobs)
 
         path = self.processed_paths[0]
         print(f'Saving processed dataset in {path}....')

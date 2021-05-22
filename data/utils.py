@@ -688,13 +688,18 @@ def compute_ring_2complex(x: np.ndarray, edge_index: np.ndarray, edge_attr: Opti
         init_method: How to initialise features at higher levels.
     """
     assert x is not None
-    assert isinstance(edge_index, np.ndarray)
+    assert isinstance(edge_index, np.ndarray) or isinstance(edge_index, Tensor)
 
-    # Convert everything to a tensor.
-    x = torch.tensor(x)
-    edge_index = torch.tensor(edge_index)
-    edge_attr = torch.tensor(edge_attr)
-    y = torch.tensor(y)
+    # For parallel processing with joblib we need to pass numpy arrays as inputs
+    # Therefore, we convert here everything back to a tensor.
+    if isinstance(x, np.ndarray):
+        x = torch.tensor(x)
+    if isinstance(edge_index, np.ndarray):
+        edge_index = torch.tensor(edge_index)
+    if isinstance(edge_attr, np.ndarray):
+        edge_attr = torch.tensor(edge_attr)
+    if isinstance(y, np.ndarray):
+        y = torch.tensor(y)
 
     # Creates the gudhi-based simplicial complex up to edges
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
@@ -767,16 +772,23 @@ def compute_ring_2complex(x: np.ndarray, edge_index: np.ndarray, edge_attr: Opti
 
 
 def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=True,
-                                     init_method: str = 'sum', init_edges=True, init_rings=False):
+                                     init_method: str = 'sum', init_edges=True, init_rings=False,
+                                     n_jobs=1):
     dimension = -1
     num_features = [None, None, None]
 
+    def maybe_convert_to_numpy(x):
+        if isinstance(x, Tensor):
+            return x.numpy()
+        return x
+
     # Process the dataset in parallel
-    parallel = ProgressParallel(n_jobs=12, use_tqdm=True, total=len(dataset))
+    parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=len(dataset))
     # It is important we supply a numpy array here. tensors seem to slow joblib down significantly.
     complexes = parallel(delayed(compute_ring_2complex)(
-        data.x.numpy(), data.edge_index.numpy(), data.edge_attr.numpy(),
-        data.num_nodes, y=data.y.numpy(), max_k=max_ring_size,
+        maybe_convert_to_numpy(data.x), maybe_convert_to_numpy(data.edge_index),
+        maybe_convert_to_numpy(data.edge_attr),
+        data.num_nodes, y=maybe_convert_to_numpy(data.y), max_k=max_ring_size,
         include_down_adj=include_down_adj, init_method=init_method,
         init_edges=init_edges, init_rings=init_rings) for data in dataset)
 

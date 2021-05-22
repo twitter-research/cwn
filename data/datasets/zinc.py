@@ -10,11 +10,12 @@ class ZincDataset(InMemoryComplexDataset):
     """This is ZINC from the Benchmarking GNNs paper. This is a graph regression task."""
 
     def __init__(self, root, max_ring_size, use_edge_features=False, transform=None,
-                 pre_transform=None, pre_filter=None, subset=True):
+                 pre_transform=None, pre_filter=None, subset=True, n_jobs=2):
         self.name = 'ZINC'
         self._max_ring_size = max_ring_size
         self._use_edge_features = use_edge_features
         self._subset = subset
+        self._n_jobs = n_jobs
         super(ZincDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                           max_dim=2, cellular=True, num_classes=1)
 
@@ -62,7 +63,8 @@ class ZincDataset(InMemoryComplexDataset):
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
             init_edges=self._use_edge_features,
-            init_rings=False)
+            init_rings=False,
+            n_jobs=self._n_jobs)
         data_list += train_complexes
         idx.append(list(range(start, len(data_list))))
         start = len(data_list)
@@ -72,7 +74,8 @@ class ZincDataset(InMemoryComplexDataset):
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
             init_edges=self._use_edge_features,
-            init_rings=False)
+            init_rings=False,
+            n_jobs=self._n_jobs)
         data_list += val_complexes
         idx.append(list(range(start, len(data_list))))
         start = len(data_list)
@@ -82,7 +85,8 @@ class ZincDataset(InMemoryComplexDataset):
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
             init_edges=self._use_edge_features,
-            init_rings=False)
+            init_rings=False,
+            n_jobs=self._n_jobs)
         data_list += test_complexes
         idx.append(list(range(start, len(data_list))))
 
