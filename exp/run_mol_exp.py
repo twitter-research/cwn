@@ -34,6 +34,7 @@ def exp_main(passed_args):
             results.append(curves)
 
     # Extract results
+    train_curves = [curves['train'] for curves in results]
     val_curves = [curves['val'] for curves in results]
     test_curves = [curves['test'] for curves in results]
     best_idx = [curves['best'] for curves in results]
@@ -41,14 +42,23 @@ def exp_main(passed_args):
     last_val = [curves['last_val'] for curves in results]
     last_test = [curves['last_test'] for curves in results]
 
-    test_results = [test_curves[i][best] for i, best in enumerate(best_idx)]
-    test_results = np.array(test_results, dtype=np.float)
+    # Extract results at the best validation epoch.
+    best_epoch_train_results = [train_curves[i][best] for i, best in enumerate(best_idx)]
+    best_epoch_train_results = np.array(best_epoch_train_results, dtype=np.float)
+    best_epoch_val_results = [val_curves[i][best] for i, best in enumerate(best_idx)]
+    best_epoch_val_results = np.array(best_epoch_val_results, dtype=np.float)
+    best_epoch_test_results = [test_curves[i][best] for i, best in enumerate(best_idx)]
+    best_epoch_test_results = np.array(best_epoch_test_results, dtype=np.float)
 
     # Compute stats for the best validation epoch
-    mean_perf = np.mean(test_results)
-    std_perf = np.std(test_results, ddof=1)  # ddof=1 makes the estimator unbiased
-    min_perf = np.min(test_results)
-    max_perf = np.max(test_results)
+    mean_train_perf = np.mean(best_epoch_train_results)
+    std_train_perf = np.std(best_epoch_train_results, ddof=1)  # ddof=1 makes the estimator unbiased
+    mean_val_perf = np.mean(best_epoch_val_results)
+    std_val_perf = np.std(best_epoch_val_results, ddof=1)  # ddof=1 makes the estimator unbiased
+    mean_test_perf = np.mean(best_epoch_test_results)
+    std_test_perf = np.std(best_epoch_test_results, ddof=1)  # ddof=1 makes the estimator unbiased
+    min_perf = np.min(best_epoch_test_results)
+    max_perf = np.max(best_epoch_test_results)
 
     # Compute stats for the last epoch
     mean_final_train_perf = np.mean(last_train)
@@ -65,15 +75,17 @@ def exp_main(passed_args):
         f'Dataset:                {args.dataset}\n'
         f'SHA:                    {sha}\n'
         f'----------- Best epoch ----------\n'
-        f'Test Mean:              {mean_perf} ± {std_perf}\n'
+        f'Train:                  {mean_train_perf} ± {std_train_perf}\n'
+        f'Valid:                  {mean_val_perf} ± {std_val_perf}\n'
+        f'Test:                   {mean_test_perf} ± {std_test_perf}\n'
         f'Test Min:               {min_perf}\n'
         f'Test Max:               {max_perf}\n'
         f'----------- Last epoch --------\n'
-        f'Test Mean:              {mean_final_test_perf} ± {std_final_test_perf}\n'
+        f'Train:                  {mean_final_train_perf} ± {std_final_train_perf}\n'
+        f'Valid:                  {mean_final_val_perf} ± {std_final_val_perf}\n'
+        f'Test:                   {mean_final_test_perf} ± {std_final_test_perf}\n'
         f'Test Min:               {final_test_min}\n'
         f'Test Max:               {final_test_max}\n'
-        f'Valid Mean:             {mean_final_val_perf} ± {std_final_val_perf}\n'
-        f'Train Mean:             {mean_final_train_perf} ± {std_final_train_perf}\n'
         f'-------------------------------\n')
     print(msg)
     

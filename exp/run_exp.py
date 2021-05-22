@@ -324,10 +324,15 @@ def main(args):
         'best': best_val_epoch}
     msg = (
        f'Dataset:        {args.dataset}\n'
-       f'Validation:     {valid_curve[best_val_epoch]}\n'
+       '------------ Best epoch -----------\n'
        f'Train:          {train_curve[best_val_epoch]}\n'
+       f'Validation:     {valid_curve[best_val_epoch]}\n'
        f'Test:           {test_curve[best_val_epoch]}\n'
        f'Best epoch:     {best_val_epoch}\n'
+       '------------ Last epoch -----------\n'
+       f'Train:          {final_train_perf}\n'
+       f'Validation:     {final_val_perf}\n'
+       f'Test:           {final_test_perf}\n'
        '-------------------------------\n')
     msg += str(args)
     with open(filename, 'w') as handle:
