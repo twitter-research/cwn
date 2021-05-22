@@ -71,7 +71,7 @@ def exp_main(passed_args):
     final_test_max = np.max(last_test)
 
     msg = (
-        f"========= Final result ==========\n"
+        f"============ Result =============\n"
         f'Dataset:                {args.dataset}\n'
         f'SHA:                    {sha}\n'
         f'----------- Best epoch ----------\n'
