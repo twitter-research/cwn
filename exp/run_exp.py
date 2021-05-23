@@ -71,7 +71,7 @@ def main(args):
                                flow_points=args.flow_points, flow_classes=args.flow_classes,
                                max_ring_size=args.max_ring_size,
                                use_edge_features=args.use_edge_features,
-                               simple_features=args.simple_features, n_jobs=args.conv_jobs)
+                               simple_features=args.simple_features, n_jobs=args.preproc_jobs)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
