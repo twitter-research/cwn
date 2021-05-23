@@ -552,33 +552,36 @@ def test_set_xs_does_not_mutate_dataset():
     data_loader = DataLoader(data_list, batch_size=5, max_dim=2)
 
     # Save batch contents
-    xs = [[] for _ in range(3)]
+    xs = [[] for _ in range(4)]  # we consider up to dim 3 due to the presence of pyramids
     for batch in data_loader:
-        for i in range(3):
+        for i in range(batch.dimension + 1):
             xs[i].append(batch.chains[i].x)
     txs = []
-    for i in range(3):
+    for i in range(4):
         txs.append(torch.cat(xs[i], dim=0) if len(xs[i]) > 0 else None)
 
     # Set batch features
     for batch in data_loader:
         new_xs = []
-        for i in range(3):
+        for i in range(batch.dimension + 1):
             new_xs.append(torch.zeros_like(batch.chains[i].x))
         batch.set_xs(new_xs)
 
     # Save batch contents after set_xs
-    xs_after = [[] for _ in range(3)]
+    xs_after = [[] for _ in range(4)]
     for batch in data_loader:
-        for i in range(3):
+        for i in range(batch.dimension + 1):
             xs_after[i].append(batch.chains[i].x)
     txs_after = []
-    for i in range(3):
+    for i in range(4):
         txs_after.append(torch.cat(xs_after[i], dim=0) if len(xs_after[i]) > 0 else None)
 
     # Check that the batch features are the same
-    for i in range(3):
-        assert torch.equal(txs_after[i], txs[i])
+    for i in range(4):
+        if txs_after[i] is None:
+            assert txs[i] is None
+        else:
+            assert torch.equal(txs_after[i], txs[i])
 
 
 def test_batching_returns_the_same_features():

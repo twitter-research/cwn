@@ -30,6 +30,8 @@ def main(args):
 
     # Set the seed for everything
     torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)
 
@@ -190,6 +192,7 @@ def main(args):
                                   args.num_layers,                         # num_layers
                                   args.emb_dim,                            # hidden
                                   dropout_rate=args.drop_rate,             # dropout_rate
+                                  indropout_rate=args.indrop_rate,         # in-dropout_rate
                                   max_dim=dataset.max_dim,                 # max_dim
                                   jump_mode=args.jump_mode,                # jump_mode
                                   nonlinearity=args.nonlinearity,          # nonlinearity

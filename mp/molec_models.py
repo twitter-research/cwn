@@ -52,7 +52,7 @@ class EmbedSparseSIN(torch.nn.Module):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=lambda x: x,
+                    face_msg_size=layer_dim, msg_faces_nn=None,
                     msg_up_nn=None, inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
@@ -107,7 +107,7 @@ class EmbedSparseSIN(torch.nn.Module):
 
         # Check input node/edge features are scalars.
         assert data.chains[0].x.size(-1) == 1
-        if data.chains[1].x is not None:
+        if 1 in data.chains and data.chains[1].x is not None:
             assert data.chains[1].x.size(-1) == 1
 
         # Embed and populate higher-levels
@@ -120,7 +120,7 @@ class EmbedSparseSIN(torch.nn.Module):
 
         data.set_xs(xs)
 
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
@@ -128,7 +128,7 @@ class EmbedSparseSIN(torch.nn.Module):
 
             if include_partial:
                 for k in range(len(xs)):
-                    res[f"layer{i}_{k}"] = xs[k]
+                    res[f"layer{c}_{k}"] = xs[k]
 
             if self.jump_mode is not None:
                 if jump_xs is None:
@@ -186,9 +186,9 @@ class OGBEmbedSparseSIN(torch.nn.Module):
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
     """
 
-    def __init__(self, out_size, num_layers, hidden,
-                 dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
-                 readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
+    def __init__(self, out_size, num_layers, hidden, dropout_rate: float = 0.5, 
+                 indropout_rate: float = 0.0, max_dim: int = 2, jump_mode=None,
+                 nonlinearity='relu', readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
         super(OGBEmbedSparseSIN, self).__init__()
@@ -211,6 +211,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
 
         self.final_readout = final_readout
         self.dropout_rate = dropout_rate
+        self.in_dropout_rate = indropout_rate
         self.apply_dropout_before = apply_dropout_before
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
@@ -222,7 +223,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     face_msg_size=layer_dim, msg_faces_nn=None,
-                    msg_up_nn=lambda x: x[0], inp_update_up_nn=None,
+                    msg_up_nn=None, inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
                     apply_norm=(embed_dim>1), use_cofaces=use_cofaces)) # TODO: turn this into a less hacky trick
@@ -274,30 +275,28 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         xs, jump_xs = None, None
         res = {}
 
-        # Check input node/edge features are scalars.
-        # assert data.chains[0].x.size(-1) == 1, data.chains[0].x.size(-1)
-        # if data.chains[1].x is not None:
-        #     assert data.chains[1].x.size(-1) == 1
-
         # Embed and populate higher-levels
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
         xs = list(self.init_conv(*params))
 
-        # Apply dropout on the input features like all models do on ZINC.
+        # Apply dropout on the input features
         for i, x in enumerate(xs):
-            xs[i] = F.dropout(xs[i], p=self.dropout_rate, training=self.training)
+            xs[i] = F.dropout(xs[i], p=self.in_dropout_rate, training=self.training)
 
         data.set_xs(xs)
 
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
+            # Apply dropout on the output of the conv layer
+            for i, x in enumerate(xs):
+                xs[i] = F.dropout(xs[i], p=self.dropout_rate, training=self.training)
             data.set_xs(xs)
 
             if include_partial:
                 for k in range(len(xs)):
-                    res[f"layer{i}_{k}"] = xs[k]
+                    res[f"layer{c}_{k}"] = xs[k]
 
             if self.jump_mode is not None:
                 if jump_xs is None:
@@ -344,4 +343,3 @@ class OGBEmbedSparseSIN(torch.nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__
-

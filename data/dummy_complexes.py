@@ -1,16 +1,33 @@
 import torch
 
 from data.complex import Chain, Complex
-
-
+from torch_geometric.data import Data
 # TODO: make the features for these dummy complexes disjoint to stress tests even more
 
+def convert_to_graph(complex):
+    assert 0 in complex.chains
+    assert complex.chains[0].num_simplices > 0
+    chain = complex.chains[0]
+    x = chain.x
+    y = chain.y
+    edge_attr = None
+    if chain.upper_index is None:
+        edge_index = torch.LongTensor([[], []])
+    else:
+        edge_index = chain.upper_index
+        if 1 in complex.chains and complex.chains[1].x is not None and chain.shared_cofaces is not None:
+            edge_attr = torch.index_select(complex.chains[1].x, 0, chain.shared_cofaces)
+    if edge_attr is None:
+        edge_attr = torch.FloatTensor([[]])
+    graph = Data(x=x, edge_index=edge_index, y=y, edge_attr=edge_attr)
+    return graph
 
 def get_testing_complex_list():
-    return [get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
-            get_square_dot_complex(), get_square_complex(), get_house_complex(),
-            get_kite_complex(), get_pyramid_complex(), get_square_dot_complex(),
-            get_filled_square_complex(), get_molecular_complex()]
+    return [get_fullstop_complex(), get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
+            get_square_dot_complex(), get_square_complex(), get_fullstop_complex(), get_house_complex(),
+            get_kite_complex(), get_pyramid_complex(), get_square_dot_complex(), get_colon_complex(),
+            get_filled_square_complex(), get_molecular_complex(), get_fullstop_complex(), get_colon_complex(),
+            get_fullstop_complex(), get_fullstop_complex(), get_colon_complex()]
 
 
 def get_house_complex():
@@ -69,6 +86,36 @@ def get_house_complex():
     yt = torch.tensor([2], dtype=torch.long)
     t_chain = Chain(dim=2, x=t_x, y=yt, face_index=t_face_index)
     return Complex(v_chain, e_chain, t_chain)
+
+
+def get_fullstop_complex():
+    """
+    Returns the `fullstop graph` below with dummy features.
+    The `fullstop graph` is a single isolated node:
+
+    0
+
+    """
+    v_x = torch.tensor([[1]], dtype=torch.float)
+    yv = torch.tensor([0], dtype=torch.long)
+    v_chain = Chain(dim=0, x=v_x, y=yv)
+    return Complex(v_chain)
+
+
+def get_colon_complex():
+    """
+    Returns the `colon graph` below with dummy features.
+    The `colon graph` is made up of two isolated nodes:
+
+    1
+
+    0
+
+    """
+    v_x = torch.tensor([[1], [2]], dtype=torch.float)
+    yv = torch.tensor([0, 0], dtype=torch.long)
+    v_chain = Chain(dim=0, x=v_x, y=yv)
+    return Complex(v_chain)
 
 
 def get_square_complex():

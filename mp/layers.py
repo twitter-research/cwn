@@ -392,27 +392,33 @@ class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
         pass
     
     def forward(self, *chain_params: ChainMessagePassingParams):
-        assert 2 <= len(chain_params) <= 3
+        assert 1 <= len(chain_params) <= 3
         v_params = chain_params[0]
-        e_params = chain_params[1]
+        e_params = chain_params[1] if len(chain_params) >= 2 else None
         c_params = chain_params[2] if len(chain_params) == 3 else None
 
         vx = self.v_embed_layer(self._prepare_v_inputs(v_params))
-        reduced_ex = self.init_reduce(vx, e_params.face_index)
+        out = [vx]
 
+        if e_params is None:
+           assert c_params is None
+           return out
+
+        reduced_ex = self.init_reduce(vx, e_params.face_index)
         ex = reduced_ex
         if e_params.x is not None:
             ex = self.e_embed_layer(self._prepare_e_inputs(e_params))
             # The output of this should be the same size as the vertex features.
             assert ex.size(1) == vx.size(1)
+        out.append(ex)
 
         if c_params is not None:
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
             cx = self.init_reduce(reduced_ex, c_params.face_index) / 2.
-            return vx, ex, cx
+            out.append(cx)
 
-        return vx, ex
+        return out
     
     def reset_parameters(self):
         reset(self.v_embed_layer)
@@ -429,15 +435,17 @@ class EmbedVEWithReduce(AbstractEmbedVEWithReduce):
         
     def _prepare_v_inputs(self, v_params):
         assert v_params.x is not None
-        assert v_params.x.size(-1) == 1
+        assert v_params.x.dim() == 2
+        assert v_params.x.size(1) == 1
         # The embedding layer expects integers so we convert the tensor to int.
-        return v_params.x.squeeze().to(dtype=torch.long)
+        return v_params.x.squeeze(1).to(dtype=torch.long)
     
     def _prepare_e_inputs(self, e_params):
         assert self.e_embed_layer is not None
-        assert e_params.x.size(-1) == 1
+        assert e_params.x.dim() == 2
+        assert e_params.x.size(1) == 1
         # The embedding layer expects integers so we convert the tensor to int.
-        return e_params.x.squeeze().to(dtype=torch.long)
+        return e_params.x.squeeze(1).to(dtype=torch.long)
 
 
 class OGBEmbedVEWithReduce(AbstractEmbedVEWithReduce):
@@ -450,12 +458,12 @@ class OGBEmbedVEWithReduce(AbstractEmbedVEWithReduce):
 
     def _prepare_v_inputs(self, v_params):
         assert v_params.x is not None
-        # assert v_params.x.size(-1) == 1
         assert v_params.x.dim() == 2
-        return v_params.x
+        # NB: Inputs in ogbg-mol* datasets are already long; this is to test the layer with other datasets.
+        return v_params.x.to(dtype=torch.long)
     
     def _prepare_e_inputs(self, e_params):
         assert self.e_embed_layer is not None
-        # assert e_params.x.size(-1) == 1
         assert e_params.x.dim() == 2
-        return e_params.x
+        # NB: Inputs in ogbg-mol* datasets are already long; this is to test the layer with other datasets.
+        return e_params.x.to(dtype=torch.long)

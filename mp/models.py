@@ -84,7 +84,7 @@ class SIN0(torch.nn.Module):
     def forward(self, data: ComplexBatch):
         model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
         xs, jump_xs = None, None
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim)
             xs = conv(*params)
             data.set_xs(xs)
@@ -207,7 +207,7 @@ class SparseSIN(torch.nn.Module):
 
         xs, jump_xs = None, None
         res = {}
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             # if i == len(self.convs) - 2:
@@ -219,7 +219,7 @@ class SparseSIN(torch.nn.Module):
 
             if include_partial:
                 for k in range(len(xs)):
-                    res[f"layer{i}_{k}"] = xs[k]
+                    res[f"layer{c}_{k}"] = xs[k]
 
             if self.jump_mode is not None:
                 if jump_xs is None:
@@ -371,14 +371,14 @@ class EdgeSIN0(torch.nn.Module):
     def forward(self, data: ComplexBatch):
         model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
         xs, jump_xs = None, None
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params(max_dim=self.max_dim,
                 include_top_features=self.include_top_features)
             xs = conv(*params)
             # If we are at the last convolutional layer, we do not need to update after
             # We also check triangle features do indeed exist in this batch before doing this.
-            if self.update_top_features and i < len(self.convs) - 1 and 2 in data.chains:
-                top_x = self.update_top_nns[i](data.chains[2].x)
+            if self.update_top_features and c < len(self.convs) - 1 and 2 in data.chains:
+                top_x = self.update_top_nns[c](data.chains[2].x)
                 data.set_xs(xs + [top_x])
             else:
                 data.set_xs(xs)
@@ -428,7 +428,7 @@ class Dummy(torch.nn.Module):
 
     def forward(self, data: ComplexBatch):
         xs = None
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             params = data.get_all_chain_params()
             xs = conv(*params)
             data.set_xs(xs)
@@ -499,7 +499,7 @@ class EdgeOrient(torch.nn.Module):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
 
         x, jump_x = data.x, None
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
 
@@ -560,7 +560,7 @@ class EdgeMPNN(torch.nn.Module):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
 
         x, jump_x = data.x, None
-        for i, conv in enumerate(self.convs):
+        for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
 

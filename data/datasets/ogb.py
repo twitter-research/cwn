@@ -63,11 +63,14 @@ class OGBDataset(InMemoryComplexDataset):
             dataset.data.x = dataset.data.x[:,:2]
             dataset.data.edge_attr = dataset.data.edge_attr[:,:2]
         
+        # NB: the init method would basically have no effect if 
+        # we use edge features and do not initialize rings. 
         print(f"Converting the {self.name} dataset to a cell complex...")
         complexes, _, _ = convert_graph_dataset_with_rings(
             dataset,
             max_ring_size=self._max_ring_size,
             include_down_adj=self.include_down_adj,
+            init_method=self._init_method,
             init_edges=self._use_edge_features,
             init_rings=False)
         

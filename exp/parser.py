@@ -9,15 +9,19 @@ def get_parser():
     parser = argparse.ArgumentParser(description='SCN experiment.')
     parser.add_argument('--seed', type=int, default=43,
                         help='random seed to set (default: 43, i.e. the non-meaning of life))')
-    parser.add_argument('--seeds', type=int, default=10,
-                        help='The number of seeds to use when evaluating on multiple seeds.')
-    parser.add_argument('--device', type=int, default=0,
+    parser.add_argument('--start_seed', type=int, default=0,
+                        help='The initial seed when evaluating on multiple seeds.')
+    parser.add_argument('--stop_seed', type=int, default=0,
+                        help='The final seed when evaluating on multiple seeds.')
+    parser.add_argument('--device', type=int, default=9,
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sparse_sin',
                         help='model, possible choices: sin, dummy, ... (default: sin)')
     parser.add_argument('--use_cofaces', type=str, default='False',
                         help='whether to use coface features for up-messages in sparse_sin (default: False)')
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
+    parser.add_argument('--indrop_rate', type=float, default=0.0,
+                        help='inputs dropout rate for molec models(default: 0.0)')
     parser.add_argument('--drop_rate', type=float, default=0.5,
                         help='dropout rate (default: 0.5)')
     parser.add_argument('--drop_position', type=str, default='lin2',
@@ -55,7 +59,7 @@ def get_parser():
     parser.add_argument('--dataset', type=str, default="PROTEINS",
                         help='dataset name (default: PROTEINS)')
     parser.add_argument('--task_type', type=str, default='classification',
-                        help='task type, either classification, regression or isomorphism (default: classification)')    
+                        help='task type, either (bin)classification, regression or isomorphism (default: classification)')    
     parser.add_argument('--eval_metric', type=str, default='accuracy',
                         help='evaluation metric (default: accuracy)')
     parser.add_argument('--minimize', action='store_true',
@@ -113,12 +117,15 @@ def validate_args(args):
         assert args.eval_metric == 'mae'
         assert args.lr_scheduler == 'ReduceLROnPlateau'
         assert not args.simple_features
-    elif args.dataset == 'MOLHIV':
+    elif args.dataset in ['MOLHIV', 'MOLPCBA', 'MOLTOX21', 'MOLTOXCAST', 'MOLMUV',
+                          'MOLBACE', 'MOLBBBP', 'MOLCLINTOX', 'MOLSIDER', 'MOLESOL',
+                          'MOLFREESOLV', 'MOLLIPO']:
         assert args.model == 'ogb_embed_sparse_sin'
-        assert args.task_type == 'bin_classification'
-        assert not args.minimize
-        assert args.eval_metric == 'ogbg-molhiv'
-        assert args.lr_scheduler == 'None'
-        
-
-
+        assert args.eval_metric == 'ogbg-'+args.dataset.lower()
+        assert args.jump_mode is None
+        if args.dataset in ['MOLESOL', 'MOLFREESOLV', 'MOLLIPO']:
+            assert args.task_type == 'mse_regression'
+            assert args.minimize
+        else:
+            assert args.task_type == 'bin_classification'
+            assert not args.minimize
