@@ -97,8 +97,9 @@ def get_parser():
     parser.add_argument('--early_stop', action='store_true', help='Stop when minimum LR is reached.')
     parser.add_argument('--paraid',  type=int, default=0,
                         help='model id')
-    parser.add_argument('--conv_jobs',  type=int, default=2,
-                        help='Jobs to use for the dataset conversion (-1 for maximum)')
+    parser.add_argument('--preproc_jobs',  type=int, default=2,
+                        help='Jobs to use for the dataset preprocessing. For all jobs use "-1".'
+                             'For sequential processing (no parallelism) use "1"')
     return parser
 
 
