@@ -97,6 +97,9 @@ def get_parser():
     parser.add_argument('--early_stop', action='store_true', help='Stop when minimum LR is reached.')
     parser.add_argument('--paraid',  type=int, default=0,
                         help='model id')
+    parser.add_argument('--preproc_jobs',  type=int, default=2,
+                        help='Jobs to use for the dataset preprocessing. For all jobs use "-1".'
+                             'For sequential processing (no parallelism) use "1"')
     return parser
 
 
@@ -110,7 +113,7 @@ def validate_args(args):
         assert args.eval_metric == 'accuracy'
         assert args.fold is not None
         assert not args.simple_features
-    elif args.dataset == 'ZINC':
+    elif args.dataset.startswith('ZINC'):
         assert args.model == 'embed_sparse_sin'
         assert args.task_type == 'regression'
         assert args.minimize

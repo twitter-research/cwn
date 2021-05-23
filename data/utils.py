@@ -1,21 +1,23 @@
-import networkx as nx
 import matplotlib.pyplot as plt
 import itertools as it
+
+import numpy as np
 import torch
 import gudhi as gd
 import itertools
 import graph_tool as gt
 import graph_tool.topology as top
 import networkx as nx
-import numpy as np
 
 from tqdm import tqdm
 from data.complex import Chain, Complex
-from collections import OrderedDict
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from torch import Tensor
 from torch_geometric.typing import Adj
 from torch_scatter import scatter
+from data.parallel import ProgressParallel
+from joblib import delayed
+
 
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
@@ -546,6 +548,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
 
 def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True,
                                      init_method: str = 'sum'):
+    # TODO(Cris): Add parallelism to this code like in the cell complex conversion code.
     dimension = -1
     complexes = []
     num_features = [None for _ in range(expansion_dim+1)]
@@ -569,10 +572,10 @@ def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_a
 # ---- support for rings as cells
 
 def get_rings(edge_index, max_k=7):
- 
-    edge_list = edge_index.numpy().T
-    # Note: the line above was/is for convenient testing.
-    # edge_list = edge_index
+    if isinstance(edge_index, torch.Tensor):
+        edge_index = edge_index.numpy()
+
+    edge_list = edge_index.T
     graph_gt = gt.Graph(directed=False)
     graph_gt.add_edge_list(edge_list)
     gt.stats.remove_self_loops(graph_gt)
@@ -668,8 +671,9 @@ def extract_faces_and_cofaces_with_rings(simplex_tree, id_maps):
     return faces_tables, faces, cofaces
 
 
-def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor],
-                          size: int, y: Tensor = None, max_k: int = 7,
+def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor, np.ndarray],
+                          edge_attr: Optional[Union[Tensor, np.ndarray]],
+                          size: int, y: Optional[Union[Tensor, np.ndarray]] = None, max_k: int = 7,
                           include_down_adj=True, init_method: str = 'sum',
                           init_edges=True, init_rings=False) -> Complex:
     """Generates a ring 2-complex of a pyG graph via graph-tool.
@@ -685,7 +689,18 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
         init_method: How to initialise features at higher levels.
     """
     assert x is not None
-    assert isinstance(edge_index, Tensor)  # Support only tensor edge_index for now
+    assert isinstance(edge_index, np.ndarray) or isinstance(edge_index, Tensor)
+
+    # For parallel processing with joblib we need to pass numpy arrays as inputs
+    # Therefore, we convert here everything back to a tensor.
+    if isinstance(x, np.ndarray):
+        x = torch.tensor(x)
+    if isinstance(edge_index, np.ndarray):
+        edge_index = torch.tensor(edge_index)
+    if isinstance(edge_attr, np.ndarray):
+        edge_attr = torch.tensor(edge_attr)
+    if isinstance(y, np.ndarray):
+        y = torch.tensor(y)
 
     # Creates the gudhi-based simplicial complex up to edges
     simplex_tree = pyg_to_simplex_tree(edge_index, size)
@@ -758,16 +773,27 @@ def compute_ring_2complex(x: Tensor, edge_index: Adj, edge_attr: Optional[Tensor
 
 
 def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=True,
-                                     init_method: str = 'sum', init_edges=True, init_rings=False):
+                                     init_method: str = 'sum', init_edges=True, init_rings=False,
+                                     n_jobs=1):
     dimension = -1
-    complexes = []
     num_features = [None, None, None]
 
-    for data in tqdm(dataset):
-        complex = compute_ring_2complex(data.x, data.edge_index, data.edge_attr,
-                                        data.num_nodes, y=data.y, max_k=max_ring_size,
-                                        include_down_adj=include_down_adj, init_method=init_method,
-                                        init_edges=init_edges, init_rings=init_rings)
+    def maybe_convert_to_numpy(x):
+        if isinstance(x, Tensor):
+            return x.numpy()
+        return x
+
+    # Process the dataset in parallel
+    parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=len(dataset))
+    # It is important we supply a numpy array here. tensors seem to slow joblib down significantly.
+    complexes = parallel(delayed(compute_ring_2complex)(
+        maybe_convert_to_numpy(data.x), maybe_convert_to_numpy(data.edge_index),
+        maybe_convert_to_numpy(data.edge_attr),
+        data.num_nodes, y=maybe_convert_to_numpy(data.y), max_k=max_ring_size,
+        include_down_adj=include_down_adj, init_method=init_method,
+        init_edges=init_edges, init_rings=init_rings) for data in dataset)
+
+    for complex in complexes:
         if complex.dimension > dimension:
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
@@ -775,6 +801,5 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
                 num_features[dim] = complex.chains[dim].num_features
             else:
                 assert num_features[dim] == complex.chains[dim].num_features
-        complexes.append(complex)
 
     return complexes, dimension, num_features[:dimension+1]

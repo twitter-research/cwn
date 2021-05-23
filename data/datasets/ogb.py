@@ -10,11 +10,12 @@ class OGBDataset(InMemoryComplexDataset):
     """This is OGB graph-property prediction. This are graph-wise classification tasks."""
 
     def __init__(self, root, name, max_ring_size, use_edge_features=False, transform=None,
-                 pre_transform=None, pre_filter=None, init_method='sum', simple=False):
+                 pre_transform=None, pre_filter=None, init_method='sum', simple=False, n_jobs=2):
         self.name = name
         self._max_ring_size = max_ring_size
         self._use_edge_features = use_edge_features
         self._simple = simple
+        self._n_jobs = n_jobs
         super(OGBDataset, self).__init__(root, transform, pre_transform, pre_filter,
                                          max_dim=2, init_method=init_method, cellular=True)
         self.data, self.slices, idx, self.num_tasks = self.load_dataset()
@@ -72,7 +73,8 @@ class OGBDataset(InMemoryComplexDataset):
             include_down_adj=self.include_down_adj,
             init_method=self._init_method,
             init_edges=self._use_edge_features,
-            init_rings=False)
+            init_rings=False,
+            n_jobs=self._n_jobs)
         
         print(f'Saving processed dataset in {self.processed_paths[0]}...')
         torch.save(self.collate(complexes, self.max_dim), self.processed_paths[0])

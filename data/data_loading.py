@@ -75,7 +75,7 @@ class DataLoader(torch.utils.data.DataLoader):
 
 
 def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0,
-                 init_method='sum', **kwargs) -> ComplexDataset:
+                 init_method='sum', n_jobs=2, **kwargs) -> ComplexDataset:
     if name.startswith('sr'):
         dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=max_dim,
             num_classes=kwargs['emb_dim'], max_ring_size=kwargs.get('max_ring_size', None))
@@ -112,17 +112,20 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = OceanDataset(os.path.join(root, name), name)
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
-                              use_edge_features=kwargs['use_edge_features'])
+                              use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
+    elif name == 'ZINC-FULL':
+        dataset = ZincDataset(os.path.join(root, name), subset=False, max_ring_size=kwargs['max_ring_size'],
+                              use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
-                             fold=fold)
+                             fold=fold, n_jobs=n_jobs)
     elif name in ['MOLHIV', 'MOLPCBA', 'MOLTOX21', 'MOLTOXCAST', 'MOLMUV',
                   'MOLBACE', 'MOLBBBP', 'MOLCLINTOX', 'MOLSIDER', 'MOLESOL',
                   'MOLFREESOLV', 'MOLLIPO']:
         official_name = 'ogbg-'+name.lower()
         dataset = OGBDataset(os.path.join(root, name), official_name, max_ring_size=kwargs['max_ring_size'],
                              use_edge_features=kwargs['use_edge_features'], simple=kwargs['simple_features'],
-                             init_method=init_method)
+                             init_method=init_method, n_jobs=n_jobs)
     else:
         raise NotImplementedError(name)
     return dataset
@@ -158,6 +161,9 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
         data = (graph_list, train_ids, val_ids, test_ids, 2)
     elif name == 'ZINC':
         graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root)
+        data = (graph_list, train_ids, val_ids, test_ids, 1)
+    elif name == 'ZINC-FULL':
+        graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root, subset=False)
         data = (graph_list, train_ids, val_ids, test_ids, 1)
     elif name == 'MOLHIV':
         graph_list, train_ids, val_ids, test_ids = load_ogb_graph_dataset(
