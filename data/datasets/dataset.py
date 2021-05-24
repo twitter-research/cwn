@@ -162,6 +162,7 @@ class InMemoryComplexDataset(ComplexDataset):
             # TODO: come up with a better method to handle this
             assert targets[start] is None
             s = start
+
         target = targets[s]
         
         dim = self.data['dims'][idx].item()

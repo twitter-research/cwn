@@ -50,9 +50,9 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
             continue
         
         # (DEBUG)
-        if num_samples < 10:
-            logging.warning("Warning! BatchNorm applied on a batch "
-                            "with only {} samples".format(num_samples))
+        # if num_samples < 10:
+        #     logging.warning("Warning! BatchNorm applied on a batch "
+        #                     "with only {} samples".format(num_samples))
 
         optimizer.zero_grad()
         pred = model(batch)

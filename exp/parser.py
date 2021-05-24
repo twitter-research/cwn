@@ -46,7 +46,7 @@ def get_parser():
                         help='patience for `ReduceLROnPlateau` lr decay (default: 10)')
     parser.add_argument('--lr_scheduler_min', type=float, default=0.00001,
                         help='min LR for `ReduceLROnPlateau` lr decay (default: 1e-5)')
-    parser.add_argument('--num_layers', type=int, default=5,
+    parser.add_argument('--num_layers', type=int, default=None,
                         help='number of message passing layers (default: 5)')
     parser.add_argument('--emb_dim', type=int, default=64,
                         help='dimensionality of hidden units in models (default: 300)')
@@ -119,6 +119,15 @@ def validate_args(args):
         assert args.eval_metric == 'accuracy'
         assert args.fold is not None
         assert not args.simple_features
+    elif args.dataset == 'RING-TRANSFER' or args.dataset == 'RING-LOOKUP':
+        assert args.model == 'ring_sparse_sin' or args.model == 'gin_ring'
+        assert args.task_type == 'classification'
+        assert not args.minimize
+        assert args.lr_scheduler == 'None'
+        assert args.eval_metric == 'accuracy'
+        assert args.fold is None
+        assert not args.simple_features
+        assert args.max_ring_size is not None and args.max_ring_size > 3
     elif args.dataset.startswith('ZINC'):
         assert args.model.startswith('embed')
         assert args.task_type == 'regression'

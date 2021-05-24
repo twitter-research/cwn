@@ -31,10 +31,11 @@ from torch._six import container_abcs, string_classes, int_classes
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
 from data.datasets import (
-    load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset)
+    load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset,
+    load_ring_transfer_dataset, load_ring_lookup_dataset)
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
-    OceanDataset, ZincDataset, CSLDataset, OGBDataset)
+    OceanDataset, ZincDataset, CSLDataset, OGBDataset, RingTransferDataset, RingLookupDataset)
 
 
 class Collater(object):
@@ -136,6 +137,11 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'OCEAN':
         dataset = OceanDataset(os.path.join(root, name), name, train_orient=kwargs['train_orient'],
             test_orient=kwargs['test_orient'])
+    elif name == 'RING-TRANSFER':
+        dataset = RingTransferDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'],
+            num_classes=5)
+    elif name == 'RING-LOOKUP':
+        dataset = RingLookupDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'])
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
@@ -197,6 +203,14 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
         graph_list, train_ids, val_ids, test_ids = load_ogb_graph_dataset(
             os.path.join(root, name), 'ogbg-'+name.lower())
         data = (graph_list, train_ids, val_ids, test_ids, graph_list.num_tasks)
+    elif name == 'RING-TRANSFER':
+        graph_list, train_ids, val_ids, test_ids = load_ring_transfer_dataset(
+            nodes=kwargs['max_ring_size'], num_classes=5)
+        data = (graph_list, train_ids, val_ids, test_ids, 5)
+    elif name == 'RING-LOOKUP':
+        graph_list, train_ids, val_ids, test_ids = load_ring_lookup_dataset(
+            nodes=kwargs['max_ring_size'])
+        data = (graph_list, train_ids, val_ids, test_ids, kwargs['max_ring_size'] - 1)
     else:
         raise NotImplementedError
     return data

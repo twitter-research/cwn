@@ -224,7 +224,7 @@ class SparseSINConv(torch.nn.Module):
     def __init__(self, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_faces_nn: Callable, inp_update_up_nn: Callable,
                  inp_update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
-                 max_dim: int = 2, apply_norm=True, use_cofaces=False, **kwargs):
+                 max_dim: int = 2, apply_norm=False, use_cofaces=False, **kwargs):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()

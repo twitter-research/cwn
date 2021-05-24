@@ -13,12 +13,14 @@ from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
 from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
+from mp.ring_models import RingSparseSIN, RingGIN
 
 
 def main(args):
 
     # set device
-    device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(
+        "cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
 
     print("==========================================================")
     print("Using device", str(device))
@@ -45,7 +47,8 @@ def main(args):
     filename = os.path.join(result_folder, 'results.txt')
 
     if args.model.startswith('gin'):  # load graph dataset
-        graph_list, train_ids, val_ids, test_ids, num_classes = load_graph_dataset(args.dataset, fold=args.fold)
+        graph_list, train_ids, val_ids, test_ids, num_classes = load_graph_dataset(
+            args.dataset, fold=args.fold, max_ring_size=args.max_ring_size)
         train_graphs = [graph_list[i] for i in train_ids]
         val_graphs = [graph_list[i] for i in val_ids]
         train_loader = PyGDataLoader(train_graphs, batch_size=args.batch_size,
@@ -122,6 +125,16 @@ def main(args):
                      apply_dropout_before=args.drop_position, # where to apply dropout
                      use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
                     ).to(device)
+    elif args.model == 'ring_sparse_sin':
+        model = RingSparseSIN(
+                     dataset.num_features_in_dim(0),     # This line generates an error
+                     dataset.num_classes,                     # num_classes
+                     args.num_layers,                         # num_layers
+                     args.emb_dim,                            # hidden
+                     max_dim=dataset.max_dim,                 # max_dim
+                     nonlinearity=args.nonlinearity,          # nonlinearity
+                     use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
+                    ).to(device)
     elif args.model == 'gin':
         model = GIN0(num_features,                            # num_input_features
                      args.num_layers,                         # num_layers
@@ -131,6 +144,13 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
+    elif args.model == 'gin_ring':
+        model = RingGIN(num_features,                            # num_input_features
+                            args.num_layers,                         # num_layers
+                            args.emb_dim,                            # hidden
+                            num_classes,                             # num_classes
+                            nonlinearity=args.nonlinearity,          # nonlinearity
+                            ).to(device)
     elif args.model == 'gin_jk':
         model = GINWithJK(num_features,                       # num_input_features
                      args.num_layers,                         # num_layers
