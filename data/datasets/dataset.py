@@ -136,6 +136,7 @@ class InMemoryComplexDataset(ComplexDataset):
             cat_dim = 0
             s[cat_dim] = slice(start, end)
         else:
+            # My IDE points out "slices" does not exist here. What should this be?
             s = slices[start]
         target = targets[s]
         

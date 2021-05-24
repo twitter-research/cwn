@@ -8,3 +8,4 @@ from data.datasets.zinc import ZincDataset, load_zinc_graph_dataset
 from data.datasets.dummy import DummyDataset, DummyMolecularDataset
 from data.datasets.csl import CSLDataset
 from data.datasets.ogb import OGBDataset, load_ogb_graph_dataset
+from data.datasets.ringtree import RingTreeDataset, load_ringtree_graph_dataset

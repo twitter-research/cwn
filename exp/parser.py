@@ -113,6 +113,15 @@ def validate_args(args):
         assert args.eval_metric == 'accuracy'
         assert args.fold is not None
         assert not args.simple_features
+    elif args.dataset == 'RINGTREE':
+        assert args.model == 'ringtree_sparse_sin' or args.model == 'gin_ringtree'
+        assert args.task_type == 'classification'
+        assert not args.minimize
+        assert args.lr_scheduler == 'None'
+        assert args.eval_metric == 'accuracy'
+        assert args.fold is None
+        assert not args.simple_features
+        assert args.max_ring_size is not None and args.max_ring_size > 3
     elif args.dataset.startswith('ZINC'):
         assert args.model == 'embed_sparse_sin'
         assert args.task_type == 'regression'

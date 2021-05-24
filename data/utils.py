@@ -772,7 +772,7 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
     return Complex(*chains, y=complex_y, dimension=complex_dim)
 
 
-def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=True,
+def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=False,
                                      init_method: str = 'sum', init_edges=True, init_rings=False,
                                      n_jobs=1):
     dimension = -1

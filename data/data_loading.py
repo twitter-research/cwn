@@ -8,10 +8,11 @@ from torch._six import container_abcs, string_classes, int_classes
 from definitions import ROOT_DIR
 from data.complex import Chain, ChainBatch, Complex, ComplexBatch
 from data.datasets import (
-    load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset)
+    load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset,
+    load_ringtree_graph_dataset)
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
-    OceanDataset, ZincDataset, CSLDataset, OGBDataset)
+    OceanDataset, ZincDataset, CSLDataset, OGBDataset, RingTreeDataset)
 
 
 class Collater(object):
@@ -110,6 +111,8 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
             train_samples=1000, val_samples=200, classes=kwargs['flow_classes'])
     elif name == 'OCEAN':
         dataset = OceanDataset(os.path.join(root, name), name)
+    elif name == 'RINGTREE':
+        dataset = RingTreeDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'], num_classes=5)
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
@@ -169,6 +172,10 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
         graph_list, train_ids, val_ids, test_ids = load_ogb_graph_dataset(
             os.path.join(root, name), 'ogbg-molhiv')
         data = (graph_list, train_ids, val_ids, test_ids, graph_list.num_tasks)
+    elif name == 'RINGTREE':
+        graph_list, train_ids, val_ids, test_ids = load_ringtree_graph_dataset(
+            nodes=kwargs['max_ring_size'], num_classes=5)
+        data = (graph_list, train_ids, val_ids, test_ids, kwargs['max_ring_size'] - 1)
     else:
         raise NotImplementedError
     return data
