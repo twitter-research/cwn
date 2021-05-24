@@ -134,7 +134,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
 
 def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **kwargs):
     if name.startswith('sr'):
-        graph_list, train_ids, val_ids, test_ids = load_sr_graph_dataset(name, root=root, emb_dim=kwargs['emb_dim'])
+        graph_list, train_ids, val_ids, test_ids = load_sr_graph_dataset(name, root=root)
         data = (graph_list, train_ids, val_ids, test_ids, None)
     elif name == 'IMDBBINARY':
         graph_list, train_ids, val_ids, test_ids = load_tu_graph_dataset(name, root=root, degree_as_tag=True, fold=fold, seed=0)
