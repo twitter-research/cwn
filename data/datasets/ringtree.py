@@ -73,7 +73,7 @@ class RingTreeDataset(InMemoryComplexDataset):
 
 
 def load_ringtree_graph_dataset(nodes=10, num_classes=5):
-    dataset = generate_ringtree_graph_dataset(nodes, samples=1000)
+    dataset = generate_ringtree_graph_dataset(nodes, samples=10000)
     ids = list(range(len(dataset)))
 
     # We use the same ids for train and val in this dataset

@@ -22,14 +22,14 @@ def test_visualise_ringtree_dataset():
 
 
 def test_ringtree_dataset_generation():
-    dataset = generate_ringtree_graph_dataset(nodes=10, samples=100, classes=5)
+    dataset = generate_ringtree_graph_dataset(nodes=10, samples=100)
     for data in dataset:
         assert data.edge_index.min() == 0
         assert data.edge_index.max() == 9
 
 
 def test_ringtree_dataset_conversion():
-    dataset = generate_ringtree_graph_dataset(nodes=10, samples=100, classes=5)
+    dataset = generate_ringtree_graph_dataset(nodes=10, samples=100)
     complexes, _, _ = convert_graph_dataset_with_rings(dataset, max_ring_size=10,
                                                        include_down_adj=False)
 

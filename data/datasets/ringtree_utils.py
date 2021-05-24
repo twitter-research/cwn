@@ -3,18 +3,26 @@ import torch
 import random
 
 from torch_geometric.data import Data
+from sklearn.preprocessing import LabelBinarizer
 
 
 def generate_ringtree_graph(nodes):
-    x = np.empty((nodes, 2))
+    x = np.empty((nodes, 2 * (nodes-1)))
     # Assign all the other nodes in the ring a unique key and value
-    x[1:, 0] = np.arange(1, nodes)
-    x[1:, 1] = np.random.permutation(nodes - 1)
+    keys = np.random.permutation(nodes - 1)
+    vals = np.random.permutation(nodes - 1)
+
+    oh_keys = np.array(LabelBinarizer().fit_transform(keys))
+    oh_vals = np.array(LabelBinarizer().fit_transform(vals))
+    oh_all = np.concatenate((oh_keys, oh_vals), axis=-1)
+    x[1:, :] = oh_all
 
     # Assign the source node one of these random keys and set the value to -1
-    key = random.randint(1, nodes - 1)
-    x[0, 0] = key
-    x[0, 1] = -1
+    key_idx = random.randint(0, nodes - 2)
+    val = vals[key_idx]
+    x[0, :] = -1
+    x[0, :(nodes - 1)] = oh_keys[key_idx]
+
     x = torch.tensor(x, dtype=torch.float32)
 
     edge_index = []
@@ -35,11 +43,11 @@ def generate_ringtree_graph(nodes):
     mask[0] = 1
 
     # Add the label of the graph as a graph label
-    y = torch.tensor([x[key, 1].item()], dtype=torch.long)
+    y = torch.tensor([val], dtype=torch.long)
     return Data(x=x, edge_index=edge_index, mask=mask, y=y)
 
 
-def generate_ringtree_graph_dataset(nodes, samples=1000):
+def generate_ringtree_graph_dataset(nodes, samples=10000):
     # Generate the dataset
     dataset = []
     for i in range(samples):
