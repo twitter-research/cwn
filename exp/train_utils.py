@@ -114,20 +114,17 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
         with torch.no_grad():
             pred = model(batch)
             
-            if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
-                targets = batch.y.view(-1,)
-            else:
-                targets = batch.y.to(torch.float32).view(pred.shape)
-            mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
-            
             if task_type != 'isomorphism':
+                if isinstance(loss_fn, torch.nn.CrossEntropyLoss):
+                    targets = batch.y.view(-1,)
+                else:
+                    targets = batch.y.to(torch.float32).view(pred.shape)
+                mask = ~torch.isnan(targets)  # In some ogbg-mol* datasets we may have null targets.
                 loss = loss_fn(pred[mask], targets[mask])
+                losses.append(loss.detach().cpu().item())
             else:
                 assert loss_fn is None
-                
-        if loss_fn is not None:
-            losses.append(loss.detach().cpu().item())
-            
+
         if task_type != 'isomorphism':
             targets = batch.y
             if not isinstance(loss_fn, torch.nn.CrossEntropyLoss):

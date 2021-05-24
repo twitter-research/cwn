@@ -136,7 +136,9 @@ class InMemoryComplexDataset(ComplexDataset):
             cat_dim = 0
             s[cat_dim] = slice(start, end)
         else:
-            s = slices[start]
+            # TODO: come up with a better method to handle this
+            assert targets[start] is None
+            s = start
         target = targets[s]
         
         dim = self.data['dims'][idx].item()

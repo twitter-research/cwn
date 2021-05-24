@@ -132,3 +132,13 @@ def validate_args(args):
         else:
             assert args.task_type == 'bin_classification'
             assert not args.minimize
+    elif args.dataset.startswith('sr'):
+        assert args.eval_metric == 'isomorphism'
+        assert args.task_type == 'isomorphism'
+        assert args.jump_mode is None
+        assert args.drop_rate == 0.0
+        assert args.untrained
+        assert args.nonlinearity == 'elu'
+        assert args.readout == 'sum'
+        assert args.final_readout == 'sum'
+        assert not args.simple_features
