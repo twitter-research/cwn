@@ -165,9 +165,11 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
     elif name == 'ZINC-FULL':
         graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root, subset=False)
         data = (graph_list, train_ids, val_ids, test_ids, 1)
-    elif name == 'MOLHIV':
+    elif name in ['MOLHIV', 'MOLPCBA', 'MOLTOX21', 'MOLTOXCAST', 'MOLMUV',
+                  'MOLBACE', 'MOLBBBP', 'MOLCLINTOX', 'MOLSIDER', 'MOLESOL',
+                  'MOLFREESOLV', 'MOLLIPO']:
         graph_list, train_ids, val_ids, test_ids = load_ogb_graph_dataset(
-            os.path.join(root, name), 'ogbg-molhiv')
+            os.path.join(root, name), 'ogbg-'+name.lower())
         data = (graph_list, train_ids, val_ids, test_ids, graph_list.num_tasks)
     else:
         raise NotImplementedError
