@@ -19,7 +19,8 @@ from mp.ringtree_models import RingTreeSparseSIN, RingTreeGIN
 def main(args):
 
     # set device
-    device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(
+        "cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
 
     print("==========================================================")
     print("Using device", str(device))

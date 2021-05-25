@@ -13,7 +13,7 @@ def get_parser():
                         help='The initial seed when evaluating on multiple seeds.')
     parser.add_argument('--stop_seed', type=int, default=0,
                         help='The final seed when evaluating on multiple seeds.')
-    parser.add_argument('--device', type=int, default=9,
+    parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sparse_sin',
                         help='model, possible choices: sin, dummy, ... (default: sin)')
