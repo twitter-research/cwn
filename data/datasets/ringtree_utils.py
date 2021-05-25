@@ -49,12 +49,12 @@ def generate_ringtree_dictionary_lookup_graph(nodes):
 
 
 def generate_ringtree_graph(nodes, target_label):
-    opposite_node = len(nodes) // 2
+    opposite_node = nodes // 2
 
     # Initialise the feature matrix. All nodes have random features except the target and the opp.
     # The target has [0, ..., 0] while the opposite has the one-hot encoded target label
-    x = np.random.normal(0.0, 1.0, size=(nodes, len(target_label)))
-    x[0:, ] = 0.0
+    x = np.random.standard_normal(size=(nodes, len(target_label)))
+    # x[0:, ] = 0.0
     x[opposite_node, :] = target_label
     x = torch.tensor(x, dtype=torch.float32)
 
