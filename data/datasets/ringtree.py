@@ -64,6 +64,10 @@ class RingTreeDataset(InMemoryComplexDataset):
             mask = torch.zeros(complex.nodes.num_simplices, dtype=torch.bool)
             mask[0] = 1
             setattr(complex.chains[0], 'mask', mask)
+            
+            # Make HOF zero
+            complex.edges.x = torch.zeros_like(complex.edges.x)
+            complex.triangles.x = torch.zeros_like(complex.triangles.x)
 
         path = self.processed_paths[0]
         print(f'Saving processed dataset in {path}....')
