@@ -43,9 +43,14 @@ class RingTreeDataset(InMemoryComplexDataset):
         pass
 
     def process(self):
-        dataset = generate_ringtree_graph_dataset(self._nodes)
+        train = generate_ringtree_graph_dataset(self._nodes, samples=10000)
+        val = generate_ringtree_graph_dataset(self._nodes, samples=1000)
+        dataset = train + val
 
+        train_ids = list(range(len(train)))
+        val_ids = list(range(len(train), len(train) + len(val)))
         print("Converting dataset to a cell complex...")
+
         complexes, _, _ = convert_graph_dataset_with_rings(
             dataset,
             max_ring_size=self._nodes,
@@ -65,7 +70,7 @@ class RingTreeDataset(InMemoryComplexDataset):
         torch.save(self.collate(complexes, 2), path)
 
         # We use the same train and validation sets
-        idx = [list(range(len(complexes))), list(range(len(complexes))), None]
+        idx = [train_ids, val_ids, None]
 
         path = self.processed_paths[1]
         print(f'Saving idx in {path}....')
