@@ -105,39 +105,6 @@ class SRDataset(InMemoryComplexDataset):
             self.max_dim = max_dim
             makedirs(self.processed_dir)
         
-#         data = load_sr_dataset(os.path.join(self.raw_dir, self.name + '.g6'))
-#         exp_dim = self.max_dim
-
-#         num_features = [None for _ in range(exp_dim+1)]
-#         complexes = list()
-#         max_dim = -1
-#         for datum in data:
-#             edge_index, num_nodes = datum
-#             x = torch.ones(num_nodes, 1, dtype=torch.float32)
-            
-#             if self._cellular:
-#                 complex = compute_ring_2complex(x, edge_index, None,
-#                           num_nodes, max_k=self._max_ring_size,
-#                           include_down_adj=self.include_down_adj,
-#                           init_edges=True, init_rings=True)
-#             else:
-#                 complex = compute_clique_complex_with_gudhi(x, edge_index, num_nodes,
-#                     expansion_dim=exp_dim, include_down_adj=self.include_down_adj)
-                
-#             if complex.dimension > max_dim:
-#                 max_dim = complex.dimension
-#             if self._max_ring_size is not None:
-#                 assert max_dim <= 2
-#             for dim in range(complex.dimension + 1):
-#                 if num_features[dim] is None:
-#                     num_features[dim] = complex.chains[dim].num_features
-#                 else:
-#                     assert num_features[dim] == complex.chains[dim].num_features
-#             complexes.append(complex)
-#         if max_dim != self.max_dim:
-#             self.max_dim = max_dim
-#             makedirs(self.processed_dir)
-            
         # Now we save in opt format.
         path = self.processed_paths[0]
         torch.save(self.collate(complexes, self.max_dim), path)

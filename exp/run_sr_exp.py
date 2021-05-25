@@ -12,15 +12,15 @@ from exp.run_exp import main
 #--jump_mode None
 
 __families__ = [
-    # 'sr16622',
-    # 'sr251256',
+    'sr16622',
+    'sr251256',
     'sr261034',
-    # 'sr281264',
-    # 'sr291467',
-    # 'sr351668',
-    # 'sr351899',
-    # 'sr361446',
-    # 'sr401224'
+    'sr281264',
+    'sr291467',
+    'sr351668',
+    'sr351899',
+    'sr361446',
+    'sr401224'
 ]
 
 __max_dim__ = [
@@ -44,8 +44,11 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
     ts = str(time.time())
-    result_folder = os.path.join(ROOT_DIR, 'exp', 'results', 'sr-{}'.format(ts))
-    passed_args += ['--result_folder', result_folder]
+    if '--result_folder' not in passed_args:
+        result_folder = os.path.join(ROOT_DIR, 'exp', 'results', 'sr-{}'.format(ts))
+        passed_args += ['--result_folder', result_folder]
+    else:
+        result_folder = args.result_folder
     
     # run each experiment separately and gather results
     results = [list() for _ in __families__]
