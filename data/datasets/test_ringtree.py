@@ -23,9 +23,18 @@ def test_visualise_ringtree_dataset():
 
 def test_ringtree_dataset_generation():
     dataset = generate_ringtree_graph_dataset(nodes=10, samples=100)
+    labels = dict()
     for data in dataset:
         assert data.edge_index.min() == 0
         assert data.edge_index.max() == 9
+
+        label = data.y.item()
+        if label not in labels:
+            labels[label] = 0
+        labels[label] += 1
+
+    assert list(range(5)) == list(sorted(labels.keys()))
+    assert {20} == set(labels.values())
 
 
 def test_ringtree_dataset_conversion():
