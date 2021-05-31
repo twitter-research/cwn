@@ -3,7 +3,7 @@ import itertools
 
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
-from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedGIN
+from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
 from data.data_loading import DataLoader, load_dataset
 
 
@@ -65,6 +65,54 @@ def test_zinc_sparse_sin0_model_with_batching():
         for key in set(list(unbatched_res.keys()) + list(batched_res.keys())):
             assert torch.allclose(unbatched_res[key], batched_res[key], atol=1e-6), (
                     print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
+
+
+def test_embed_sparse_sin_no_rings_model_with_batching():
+    """Check this runs without errors and that batching and no batching produce the same output."""
+    data_list = get_testing_complex_list()
+
+    # Try multiple parameters
+    dims = [1]
+    bs = list(range(2, len(data_list)+1))
+    params = itertools.product(bs, dims, dims)
+    torch.manual_seed(0)
+    for batch_size, batch_max_dim, model_max_dim in params:
+        if batch_max_dim > model_max_dim:
+            continue
+
+        data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
+        model = EmbedSparseSINNoRings(atom_types=32, bond_types=4, out_size=3, num_layers=3, hidden=5)
+        # We use the model in eval mode to avoid problems with batch norm.
+        model.eval()
+
+        batched_res = []
+        for batch in data_loader:
+            # Simulate no edge and triangle features to test init layer
+            if len(batch.chains) >= 2:
+                batch.chains[1].x = None
+            if len(batch.chains) == 3:
+                batch.chains[2].x = None
+
+            batched_pred = model.forward(batch)
+            batched_res.append(batched_pred)
+
+        batched_res = torch.cat(batched_res, dim=0)
+
+        unbatched_res = []
+        for complex in data_list:
+            batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
+
+            # Simulate no edge and triangle features to test init layer
+            if len(batch.chains) >= 2:
+                batch.chains[1].x = None
+            if len(batch.chains) == 3:
+                batch.chains[2].x = None
+
+            pred = model.forward(batch)
+            unbatched_res.append(pred)
+
+        unbatched_res = torch.cat(unbatched_res, dim=0)
+        assert torch.allclose(unbatched_res, batched_res, atol=1e-6)
 
 
 def test_embed_gin_model_with_batching():
