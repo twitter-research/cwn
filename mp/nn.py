@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.nn import global_mean_pool, global_add_pool
 
+
 def get_nonlinearity(nonlinearity, return_module=True):
     if nonlinearity == 'relu':
         module = torch.nn.ReLU
@@ -19,10 +20,11 @@ def get_nonlinearity(nonlinearity, return_module=True):
         module = torch.nn.Tanh
         function = F.tanh
     else:
-        raise NotImplementError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
+        raise NotImplementedError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
     if return_module:
         return module
     return function
+
 
 def get_pooling_fn(readout):
     if readout == 'sum':
@@ -30,7 +32,8 @@ def get_pooling_fn(readout):
     elif readout == 'mean':
         return global_mean_pool
     else:
-        raise NotImplementError('Readout {} is not currently supported.'.format(readout))
+        raise NotImplementedError('Readout {} is not currently supported.'.format(readout))
+
 
 def pool_complex(xs, data, max_dim, readout_type):
         pooling_fn = get_pooling_fn(readout_type)

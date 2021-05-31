@@ -11,9 +11,9 @@ def get_parser():
                         help='random seed to set (default: 43, i.e. the non-meaning of life))')
     parser.add_argument('--start_seed', type=int, default=0,
                         help='The initial seed when evaluating on multiple seeds.')
-    parser.add_argument('--stop_seed', type=int, default=0,
+    parser.add_argument('--stop_seed', type=int, default=9,
                         help='The final seed when evaluating on multiple seeds.')
-    parser.add_argument('--device', type=int, default=9,
+    parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sparse_sin',
                         help='model, possible choices: sin, dummy, ... (default: sin)')
@@ -114,7 +114,7 @@ def validate_args(args):
         assert args.fold is not None
         assert not args.simple_features
     elif args.dataset.startswith('ZINC'):
-        assert args.model == 'embed_sparse_sin'
+        assert args.model == 'embed_sparse_sin' or args.model == 'embed_gin'
         assert args.task_type == 'regression'
         assert args.minimize
         assert args.eval_metric == 'mae'
