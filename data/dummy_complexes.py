@@ -9,7 +9,7 @@ def convert_to_graph(complex):
     assert complex.chains[0].num_simplices > 0
     chain = complex.chains[0]
     x = chain.x
-    y = chain.y
+    y = complex.y
     edge_attr = None
     if chain.upper_index is None:
         edge_index = torch.LongTensor([[], []])
@@ -28,6 +28,12 @@ def get_testing_complex_list():
             get_kite_complex(), get_pyramid_complex(), get_bridged_complex(), get_square_dot_complex(), get_colon_complex(),
             get_filled_square_complex(), get_molecular_complex(), get_fullstop_complex(), get_colon_complex(),
             get_bridged_complex(), get_colon_complex(), get_fullstop_complex(), get_fullstop_complex(), get_colon_complex()]
+
+def get_mol_testing_complex_list():
+    return [get_house_complex(), get_kite_complex(), get_square_complex(), get_fullstop_complex(), get_bridged_complex(),
+            get_square_dot_complex(), get_square_complex(), get_filled_square_complex(), get_colon_complex(), get_bridged_complex()
+            get_kite_complex(), get_square_dot_complex(), get_colon_complex(), get_molecular_complex(), get_bridged_complex()
+            get_filled_square_complex(), get_molecular_complex(), get_fullstop_complex(), get_colon_complex()]
 
 
 def get_house_complex():
@@ -85,7 +91,9 @@ def get_house_complex():
     t_x = torch.tensor([[1]], dtype=torch.float)
     yt = torch.tensor([2], dtype=torch.long)
     t_chain = Chain(dim=2, x=t_x, y=yt, face_index=t_face_index)
-    return Complex(v_chain, e_chain, t_chain)
+    
+    y = torch.LongTensor([v_x.shape[0]])
+    return Complex(v_chain, e_chain, t_chain, y=y)
 
 
 def get_bridged_complex():
@@ -167,7 +175,8 @@ def get_fullstop_complex():
     v_x = torch.tensor([[1]], dtype=torch.float)
     yv = torch.tensor([0], dtype=torch.long)
     v_chain = Chain(dim=0, x=v_x, y=yv)
-    return Complex(v_chain)
+    y = torch.LongTensor([v_x.shape[0]])
+    return Complex(v_chain, y=y)
 
 
 def get_colon_complex():
@@ -183,7 +192,8 @@ def get_colon_complex():
     v_x = torch.tensor([[1], [2]], dtype=torch.float)
     yv = torch.tensor([0, 0], dtype=torch.long)
     v_chain = Chain(dim=0, x=v_x, y=yv)
-    return Complex(v_chain)
+    y = torch.LongTensor([v_x.shape[0]])
+    return Complex(v_chain, y=y)
 
 
 def get_square_complex():
@@ -221,8 +231,10 @@ def get_square_complex():
     ye = torch.tensor([1, 1, 1, 1], dtype=torch.long)
     e_chain = Chain(dim=1, x=e_x, lower_index=e_down_index, shared_faces=e_shared_faces, y=ye,
         face_index=e_face_index)
-
-    return Complex(v_chain, e_chain)
+    
+    y = torch.LongTensor([v_x.shape[0]])
+    
+    return Complex(v_chain, e_chain, y=y)
 
 
 def get_square_dot_complex():
@@ -260,8 +272,10 @@ def get_square_dot_complex():
     ye = torch.tensor([1, 1, 1, 1], dtype=torch.long)
     e_chain = Chain(dim=1, x=e_x, lower_index=e_down_index, shared_faces=e_shared_faces, y=ye,
         face_index=e_face_index)
+    
+    y = torch.LongTensor([v_x.shape[0]])
 
-    return Complex(v_chain, e_chain)
+    return Complex(v_chain, e_chain, y=y)
 
 
 def get_kite_complex():
@@ -322,7 +336,9 @@ def get_kite_complex():
     t_chain = Chain(dim=2, x=t_x, lower_index=t_down_index, shared_faces=t_shared_faces, y=yt,
         face_index=t_face_index)
 
-    return Complex(v_chain, e_chain, t_chain)
+    y = torch.LongTensor([v_x.shape[0]])
+
+    return Complex(v_chain, e_chain, t_chain, y=y)
 
 
 def get_pyramid_complex():
@@ -425,7 +441,9 @@ def get_pyramid_complex():
     yp = torch.tensor([3], dtype=torch.long)
     p_chain = Chain(dim=3, x=p_x, y=yp, face_index=p_face_index)
 
-    return Complex(v_chain, e_chain, t_chain, p_chain)
+    y = torch.LongTensor([v_x.shape[0]])
+        
+    return Complex(v_chain, e_chain, t_chain, p_chain, y=y)
 
 
 def get_filled_square_complex():
@@ -475,7 +493,10 @@ def get_filled_square_complex():
     c_x = torch.tensor([[1]], dtype=torch.float)
     yc = torch.tensor([2], dtype=torch.long)
     c_chain = Chain(dim=2, x=c_x, y=yc, face_index=c_face_index)
-    return Complex(v_chain, e_chain, c_chain)
+    
+    y = torch.LongTensor([v_x.shape[0]])
+
+    return Complex(v_chain, e_chain, c_chain, y=y)
 
 
 def get_molecular_complex():
@@ -540,4 +561,7 @@ def get_molecular_complex():
     yc = torch.tensor([2, 2], dtype=torch.long)
     c_chain = Chain(dim=2, x=c_x, y=yc, face_index=c_face_index, lower_index=c_down_index,
         shared_faces=c_shared_faces)
-    return Complex(v_chain, e_chain, c_chain)
+    
+    y = torch.LongTensor([v_x.shape[0]])
+
+    return Complex(v_chain, e_chain, c_chain, y=y)

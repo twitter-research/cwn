@@ -1,17 +1,7 @@
 import torch
 
 from data.datasets import InMemoryComplexDataset
-from data.dummy_complexes import (get_house_complex, get_kite_complex, get_square_complex,
-                                  get_square_dot_complex, get_filled_square_complex, get_bridged_complex,
-                                  get_molecular_complex, get_fullstop_complex, get_colon_complex)
-from data.dummy_complexes import get_testing_complex_list
-
-__cell_dummy_mol_complexes__ = [
-            get_house_complex, get_kite_complex, get_square_complex, get_fullstop_complex, get_bridged_complex,
-            get_square_dot_complex, get_square_complex, get_filled_square_complex, get_colon_complex, get_bridged_complex,
-            get_kite_complex, get_square_dot_complex, get_colon_complex, get_molecular_complex, get_bridged_complex,
-            get_filled_square_complex, get_molecular_complex, get_fullstop_complex, get_colon_complex]
-
+from data.dummy_complexes import get_testing_complex_list, get_mol_testing_complex_list
 
 class DummyDataset(InMemoryComplexDataset):
 
@@ -38,7 +28,7 @@ class DummyDataset(InMemoryComplexDataset):
     @staticmethod
     def factory():
         complexes = get_testing_complex_list()
-        for c,complex in enumerate(complexes):
+        for c, complex in enumerate(complexes):
             complex.y = torch.LongTensor([c % 2])
         return complexes
         
@@ -78,8 +68,8 @@ class DummyMolecularDataset(InMemoryComplexDataset):
     
     @staticmethod
     def factory(remove_2feats=False):
-        complexes = list(map(lambda fn: fn(), __cell_dummy_mol_complexes__))
-        for c,complex in enumerate(complexes):
+        complexes = get_mol_testing_complex_list()
+        for c, complex in enumerate(complexes):
             if remove_2feats:
                 if 2 in complex.chains:
                     complex.chains[2].x = None
