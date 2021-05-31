@@ -443,9 +443,9 @@ class EmbedGIN(torch.nn.Module):
 
     def __init__(self, atom_types, bond_types, out_size, num_layers, hidden,
                  dropout_rate: float = 0.5, nonlinearity='relu',
-                 readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
+                 readout='sum', train_eps=False,
                  final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
+                 init_reduce='sum', embed_edge=False, embed_dim=None):
         super(EmbedGIN, self).__init__()
 
         self.max_dim = 1
@@ -478,7 +478,7 @@ class EmbedGIN(torch.nn.Module):
                             Linear(hidden, hidden),
                             BN(hidden),
                             act_module(),
-                        ), train_eps=False))
+                        ), train_eps=train_eps))
         self.lin1 = Linear(hidden, hidden)
         self.lin2 = Linear(hidden, out_size)
 
@@ -523,7 +523,7 @@ class EmbedGIN(torch.nn.Module):
 
         # Pool only over nodes
         batch_size = data.chains[0].batch.max() + 1
-        x = self.pooling_fn(xs[0], data.nodes.batch, size=batch_size)
+        x = self.pooling_fn(x, data.nodes.batch, size=batch_size)
 
         if self.apply_dropout_before == 'lin1':
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
