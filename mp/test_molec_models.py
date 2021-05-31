@@ -124,7 +124,6 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
                 print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
-
 def test_ogb_sparse_sin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()

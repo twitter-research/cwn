@@ -154,12 +154,26 @@ class EdgeSINConv(torch.nn.Module):
 
 class SparseSINChainConv(ChainMessagePassing):
     """This is a SIN Chain layer that operates of faces and upper adjacent simplices."""
-    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
-                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable, update_faces_nn,
-                 combine_nn: Callable, eps: float = 0., train_eps: bool = False):
+    def __init__(self, dim: int, max_dim: int,
+                 up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
+                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable,
+                 update_faces_nn: Callable, combine_nn: Callable,
+                 eps: float = 0., train_eps: bool = False):
         super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, face_msg_size=face_msg_size,
                                                  use_down_msg=False)
+        max_dim = self.dim+1 if max_dim is None else max_dim
+        assert dim <= max_dim
+
         self.dim = dim
+        self.max_dim = max_dim
+        self.has_up_msg = self.dim < self.max_dim
+        self.has_face_msg = self.dim > 0
+        if not self.has_up_msg:
+            assert update_up_nn is None
+        if not self.has_face_msg:
+            assert update_faces_nn is None
+        assert self.has_up_msg or self.has_face_msg
+
         self.msg_up_nn = msg_up_nn
         self.msg_faces_nn = msg_faces_nn
         self.update_up_nn = update_up_nn
@@ -175,21 +189,37 @@ class SparseSINChainConv(ChainMessagePassing):
         self.reset_parameters()
 
     def forward(self, chain: ChainMessagePassingParams):
+        # Check the right adjacencies are None
+        if not self.has_up_msg:
+            assert chain.up_index is None
+        if not self.has_face_msg:
+            assert chain.face_index is None
+            assert chain.down_index is None
+
         out_up, _, out_faces = self.propagate(chain.up_index, chain.down_index, 
                                               chain.face_index, x=chain.x,
                                               up_attr=chain.kwargs['up_attr'],
                                               face_attr=chain.kwargs['face_attr'])
 
         # As in GIN, we can learn an injective update function for each multi-set
-        out_up += (1 + self.eps1) * chain.x
-        out_faces += (1 + self.eps2) * chain.x
-        out_up = self.update_up_nn(out_up)
-        out_faces = self.update_faces_nn(out_faces)
+        if self.has_up_msg:
+            out_up += (1 + self.eps1) * chain.x
+            out_up = self.update_up_nn(out_up)
+        else:
+            assert torch.equal(out_up, torch.zeros_like(out_up))
 
-        # We need to combine the two such that the output is injective
-        # Because the cross product of countable spaces is countable, then such a function exists.
-        # And we can learn it with another MLP.
-        return self.combine_nn(torch.cat([out_up, out_faces], dim=-1))
+        if self.has_face_msg:
+            out_faces += (1 + self.eps2) * chain.x
+            out_faces = self.update_faces_nn(out_faces)
+        else:
+            assert torch.equal(out_faces, torch.zeros_like(out_faces))
+
+        if self.has_up_msg and self.has_face_msg:
+            return self.combine_nn(torch.cat([out_up, out_faces], dim=-1))
+        if self.has_up_msg:
+            return self.combine_nn(out_up)
+        if self.has_face_msg:
+            return self.combine_nn(out_faces)
 
     def reset_parameters(self):
         reset(self.msg_up_nn)
@@ -201,11 +231,10 @@ class SparseSINChainConv(ChainMessagePassing):
         self.eps2.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        # return self.msg_up_nn(torch.cat([up_x_j, up_attr], dim=-1))
         return self.msg_up_nn((up_x_j, up_attr))
     
-    def message_faces(self, face_x_j: Tensor) -> Tensor:
-        return self.msg_up_faces(faces_x_j)
+    def message_face(self, face_x_j: Tensor) -> Tensor:
+        return self.msg_faces_nn(face_x_j)
     
 
 class Catter(torch.nn.Module):
@@ -229,17 +258,24 @@ class SparseSINConv(torch.nn.Module):
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            if msg_up_nn is None:
+            if dim == max_dim:
+                msg_up_nn = None
+            elif msg_up_nn is None:
+                msg_up_nn = lambda xs: xs[0]
                 if use_cofaces:
                     msg_up_nn = Sequential(
                             Catter(),
                             Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),
                             kwargs['act_module']())
-                else:
-                    msg_up_nn = lambda xs: xs[0]
-            if msg_faces_nn is None:
+
+            if dim == 0:
+                msg_faces_nn = None
+            elif msg_faces_nn is None:
                 msg_faces_nn = lambda x: x
-            if inp_update_up_nn is None:
+
+            if dim == max_dim:
+                update_up_nn = None
+            elif inp_update_up_nn is None:
                 if apply_norm:
                     update_up_nn = Sequential(
                         Linear(kwargs['layer_dim'], kwargs['hidden']),
@@ -258,7 +294,10 @@ class SparseSINConv(torch.nn.Module):
                     )
             else:
                 update_up_nn = inp_update_up_nn
-            if inp_update_faces_nn is None:
+
+            if dim == 0:
+                update_faces_nn = None
+            elif inp_update_faces_nn is None:
                 if apply_norm:
                     update_faces_nn = Sequential(
                         Linear(kwargs['layer_dim'], kwargs['hidden']),
@@ -277,16 +316,18 @@ class SparseSINConv(torch.nn.Module):
                     )
             else:
                 update_faces_nn = inp_update_faces_nn
+
+            combine_multiplier = 1 if update_faces_nn is None or update_up_nn is None else 2
             if apply_norm:
                 combine_nn = Sequential(
-                    Linear(kwargs['hidden']*2, kwargs['hidden']),
+                    Linear(kwargs['hidden']*combine_multiplier, kwargs['hidden']),
                     BN(kwargs['hidden']),
                     kwargs['act_module']())
             else:
                 combine_nn = Sequential(
-                    Linear(kwargs['hidden']*2, kwargs['hidden']),
+                    Linear(kwargs['hidden']*combine_multiplier, kwargs['hidden']),
                     kwargs['act_module']())
-            mp = SparseSINChainConv(dim, up_msg_size, down_msg_size, face_msg_size=face_msg_size,
+            mp = SparseSINChainConv(dim, max_dim, up_msg_size, down_msg_size, face_msg_size=face_msg_size,
                 msg_up_nn=msg_up_nn, msg_faces_nn=msg_faces_nn, update_up_nn=update_up_nn,
                 update_faces_nn=update_faces_nn, combine_nn=combine_nn, eps=eps,
                 train_eps=train_eps)
