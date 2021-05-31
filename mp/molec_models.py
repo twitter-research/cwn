@@ -47,7 +47,7 @@ class EmbedSparseSIN(torch.nn.Module):
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
-        self.pooling_fn = get_pooling_fn(readout)
+        self.readout = readout
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
@@ -202,7 +202,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
-        self.pooling_fn = get_pooling_fn(readout)
+        self.readout = readout
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
