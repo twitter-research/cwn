@@ -139,7 +139,7 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
-    elif args.model == 'mp_agnostic':    
+    elif args.model == 'mp_agnostic':
         model = MessagePassingAgnostic(
                      dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
@@ -303,6 +303,11 @@ def main(args):
             best_val_epoch = np.argmax(np.array(valid_curve))
         else:
             best_val_epoch = np.argmin(np.array(valid_curve))
+    else:
+        train_loss_curve.append(np.nan)
+        train_curve.append(np.nan)
+        valid_curve.append(np.nan)
+        test_curve.append(np.nan)
 
     print('Final Evaluation...')
     final_train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
