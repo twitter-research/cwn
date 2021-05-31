@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 
-from torch.nn import Linear, Embedding, Dropout
-from torch_geometric.nn import JumpingKnowledge
+from torch.nn import Linear, Embedding, Sequential, BatchNorm1d as BN
+from torch_geometric.nn import JumpingKnowledge, GINEConv
 from mp.layers import InitReduceConv, EmbedVEWithReduce, OGBEmbedVEWithReduce, SparseSINConv
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 from data.complex import ComplexBatch
@@ -470,15 +470,17 @@ class EmbedGIN(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
-                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                              face_msg_size=layer_dim, msg_faces_nn=None,
-                              msg_up_nn=None, inp_update_up_nn=None,
-                              inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
-                              hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                              apply_norm=(embed_dim > 1),
-                              use_cofaces=use_cofaces))  # TODO: turn this into a less hacky trick
-        self.lin1 = Linear(hidden, final_hidden_multiplier * hidden)
-        self.lin2 = Linear(final_hidden_multiplier * hidden, out_size)
+                    GINEConv(
+                        Sequential(
+                            Linear(layer_dim, hidden),
+                            BN(hidden),
+                            act_module(),
+                            Linear(hidden, hidden),
+                            BN(hidden),
+                            act_module(),
+                        ), train_eps=False))
+        self.lin1 = Linear(hidden, hidden)
+        self.lin2 = Linear(hidden, out_size)
 
     def reset_parameters(self):
         for conv in self.convs:
@@ -497,10 +499,6 @@ class EmbedGIN(torch.nn.Module):
 
         # Extract node and edge params
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
-        # Make the upper index of the edges None to ignore the rings. Even though max_dim = 1
-        # our current code does extract upper adjacencies for edges if rings are present.
-        if len(params) > 1:
-            params[1].up_index = None
         # Embed the node and edge features
         xs = list(self.init_conv(*params))
 
@@ -510,14 +508,18 @@ class EmbedGIN(torch.nn.Module):
 
         data.set_xs(xs)
 
-        for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
-            if len(params) > 1:
-                params[1].up_index = None
+        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)[0]
+        x = params.x
+        edge_index = params.up_index
+        edge_attr = params.kwargs['up_attr']
 
-            # Only update and process the nodes
-            xs = conv(*params[:1])
-            data.set_xs(xs)
+        # For the edge case when no edges are present.
+        if edge_index is None:
+            edge_index = torch.LongTensor([[], []])
+            edge_attr = torch.FloatTensor([[0]*x.size(-1)])
+
+        for c, conv in enumerate(self.convs):
+            x = conv(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
         # Pool only over nodes
         batch_size = data.chains[0].batch.max() + 1
