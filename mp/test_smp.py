@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from data.datasets.test_zinc import check_edge_index_are_the_same
+from data.datasets.test_zinc import check_edge_index_are_the_same, check_edge_attr_are_the_same
 
 from mp.smp import ChainMessagePassing
 from torch_geometric.nn.conv import MessagePassing
@@ -188,6 +188,8 @@ def test_cmp_messaging_with_replicated_adjs():
         bridged_graph.y, init_method='sum', init_edges=True, init_rings=True)
     check_edge_index_are_the_same(bridged_complex_from_graph.edges.upper_index, bridged_complex.edges.upper_index)
     check_edge_index_are_the_same(bridged_complex_from_graph.triangles.lower_index, bridged_complex.triangles.lower_index)
+    check_edge_attr_are_the_same(bridged_complex.chains[1].face_index, bridged_complex.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
+    check_edge_attr_are_the_same(bridged_complex_from_graph.chains[1].face_index, bridged_complex_from_graph.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
     
     # verify up-messaging with multiple shared cofaces
     e = bridged_complex.get_chain_params(dim=1)
