@@ -7,7 +7,7 @@ from mp.smp import ChainMessagePassing
 from torch_geometric.nn.conv import MessagePassing
 from data.dummy_complexes import (get_square_dot_complex, get_house_complex,
                                   get_colon_complex, get_fullstop_complex, 
-                                  get_crate_complex, convert_to_graph)
+                                  get_bridged_complex, convert_to_graph)
 from data.utils import compute_ring_2complex
 
 def test_edge_propagate_in_cmp():
@@ -160,16 +160,16 @@ def test_cmp_messaging_with_replicated_adjs():
     This checks message passing works as expected in case cells/simplices
     share more than one (co)face.
     """
-    crate_complex = get_crate_complex()
-    crate_graph = convert_to_graph(crate_complex)
-    crate_complex_from_graph = compute_ring_2complex(
-        crate_graph.x, crate_graph.edge_index, crate_graph.edge_attr, crate_graph.num_nodes,
-        crate_graph.y, init_method='sum', init_edges=True, init_rings=True)
-    check_edge_index_are_the_same(crate_complex_from_graph.edges.upper_index, crate_complex.edges.upper_index)
-    check_edge_index_are_the_same(crate_complex_from_graph.triangles.lower_index, crate_complex.triangles.lower_index)
+    bridged_complex = get_bridged_complex()
+    bridged_graph = convert_to_graph(bridged_complex)
+    bridged_complex_from_graph = compute_ring_2complex(
+        bridged_graph.x, bridged_graph.edge_index, bridged_graph.edge_attr, bridged_graph.num_nodes,
+        bridged_graph.y, init_method='sum', init_edges=True, init_rings=True)
+    check_edge_index_are_the_same(bridged_complex_from_graph.edges.upper_index, bridged_complex.edges.upper_index)
+    check_edge_index_are_the_same(bridged_complex_from_graph.triangles.lower_index, bridged_complex.triangles.lower_index)
     
     # verify up-messaging with multiple shared cofaces
-    e = crate_complex.get_chain_params(dim=1)
+    e = bridged_complex.get_chain_params(dim=1)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
     e_up_msg, e_down_msg, e_face_msg = cmp.propagate(e.up_index, e.down_index,
                                                e.face_index, x=e.x,
@@ -186,7 +186,7 @@ def test_cmp_messaging_with_replicated_adjs():
     assert torch.equal(e_up_msg, expected_e_up_msg)
     
     # same but start from graph instead
-    e = crate_complex_from_graph.get_chain_params(dim=1)
+    e = bridged_complex_from_graph.get_chain_params(dim=1)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
     e_up_msg, e_down_msg, e_face_msg = cmp.propagate(e.up_index, e.down_index,
                                                e.face_index, x=e.x,
@@ -204,7 +204,7 @@ def test_cmp_messaging_with_replicated_adjs():
     assert torch.equal(e_up_msg, expected_e_up_msg)
     
     # verify down-messaging with multiple shared faces
-    t = crate_complex.get_chain_params(dim=2)
+    t = bridged_complex.get_chain_params(dim=2)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
     t_up_msg, t_down_msg, t_face_msg = cmp.propagate(t.up_index, t.down_index,
                                                t.face_index, x=t.x,
@@ -224,7 +224,7 @@ def test_cmp_messaging_with_replicated_adjs():
     assert torch.equal(t_face_msg, expected_t_face_msg)
     
     # same but start from graph instead
-    t = crate_complex_from_graph.get_chain_params(dim=2)
+    t = bridged_complex_from_graph.get_chain_params(dim=2)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
     t_up_msg, t_down_msg, t_face_msg = cmp.propagate(t.up_index, t.down_index,
                                                t.face_index, x=t.x,

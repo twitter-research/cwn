@@ -25,9 +25,9 @@ def convert_to_graph(complex):
 def get_testing_complex_list():
     return [get_fullstop_complex(), get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
             get_square_dot_complex(), get_square_complex(), get_fullstop_complex(), get_house_complex(),
-            get_kite_complex(), get_pyramid_complex(), get_crate_complex(), get_square_dot_complex(), get_colon_complex(),
+            get_kite_complex(), get_pyramid_complex(), get_bridged_complex(), get_square_dot_complex(), get_colon_complex(),
             get_filled_square_complex(), get_molecular_complex(), get_fullstop_complex(), get_colon_complex(),
-            get_crate_complex(), get_colon_complex(), get_fullstop_complex(), get_fullstop_complex(), get_colon_complex()]
+            get_bridged_complex(), get_colon_complex(), get_fullstop_complex(), get_fullstop_complex(), get_colon_complex()]
 
 
 def get_house_complex():
@@ -88,10 +88,10 @@ def get_house_complex():
     return Complex(v_chain, e_chain, t_chain)
 
 
-def get_crate_complex():
+def get_bridged_complex():
     """
-    Returns the `crate graph` below with dummy features.
-    The `crate graph` (0-1-4-3, 1-2-3-4, 0-1-2-3 are filled rings): 
+    Returns the `bridged graph` below with dummy features.
+    The `bridged graph` (0-1-4-3, 1-2-3-4, 0-1-2-3 are filled rings): 
       
      3---2
      |\  |  
