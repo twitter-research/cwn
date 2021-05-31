@@ -74,10 +74,14 @@ if __name__ == "__main__":
         assert len(test_perfs) == args.stop_seed + 1 - args.start_seed
         mean = np.mean(test_perfs)
         std_err = np.std(test_perfs) / float(len(test_perfs))
+        minim = np.min(test_perfs)
+        maxim = np.max(test_perfs)
         msg += (
             f'Dataset:               {family}\n'
             f'Mean failure rate:     {mean}\n'
             f'StdErr failure rate:   {std_err}\n'
+            f'Min failure rate:      {minim}\n'
+            f'Max failure rate:      {maxim}\n'
             '-----------------------------------------------\n')
     print(msg)
     

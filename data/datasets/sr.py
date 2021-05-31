@@ -36,7 +36,7 @@ def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
             
 class SRDataset(InMemoryComplexDataset):
 
-    def __init__(self, root, name, max_dim=2, num_classes=2,
+    def __init__(self, root, name, max_dim=2, num_classes=16,
                  train_ids=None, val_ids=None, test_ids=None, include_down_adj=False, max_ring_size=None, n_jobs=2):
         self.name = name
         self._num_classes = num_classes
@@ -73,7 +73,7 @@ class SRDataset(InMemoryComplexDataset):
         exp_dim = self.max_dim
         if self._cellular:
             print(f"Converting the {self.name} dataset to a cell complex...")
-            complexes, _, _ = convert_graph_dataset_with_rings(
+            complexes, max_dim, num_features = convert_graph_dataset_with_rings(
                 graphs,
                 max_ring_size=self._max_ring_size,
                 include_down_adj=self.include_down_adj,
@@ -83,24 +83,14 @@ class SRDataset(InMemoryComplexDataset):
                 n_jobs=self._n_jobs)
         else:
             print(f"Converting the {self.name} dataset with gudhi...")
-            complexes, _, _ = convert_graph_dataset_with_gudhi(
+            complexes, max_dim, num_features = convert_graph_dataset_with_gudhi(
                 graphs,
                 expansion_dim=exp_dim,                                               
                 include_down_adj=self.include_down_adj,                    
                 init_method='sum')
         
-        num_features = [None for _ in range(exp_dim+1)]
-        max_dim = -1
-        for complex in complexes:
-            if complex.dimension > max_dim:
-                max_dim = complex.dimension
-            if self._max_ring_size is not None:
-                assert max_dim <= 2
-            for dim in range(complex.dimension + 1):
-                if num_features[dim] is None:
-                    num_features[dim] = complex.chains[dim].num_features
-                else:
-                    assert num_features[dim] == complex.chains[dim].num_features
+        if self._max_ring_size is not None:
+            assert max_dim <= 2
         if max_dim != self.max_dim:
             self.max_dim = max_dim
             makedirs(self.processed_dir)

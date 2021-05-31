@@ -139,7 +139,7 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
-    elif args.model == 'mp_agnostic':    
+    elif args.model == 'mp_agnostic':
         model = MessagePassingAgnostic(
                      dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
