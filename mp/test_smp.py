@@ -155,6 +155,27 @@ def test_cmp_messaging_with_isolated_node_only():
     assert torch.equal(mp_out, up_msg)
 
 
+def test_cmp_messaging_with_two_isolated_nodes_only():
+    """
+    This checks how pyG handles messages for two isolated nodes.
+    """
+    colon_complex = get_colon_complex()
+    params = colon_complex.get_chain_params(dim=0)
+    empty_edge_index = torch.LongTensor([[],[]])
+
+    mp = MessagePassing()
+    mp_out = mp.propagate(edge_index=empty_edge_index, x=params.x)
+    
+    # This confirms pyG returns a zero message when edge_index is empty
+    assert torch.equal(mp_out, torch.zeros_like(mp_out))
+
+    # This confirms behavior is consistent with our framework
+    cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
+    up_msg, _, _ = cmp.propagate(up_index=params.up_index, down_index=None, face_index=None, 
+                                        x=params.x, up_attr=None)
+    assert torch.equal(mp_out, up_msg)
+
+
 def test_cmp_messaging_with_replicated_adjs():
     """
     This checks message passing works as expected in case cells/simplices
