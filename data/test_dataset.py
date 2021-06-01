@@ -1,91 +1,11 @@
-import torch
 import os
 
 from data.data_loading import load_graph_dataset
 from data.datasets import TUDataset, DummyMolecularDataset, DummyDataset
 from data.utils import compute_clique_complex_with_gudhi, compute_ring_2complex
+from data.helper_test import compare_complexes, compare_complexes_without_2feats
 from definitions import ROOT_DIR
 
-def compare_complexes(yielded, expected, include_down_adj):
-    
-    assert yielded.dimension == expected.dimension
-    assert torch.equal(yielded.y, expected.y)
-    for dim in range(expected.dimension + 1):
-        y_chain = yielded.chains[dim]
-        e_chain = expected.chains[dim]
-        assert y_chain.num_simplices == e_chain.num_simplices
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_down == e_chain.num_simplices_down, dim
-        assert torch.equal(y_chain.x, e_chain.x)
-        if dim > 0:
-            assert torch.equal(y_chain.face_index, e_chain.face_index)
-            if include_down_adj:
-                if y_chain.lower_index is None:
-                    assert e_chain.lower_index is None
-                    assert y_chain.shared_faces is None
-                    assert e_chain.shared_faces is None
-                else:
-                    assert torch.equal(y_chain.lower_index, e_chain.lower_index)
-                    assert torch.equal(y_chain.shared_faces, e_chain.shared_faces) 
-        else:
-            assert y_chain.face_index is None and e_chain.face_index is None
-            assert y_chain.lower_index is None and e_chain.lower_index is None
-            assert y_chain.shared_faces is None and e_chain.shared_faces is None
-        if dim < expected.dimension:
-            if y_chain.upper_index is None:
-                assert e_chain.upper_index is None
-                assert y_chain.shared_cofaces is None
-                assert e_chain.shared_cofaces is None
-            else:
-                assert torch.equal(y_chain.upper_index, e_chain.upper_index)
-                assert torch.equal(y_chain.shared_cofaces, e_chain.shared_cofaces)
-        else:
-            assert y_chain.upper_index is None and e_chain.upper_index is None
-            assert y_chain.shared_cofaces is None and e_chain.shared_cofaces is None
-    
-
-def compare_complexes_without_2feats(yielded, expected, include_down_adj):
-    
-    assert yielded.dimension == expected.dimension
-    assert torch.equal(yielded.y, expected.y)
-    for dim in range(expected.dimension + 1):
-        y_chain = yielded.chains[dim]
-        e_chain = expected.chains[dim]
-        assert y_chain.num_simplices == e_chain.num_simplices
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_down == e_chain.num_simplices_down, dim
-        if dim > 0:
-            assert torch.equal(y_chain.face_index, e_chain.face_index)
-            if include_down_adj:
-                if y_chain.lower_index is None:
-                    assert e_chain.lower_index is None
-                    assert y_chain.shared_faces is None
-                    assert e_chain.shared_faces is None
-                else:
-                    assert torch.equal(y_chain.lower_index, e_chain.lower_index)
-                    assert torch.equal(y_chain.shared_faces, e_chain.shared_faces) 
-        else:
-            assert y_chain.face_index is None and e_chain.face_index is None
-            assert y_chain.lower_index is None and e_chain.lower_index is None
-            assert y_chain.shared_faces is None and e_chain.shared_faces is None
-        if dim < expected.dimension:
-            if y_chain.upper_index is None:
-                assert e_chain.upper_index is None
-                assert y_chain.shared_cofaces is None
-                assert e_chain.shared_cofaces is None
-            else:
-                assert torch.equal(y_chain.upper_index, e_chain.upper_index)
-                assert torch.equal(y_chain.shared_cofaces, e_chain.shared_cofaces)
-        else:
-            assert y_chain.upper_index is None and e_chain.upper_index is None
-            assert y_chain.shared_cofaces is None and e_chain.shared_cofaces is None
-        if dim != 2:
-            assert torch.equal(y_chain.x, e_chain.x)
-        else:
-            assert y_chain.x is None and e_chain.x is None
-    
     
 def validate_data_retrieval(dataset, graph_list, exp_dim, include_down_adj, ring_size=None):
     

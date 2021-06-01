@@ -793,7 +793,11 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
         include_down_adj=include_down_adj, init_method=init_method,
         init_edges=init_edges, init_rings=init_rings) for data in dataset)
 
-    for complex in complexes:
+    # NB: here we perform additional checks to verify the order of complexes
+    # corresponds to that of input graphs after _parallel_ conversion
+    for c, complex in enumerate(complexes):
+
+        # Handle dimension and number of features
         if complex.dimension > dimension:
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
@@ -801,5 +805,12 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
                 num_features[dim] = complex.chains[dim].num_features
             else:
                 assert num_features[dim] == complex.chains[dim].num_features
+
+        # Validate against graph
+        graph = dataset[c]
+        assert torch.equal(complex.y, graph.y)
+        assert torch.equal(complex.chains[0].x, graph.x)
+        if complex.dimension >= 1:
+            assert complex.chains[1].x.size(0) == (graph.edge_index.size(1) // 2)
 
     return complexes, dimension, num_features[:dimension+1]

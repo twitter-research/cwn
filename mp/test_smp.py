@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from data.datasets.test_zinc import check_edge_index_are_the_same, check_edge_attr_are_the_same
+from data.helper_test import check_edge_index_are_the_same, check_edge_attr_are_the_same
 
 from mp.smp import ChainMessagePassing
 from torch_geometric.nn.conv import MessagePassing

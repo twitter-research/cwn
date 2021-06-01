@@ -224,7 +224,7 @@ def test_gudhi_clique_complex(house_edge_index):
       |   |
       .---. 
     '''
-    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_complex = compute_clique_complex_with_gudhi(house.x, house.edge_index, house.num_nodes,
@@ -292,9 +292,9 @@ def test_gudhi_clique_complex(house_edge_index):
 
 
 def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
-    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
-    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
-    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house1 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
+    house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
+    house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     dataset = [house1, house2, house3]
 
     complexes, dim, num_features = convert_graph_dataset_with_gudhi(dataset, expansion_dim=3)
@@ -315,9 +315,9 @@ def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
 
 
 def test_gudhi_clique_complex_dataset_conversion_with_down_adj_excluded(house_edge_index):
-    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
-    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
-    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house1 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
+    house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
+    house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     dataset = [house1, house2, house3]
 
     complexes, dim, num_features = convert_graph_dataset_with_gudhi(dataset, expansion_dim=3,
@@ -339,11 +339,11 @@ def test_gudhi_clique_complex_dataset_conversion_with_down_adj_excluded(house_ed
 
 
 def test_gudhi_integration_with_batching_without_adj(house_edge_index):
-    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1),
+    house1 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1),
                   y=torch.tensor([1]))
-    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1),
+    house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1),
                   y=torch.tensor([1]))
-    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1),
+    house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1),
                   y=torch.tensor([1]))
     dataset = [house1, house2, house3]
 
@@ -360,11 +360,11 @@ def test_gudhi_integration_with_batching_without_adj(house_edge_index):
 
 
 def test_gudhi_integration_with_batching_with_adj(house_edge_index):
-    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1),
+    house1 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1),
                   y=torch.tensor([1]))
-    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1),
+    house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1),
                   y=torch.tensor([1]))
-    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1),
+    house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1),
                   y=torch.tensor([1]))
     dataset = [house1, house2, house3]
 
@@ -380,7 +380,7 @@ def test_gudhi_integration_with_batching_with_adj(house_edge_index):
     
 
 def test_construction_of_ring_2complex(house_edge_index):
-    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_complex = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
@@ -492,7 +492,7 @@ def test_construction_of_ring_2complex_with_edge_feats(house_edge_index):
                              [2.0, 4.0],
                              [3.0, 4.0]])
     
-    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]),
+    house = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]),
                  edge_attr=edge_attr)
     house.num_nodes = house_edge_index.max().item() + 1
 
@@ -578,7 +578,7 @@ def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
     # Here we check that the max ring size does not have any effect when it is larger
     # then the largest ring present in the original graph
 
-    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_cell_a = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
@@ -650,7 +650,7 @@ def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
     # Here we check that when we consider rings up to length 3, then the output cell complex
     # exactly corresponds to a 2-simplicial complex extracted with the alternative routine
 
-    house = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     house.num_nodes = house_edge_index.max().item() + 1
 
     house_cell = compute_ring_2complex(house.x, house.edge_index, None, house.num_nodes,
@@ -720,9 +720,9 @@ def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
 
     
 def test_ring_2complex_dataset_conversion(house_edge_index):
-    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
-    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
-    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), y=torch.tensor([1]))
+    house1 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
+    house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
+    house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     dataset = [house1, house2, house3]
     complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, init_rings=True)
     assert dim == 2
@@ -764,9 +764,9 @@ def test_ring_2complex_dataset_conversion_with_edge_feats(house_edge_index):
                          [2.0, 3.0],
                          [2.0, 4.0],
                          [3.0, 4.0]])
-    house1 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
-    house2 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
-    house3 = Data(edge_index=house_edge_index, x=torch.range(0, 4).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
+    house1 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
+    house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
+    house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
     dataset = [house1, house2, house3]
     complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, init_edges=True, init_rings=False)
     assert dim == 2
