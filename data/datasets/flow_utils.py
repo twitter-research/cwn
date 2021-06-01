@@ -94,7 +94,7 @@ def extract_boundary_matrices(G: nx.Graph):
     tuple_to_edge = G.graph['tuple_to_edge']
     triangles = G.graph['triangles']
 
-    B1 = np.zeros((G.number_of_nodes(), G.number_of_edges()), dtype=np.float)
+    B1 = np.zeros((G.number_of_nodes(), G.number_of_edges()), dtype=float)
     for edge_id in range(G.number_of_edges()):
         nodes = edge_to_tuple[edge_id]
         min_node = min(nodes)
@@ -121,7 +121,7 @@ def extract_boundary_matrices(G: nx.Graph):
 
         return tuple_to_edge[(min(n1, n2), max(n1, n2))], orientation
 
-    B2 = np.zeros((G.number_of_edges(), len(triangles)), dtype=np.float)
+    B2 = np.zeros((G.number_of_edges(), len(triangles)), dtype=float)
     for i in range(len(triangles)):
         edge1, orientation1 = extract_edge_and_orientation(triangles[i], 0)
         edge2, orientation2 = extract_edge_and_orientation(triangles[i], 1)

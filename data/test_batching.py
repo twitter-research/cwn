@@ -532,9 +532,9 @@ def test_set_for_features_in_batch():
     square = get_square_complex()
     complex_list = [house_1, square, house_2]
 
-    vx = torch.range(21, 34).view(14, 1)
-    ex = torch.range(21, 36).view(16, 1)
-    tx = torch.range(21, 22).view(2, 1)
+    vx = torch.arange(21, 35, dtype=torch.float).view(14, 1)
+    ex = torch.arange(21, 37, dtype=torch.float).view(16, 1)
+    tx = torch.arange(21, 23, dtype=torch.float).view(2, 1)
     xs = [vx, ex, tx]
 
     batch = ComplexBatch.from_complex_list(complex_list)

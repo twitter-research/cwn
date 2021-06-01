@@ -217,7 +217,7 @@ def load_ocean_dataset():
     test_mask = 1 - train_mask
 
     flows = np.array([path_to_flow(p, edge_to_idx, len(E)) for p in paths])
-    labels = np.array([extract_label(p, coords) for p in paths], dtype=np.int)
+    labels = np.array([extract_label(p, coords) for p in paths], dtype=int)
     print("Label 14", labels[100])
 
     # avg_clock = np.array([coords[i] for i, _ in enumerate(paths) if labels[i] == 0])
@@ -229,10 +229,10 @@ def load_ocean_dataset():
 
     assert len(labels) == len(train_mask)
 
-    print('Train Clockwise', sum(1 - labels[train_mask.astype(np.bool)]))
-    print('Train Anticlockwise', sum(labels[train_mask.astype(np.bool)]))
-    print('Test Clockwise', sum(1 - labels[test_mask.astype(np.bool)]))
-    print('Test Anticlockwise', sum(labels[test_mask.astype(np.bool)]))
+    print('Train Clockwise', sum(1 - labels[train_mask.astype(bool)]))
+    print('Train Anticlockwise', sum(labels[train_mask.astype(bool)]))
+    print('Test Clockwise', sum(1 - labels[test_mask.astype(bool)]))
+    print('Test Anticlockwise', sum(labels[test_mask.astype(bool)]))
 
     lower_index, lower_orient = extract_adj_from_boundary(B1, G_undir)
     upper_index, upper_orient = extract_adj_from_boundary(B2.T, G_undir)

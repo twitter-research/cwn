@@ -7,8 +7,6 @@ from mp.layers import (
 from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
 from data.datasets.flow import load_flow_dataset
-import torch.nn.functional as F
-
 
 def test_dummy_simplicial_message_passing_with_down_msg():
     house_complex = get_house_complex()
@@ -126,7 +124,7 @@ def test_orient_conv_on_flow_dataset():
     number_of_edges = G.number_of_edges()
 
     model = OrientedConv(1, 1, 1, update_up_nn=update_up, update_down_nn=update_down,
-        update_nn=update, act_fn=F.tanh)
+        update_nn=update, act_fn=torch.tanh)
     model.eval()
 
     out = model.forward(train[0])
