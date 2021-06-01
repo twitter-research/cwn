@@ -102,6 +102,4 @@ if __name__ == "__main__":
     passed_args = sys.argv[1:]
     assert '--seed' not in passed_args
     assert '--fold' not in passed_args
-    assert '--start_seed' in passed_args
-    assert '--stop_seed' in passed_args
     exp_main(passed_args)

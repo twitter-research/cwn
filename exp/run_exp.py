@@ -12,7 +12,7 @@ from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
-from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN
+from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
 
 
 def main(args):
@@ -186,6 +186,32 @@ def main(args):
                                use_cofaces=use_cofaces,
                                embed_edge=args.use_edge_features
                                ).to(device)
+    elif args.model == 'embed_sparse_sin_no_rings':
+        model = EmbedSparseSINNoRings(dataset.num_node_type,  # The number of atomic types
+                                      dataset.num_edge_type,  # The number of bond types
+                                      dataset.num_classes,  # num_classes
+                                      args.num_layers,  # num_layers
+                                      args.emb_dim,  # hidden
+                                      dropout_rate=args.drop_rate,  # dropout rate
+                                      nonlinearity=args.nonlinearity,  # nonlinearity
+                                      readout=args.readout,  # readout
+                                      final_readout=args.final_readout,  # final readout
+                                      apply_dropout_before=args.drop_position,  # where to apply dropout
+                                      use_cofaces=use_cofaces,
+                                      embed_edge=args.use_edge_features
+                                      ).to(device)
+    elif args.model == 'embed_gin':
+        model = EmbedGIN(dataset.num_node_type,  # The number of atomic types
+                         dataset.num_edge_type,  # The number of bond types
+                         dataset.num_classes,  # num_classes
+                         args.num_layers,  # num_layers
+                         args.emb_dim,  # hidden
+                         dropout_rate=args.drop_rate,  # dropout rate
+                         nonlinearity=args.nonlinearity,  # nonlinearity
+                         readout=args.readout,  # readout
+                         apply_dropout_before=args.drop_position,  # where to apply dropout
+                         embed_edge=args.use_edge_features
+                        ).to(device)
     # TODO: handle this as above
     elif args.model == 'ogb_embed_sparse_sin':
         model = OGBEmbedSparseSIN(dataset.num_tasks,                       # out_size
