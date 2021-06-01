@@ -5,6 +5,7 @@ import pickle
 import torch
 import torch.optim as optim
 import random
+import time
 
 from data.data_loading import DataLoader, load_dataset, load_graph_dataset
 from torch_geometric.data import DataLoader as PyGDataLoader
@@ -14,6 +15,7 @@ from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
 from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
 
+__timing_warmup__ = 1
 
 def main(args):
 
@@ -269,28 +271,50 @@ def main(args):
     train_curve = []
     train_loss_curve = []
     params = []
+    t_times = []
+    e_trn_times = []
+    e_val_times = []
+    e_test_times = []
     if not args.untrained:
         for epoch in range(1, args.epochs + 1):
 
             # perform one epoch
             print("=====Epoch {}".format(epoch))
             print('Training...')
+            ts_start = time.time()
             epoch_train_curve = train(model, device, train_loader, optimizer, args.task_type)
+            ts_stop = time.time()
+            if epoch > __timing_warmup__:
+                print(epoch)
+                t_times.append(ts_stop - ts_start)
             train_loss_curve += epoch_train_curve
             epoch_train_loss = float(np.mean(epoch_train_curve))
             
             # evaluate model
             print('Evaluating...')
             if epoch == 1 or epoch % args.train_eval_period == 0:
+                ts_start = time.time()
                 train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
+                ts_stop = time.time()
+                if epoch > __timing_warmup__:
+                    e_trn_times.append(ts_stop - ts_start)
             train_curve.append(train_perf)
+            
+            ts_start = time.time()
             valid_perf, epoch_val_loss = eval(model, device,
                 valid_loader, evaluator, args.task_type)#, dataset[split_idx["valid"]])
+            ts_stop = time.time()
+            if epoch > __timing_warmup__:
+                e_val_times.append(ts_stop - ts_start)
             valid_curve.append(valid_perf)
 
             if test_loader is not None:
+                ts_start = time.time()
                 test_perf, epoch_test_loss = eval(model, device, test_loader, evaluator,
                                                   args.task_type)
+                ts_stop = time.time()
+                if epoch > __timing_warmup__:
+                    e_test_times.append(ts_stop - ts_start)
             else:
                 test_perf = np.nan
                 epoch_test_loss = np.nan
@@ -347,7 +371,33 @@ def main(args):
         'last_val': final_val_perf,
         'last_test': final_test_perf,
         'last_train': final_train_perf,
-        'best': best_val_epoch}
+        'best': best_val_epoch,
+        'timing_training': t_times,
+        'timing_trainset_eval': e_trn_times,
+        'timing_valset_eval': e_val_times,
+        'timing_testset_eval': e_test_times}
+    
+    # Compute timing stats
+    t_times_mean = np.nan
+    t_times_std = np.nan
+    if len(t_times) > 0:
+        t_times_mean = np.mean(t_times)
+        t_times_std = np.std(t_times)    
+    e_trn_times_mean = np.nan
+    e_trn_times_std = np.nan
+    if len(e_trn_times) > 0:
+        e_trn_times_mean = np.mean(e_trn_times)
+        e_trn_times_std = np.std(e_trn_times)
+    e_val_times_mean = np.nan
+    e_val_times_std = np.nan
+    if len(e_val_times) > 0:
+        e_val_times_mean = np.mean(e_val_times)
+        e_val_times_std = np.std(e_val_times)
+    e_test_times_mean = np.nan
+    e_test_times_std = np.nan
+    if len(e_test_times) > 0:
+        e_test_times_mean = np.mean(e_test_times)
+        e_test_times_std = np.std(e_test_times)
 
     msg = (
        f'========== Result ============\n'
@@ -361,6 +411,11 @@ def main(args):
        f'Train:          {final_train_perf}\n'
        f'Validation:     {final_val_perf}\n'
        f'Test:           {final_test_perf}\n'
+       '-------------- Timings -------------\n'
+       f'Training:       {t_times_mean} ± {t_times_std} ({len(t_times)})\n'
+       f'Eval (Train):   {e_trn_times_mean} ± {e_trn_times_std} ({len(e_trn_times)})\n'
+       f'Eval (Val):     {e_val_times_mean} ± {e_val_times_std} ({len(e_val_times)})\n'
+       f'Eval (Test):    {e_test_times_mean} ± {e_test_times_std} ({len(e_test_times)})\n'
        '-------------------------------\n\n')
     print(msg)
 
