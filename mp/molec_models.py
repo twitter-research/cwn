@@ -500,11 +500,8 @@ class EmbedGIN(torch.nn.Module):
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
         # Embed the node and edge features
         xs = list(self.init_conv(*params))
-
-        # Apply dropout on the input features
-        for i, x in enumerate(xs):
-            xs[i] = F.dropout(xs[i], p=self.dropout_rate, training=self.training)
-
+        # Apply dropout on the input node features
+        xs[0] = F.dropout(xs[0], p=self.dropout_rate, training=self.training)
         data.set_xs(xs)
 
         # We fetch input parameters only at dimension 0 (nodes)
