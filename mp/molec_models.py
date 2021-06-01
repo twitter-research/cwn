@@ -444,7 +444,7 @@ class EmbedGIN(torch.nn.Module):
     def __init__(self, atom_types, bond_types, out_size, num_layers, hidden,
                  dropout_rate: float = 0.5, nonlinearity='relu',
                  readout='sum', train_eps=False,
-                 final_readout='sum', apply_dropout_before='lin2',
+                 apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None):
         super(EmbedGIN, self).__init__()
 
