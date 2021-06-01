@@ -15,7 +15,7 @@ from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
 from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
 
-__timing_warmup__ = 1
+__timing_warmup__ = 5
 
 def main(args):
 
@@ -285,7 +285,6 @@ def main(args):
             epoch_train_curve = train(model, device, train_loader, optimizer, args.task_type)
             ts_stop = time.time()
             if epoch > __timing_warmup__:
-                print(epoch)
                 t_times.append(ts_stop - ts_start)
             train_loss_curve += epoch_train_curve
             epoch_train_loss = float(np.mean(epoch_train_curve))
@@ -412,10 +411,10 @@ def main(args):
        f'Validation:     {final_val_perf}\n'
        f'Test:           {final_test_perf}\n'
        '-------------- Timings -------------\n'
-       f'Training:       {t_times_mean} ± {t_times_std} ({len(t_times)})\n'
-       f'Eval (Train):   {e_trn_times_mean} ± {e_trn_times_std} ({len(e_trn_times)})\n'
-       f'Eval (Val):     {e_val_times_mean} ± {e_val_times_std} ({len(e_val_times)})\n'
-       f'Eval (Test):    {e_test_times_mean} ± {e_test_times_std} ({len(e_test_times)})\n'
+       f'Training:       {t_times_mean} ± {t_times_std} ({len(t_times), w{__timing_warmup__}})\n'
+       f'Eval (Train):   {e_trn_times_mean} ± {e_trn_times_std} ({len(e_trn_times), w{__timing_warmup__}})\n'
+       f'Eval (Val):     {e_val_times_mean} ± {e_val_times_std} ({len(e_val_times), w{__timing_warmup__}})\n'
+       f'Eval (Test):    {e_test_times_mean} ± {e_test_times_std} ({len(e_test_times), w{__timing_warmup__}})\n'
        '-------------------------------\n\n')
     print(msg)
 
