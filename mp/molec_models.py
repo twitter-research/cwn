@@ -443,8 +443,7 @@ class EmbedGIN(torch.nn.Module):
 
     def __init__(self, atom_types, bond_types, out_size, num_layers, hidden,
                  dropout_rate: float = 0.5, nonlinearity='relu',
-                 readout='sum', train_eps=False,
-                 apply_dropout_before='lin2',
+                 readout='sum', train_eps=False, apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None):
         super(EmbedGIN, self).__init__()
 
@@ -460,7 +459,6 @@ class EmbedGIN(torch.nn.Module):
         self.reduce_init = InitReduceConv(reduce=init_reduce)
         self.init_conv = EmbedVEWithReduce(self.v_embed_init, self.e_embed_init, self.reduce_init)
 
-        self.final_readout = final_readout
         self.dropout_rate = dropout_rate
         self.apply_dropout_before = apply_dropout_before
         self.convs = torch.nn.ModuleList()
@@ -510,7 +508,7 @@ class EmbedGIN(torch.nn.Module):
         data.set_xs(xs)
 
         # We fetch input parameters only at dimension 0 (nodes)
-        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)[0]
+        params = data.get_all_chain_params(max_dim=0, include_down_features=False)[0]
         x = params.x
         edge_index = params.up_index
         edge_attr = params.kwargs['up_attr']

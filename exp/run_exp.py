@@ -209,7 +209,6 @@ def main(args):
                          dropout_rate=args.drop_rate,  # dropout rate
                          nonlinearity=args.nonlinearity,  # nonlinearity
                          readout=args.readout,  # readout
-                         final_readout=args.final_readout,  # final readout
                          apply_dropout_before=args.drop_position,  # where to apply dropout
                          embed_edge=args.use_edge_features
                         ).to(device)
