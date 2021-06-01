@@ -471,6 +471,7 @@ class EmbedGIN(torch.nn.Module):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                     GINEConv(
+                        # Here we instantiate and pass the MLP performing the `update` function.
                         Sequential(
                             Linear(layer_dim, hidden),
                             BN(hidden),
