@@ -18,9 +18,6 @@ from torch_scatter import scatter
 from data.parallel import ProgressParallel
 from joblib import delayed
 
-from data.helper_test import (check_edge_index_are_the_same,
-                                     check_edge_attr_are_the_same)
-
 
 def get_nx_graph(ptg_graph):
     edge_list = ptg_graph.edge_index.numpy().T
@@ -811,15 +808,9 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
 
         # Validate against graph
         graph = dataset[c]
-        if None in [complex.y, graph.y]:
-            import pdb; pdb.set_trace()
         assert torch.equal(complex.y, graph.y)
         assert torch.equal(complex.chains[0].x, graph.x)
         if complex.dimension >= 1:
             assert complex.chains[1].x.size(0) == (graph.edge_index.size(1) // 2)
-            check_edge_index_are_the_same(complex.chains[0].upper_index, graph.edge_index)
-            if init_edges and graph.edge_attr is not None:
-                check_edge_attr_are_the_same(complex.chains[1].face_index,
-                                             complex.chains[1].x, graph.edge_index, graph.edge_attr)
 
     return complexes, dimension, num_features[:dimension+1]
