@@ -317,7 +317,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
 
 class EmbedSparseSINNoRings(torch.nn.Module):
     """
-    GIN with cell complex inputs to test our pipeline.
+    SIN model on cell complexes up to dimension 1 (edges). It does not make use of rings.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
