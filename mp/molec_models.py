@@ -529,7 +529,7 @@ class EmbedGIN(torch.nn.Module):
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = act(self.lin1(x))
 
-        if self.apply_dropout_before == 'final_readout':
+        if self.apply_dropout_before in ['final_readout', 'lin2']:
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         x = self.lin2(x)
