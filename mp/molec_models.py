@@ -508,6 +508,7 @@ class EmbedGIN(torch.nn.Module):
 
         data.set_xs(xs)
 
+        # We fetch input parameters only at dimension 0 (nodes)
         params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)[0]
         x = params.x
         edge_index = params.up_index
