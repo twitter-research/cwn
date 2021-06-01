@@ -31,8 +31,8 @@ def get_testing_complex_list():
 
 def get_mol_testing_complex_list():
     return [get_house_complex(), get_kite_complex(), get_square_complex(), get_fullstop_complex(), get_bridged_complex(),
-            get_square_dot_complex(), get_square_complex(), get_filled_square_complex(), get_colon_complex(), get_bridged_complex()
-            get_kite_complex(), get_square_dot_complex(), get_colon_complex(), get_molecular_complex(), get_bridged_complex()
+            get_square_dot_complex(), get_square_complex(), get_filled_square_complex(), get_colon_complex(), get_bridged_complex(),
+            get_kite_complex(), get_square_dot_complex(), get_colon_complex(), get_molecular_complex(), get_bridged_complex(),
             get_filled_square_complex(), get_molecular_complex(), get_fullstop_complex(), get_colon_complex()]
 
 
@@ -161,7 +161,10 @@ def get_bridged_complex():
     t_x = torch.tensor([[1], [2], [3]], dtype=torch.float)
     yt = torch.tensor([2, 2, 2], dtype=torch.long)
     t_chain = Chain(dim=2, x=t_x, y=yt, face_index=t_face_index, lower_index=t_down_index, shared_faces=t_shared_faces)
-    return Complex(v_chain, e_chain, t_chain)
+
+    y = torch.LongTensor([v_x.shape[0]])
+
+    return Complex(v_chain, e_chain, t_chain, y=y)
 
 
 def get_fullstop_complex():
