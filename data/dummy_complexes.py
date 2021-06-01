@@ -25,9 +25,9 @@ def convert_to_graph(complex):
 def get_testing_complex_list():
     return [get_fullstop_complex(), get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
             get_square_dot_complex(), get_square_complex(), get_fullstop_complex(), get_house_complex(),
-            get_kite_complex(), get_pyramid_complex(), get_square_dot_complex(), get_colon_complex(),
+            get_kite_complex(), get_pyramid_complex(), get_bridged_complex(), get_square_dot_complex(), get_colon_complex(),
             get_filled_square_complex(), get_molecular_complex(), get_fullstop_complex(), get_colon_complex(),
-            get_fullstop_complex(), get_fullstop_complex(), get_colon_complex()]
+            get_bridged_complex(), get_colon_complex(), get_fullstop_complex(), get_fullstop_complex(), get_colon_complex()]
 
 
 def get_house_complex():
@@ -85,6 +85,74 @@ def get_house_complex():
     t_x = torch.tensor([[1]], dtype=torch.float)
     yt = torch.tensor([2], dtype=torch.long)
     t_chain = Chain(dim=2, x=t_x, y=yt, face_index=t_face_index)
+    return Complex(v_chain, e_chain, t_chain)
+
+
+def get_bridged_complex():
+    """
+    Returns the `bridged graph` below with dummy features.
+    The `bridged graph` (0-1-4-3, 1-2-3-4, 0-1-2-3 are filled rings): 
+      
+     3---2
+     |\  |  
+     | 4 |
+     |  \|
+     0---1
+
+     .-2-.
+     |4  |  
+     3 . 1
+     |  5|
+     .-0-.
+
+     .---.
+     |\1 |  
+     | . |
+     | 0\|
+     .---.
+     
+     .---.
+     |   |  
+     | 2 |
+     |   |
+     .---.
+    """
+    v_up_index = torch.tensor(     [[0, 1, 0, 3, 1, 2, 1, 4, 2, 3, 3, 4],
+                                    [1, 0, 3, 0, 2, 1, 4, 1, 3, 2, 4, 3]], dtype=torch.long)
+    v_shared_cofaces = torch.tensor([0, 0, 3, 3, 1, 1, 5, 5, 2, 2, 4, 4], dtype=torch.long)
+    v_x = torch.tensor([[1], [2], [3], [4], [5]], dtype=torch.float)
+    yv = torch.tensor([0, 0, 0, 0, 0], dtype=torch.long)
+    v_chain = Chain(dim=0, x=v_x, upper_index=v_up_index, shared_cofaces=v_shared_cofaces, y=yv)
+
+    e_faces = [[0, 1], [1, 2], [2, 3], [0, 3], [3, 4], [1, 4]]
+    e_face_index = torch.stack([
+        torch.LongTensor(e_faces).view(-1),
+        torch.LongTensor([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]).view(-1)], 0)
+
+    e_up_index = torch.tensor(     [[0, 1, 0, 2, 0, 3, 0, 3, 0, 4, 0, 5, 1, 2, 1, 2, 1, 3, 1, 4, 1, 5, 2, 3, 2, 4, 2, 5, 3, 4, 3, 5, 4, 5, 4, 5],
+                                    [1, 0, 2, 0, 3, 0, 3, 0, 4, 0, 5, 0, 2, 1, 2, 1, 3, 1, 4, 1, 5, 1, 3, 2, 4, 2, 5, 2, 4, 3, 5, 3, 5, 4, 5, 4]], dtype=torch.long)
+    e_shared_cofaces = torch.tensor([2, 2, 2, 2, 0, 0, 2, 2, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1], dtype=torch.long)
+    
+    e_down_index = torch.tensor( [[0, 1, 0, 3, 0, 5, 1, 2, 1, 5, 2, 3, 2, 4, 3, 4, 4, 5],
+                                  [1, 0, 3, 0, 5, 0, 2, 1, 5, 1, 3, 2, 4, 2, 4, 3, 5, 4]], dtype=torch.long)
+    e_shared_faces = torch.tensor([1, 1, 0, 0, 1, 1, 2, 2, 1, 1, 3, 3, 3, 3, 3, 3, 4, 4], dtype=torch.long)
+    
+    e_x = torch.tensor([[1], [2], [3], [4], [5], [6]], dtype=torch.float)
+    ye = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.long)
+    e_chain = Chain(dim=1, x=e_x, upper_index=e_up_index, lower_index=e_down_index,
+        shared_cofaces=e_shared_cofaces, shared_faces=e_shared_faces,
+        face_index=e_face_index, y=ye)
+    
+    t_faces = [[0, 3, 4, 5], [1, 2, 4, 5], [0, 1, 2, 3]]
+    t_face_index = torch.stack([
+        torch.LongTensor(t_faces).view(-1),
+        torch.LongTensor([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]).view(-1)], 0)
+    t_down_index = torch.tensor( [[0, 1, 0, 1, 0, 2, 0, 2, 1, 2, 1, 2],
+                                  [1, 0, 1, 0, 2, 0, 2, 0, 2, 1, 2, 1]], dtype=torch.long)
+    t_shared_faces = torch.tensor([4, 4, 5, 5, 0, 0, 3, 3, 1, 1, 2, 2], dtype=torch.long)
+    t_x = torch.tensor([[1], [2], [3]], dtype=torch.float)
+    yt = torch.tensor([2, 2, 2], dtype=torch.long)
+    t_chain = Chain(dim=2, x=t_x, y=yt, face_index=t_face_index, lower_index=t_down_index, shared_faces=t_shared_faces)
     return Complex(v_chain, e_chain, t_chain)
 
 
