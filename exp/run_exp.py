@@ -411,10 +411,10 @@ def main(args):
        f'Validation:     {final_val_perf}\n'
        f'Test:           {final_test_perf}\n'
        '-------------- Timings -------------\n'
-       f'Training:       {t_times_mean} ± {t_times_std} ({len(t_times), w{__timing_warmup__}})\n'
-       f'Eval (Train):   {e_trn_times_mean} ± {e_trn_times_std} ({len(e_trn_times), w{__timing_warmup__}})\n'
-       f'Eval (Val):     {e_val_times_mean} ± {e_val_times_std} ({len(e_val_times), w{__timing_warmup__}})\n'
-       f'Eval (Test):    {e_test_times_mean} ± {e_test_times_std} ({len(e_test_times), w{__timing_warmup__}})\n'
+       f'Training:       {t_times_mean} ± {t_times_std} ({len(t_times)}, w{__timing_warmup__})\n'
+       f'Eval (Train):   {e_trn_times_mean} ± {e_trn_times_std} ({len(e_trn_times)}, w{__timing_warmup__})\n'
+       f'Eval (Val):     {e_val_times_mean} ± {e_val_times_std} ({len(e_val_times)}, w{__timing_warmup__})\n'
+       f'Eval (Test):    {e_test_times_mean} ± {e_test_times_std} ({len(e_test_times)}, w{__timing_warmup__})\n'
        '-------------------------------\n\n')
     print(msg)
 
