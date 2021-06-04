@@ -2,7 +2,7 @@
 
 python -m exp.run_sr_exp \
 --start_seed 0 \
---stop_seed 1 \
+--stop_seed 4 \
 --device 0 \
 --model mp_agnostic \
 --use_cofaces True \
