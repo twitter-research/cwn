@@ -93,7 +93,7 @@ class ChainMessagePassing(torch.nn.Module):
         self.inspector.inspect(self.update, pop_first_n=3)
 
         # Return the parameter name for these functions minus those specified in special_args
-        # TODO(Cris): Split user args by type of adjacency to make sure no bugs are introduced.
+        # TODO: Split user args by type of adjacency.
         self.__user_args__ = self.inspector.keys(
             ['message_up', 'message_down', 'message_face', 'aggregate_up',
              'aggregate_down', 'aggregate_face']).difference(self.special_args)

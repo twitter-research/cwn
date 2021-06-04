@@ -104,7 +104,7 @@ def get_parser():
 
 
 def validate_args(args):
-    # TODO(Cris): Add more detailed validation for more datasets in the future
+    # TODO: Add more detailed validation for more datasets in the future
     if args.dataset == 'CSL':
         assert args.model == 'embed_sparse_sin'
         assert args.task_type == 'classification'
