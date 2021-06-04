@@ -10,8 +10,6 @@ from itertools import product
 
 
 def exp_main(passed_args):
-    # Extract the commit sha so we can check the code that was used for each experiment
-    sha = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
 
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
@@ -74,7 +72,6 @@ def exp_main(passed_args):
     msg = (
         f"========= Final result ==========\n"
         f'Dataset:                {args.dataset}\n'
-        f'SHA:                    {sha}\n'
         f'----------- Best epoch ----------\n'
         f'Train:                  {mean_train_perf} ± {std_train_perf}\n'
         f'Valid:                  {mean_val_perf} ± {std_val_perf}\n'
