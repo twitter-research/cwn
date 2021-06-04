@@ -1,7 +1,9 @@
 import torch
+import pytest
 from data.datasets.ocean_utils import load_ocean_dataset
 
 
+@pytest.mark.slow
 def test_ocean_dataset_generation():
     train, test, _ = load_ocean_dataset()
     assert len(train) == 160
