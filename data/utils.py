@@ -548,7 +548,7 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
 
 def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True,
                                      init_method: str = 'sum'):
-    # TODO(Cris): Add parallelism to this code like in the cell complex conversion code.
+    # TODO: Add parallelism to this code like in the cell complex conversion code.
     dimension = -1
     complexes = []
     num_features = [None for _ in range(expansion_dim+1)]
