@@ -808,7 +808,10 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
 
         # Validate against graph
         graph = dataset[c]
-        assert torch.equal(complex.y, graph.y)
+        if complex.y is None:
+            assert graph.y is None
+        else:
+            assert torch.equal(complex.y, graph.y)
         assert torch.equal(complex.chains[0].x, graph.x)
         if complex.dimension >= 1:
             assert complex.chains[1].x.size(0) == (graph.edge_index.size(1) // 2)

@@ -7,10 +7,6 @@ from definitions import ROOT_DIR
 from exp.parser import get_parser
 from exp.run_exp import main
 
-# python3 -m exp.run_sr_exp --task_type isomorphism --eval_metric isomorphism --untrained --model sparse_sin --nonlinearity id --emb_dim 16 --readout sum --num_layers 5
-# python3 -m exp.run_sr_exp --task_type isomorphism --eval_metric isomorphism --untrained --model gin --nonlinearity id --emb_dim 16 --readout sum --num_layers 5
-#--jump_mode None
-
 __families__ = [
     'sr16622',
     'sr251256',
@@ -43,13 +39,15 @@ if __name__ == "__main__":
     assert '--exp_name' not in passed_args
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
+    assert args.model in ['sparse_sin', 'mp_agnostic']
     ts = str(time.time())
-    if '--result_folder' not in passed_args:
-        result_folder = os.path.join(ROOT_DIR, 'exp', 'results', 'sr-{}'.format(ts))
-        passed_args += ['--result_folder', result_folder]
+    if args.model == 'mp_agnostic':
+        result_folder = os.path.join(args.result_folder, 'sr-base')
     else:
-        result_folder = args.result_folder
-    
+        result_folder = os.path.join(args.result_folder, 'sr')
+    if '--max_ring_size' in passed_args:
+        result_folder += f'-{args.max_ring_size}'
+    passed_args += ['--result_folder', result_folder]
     # run each experiment separately and gather results
     results = [list() for _ in __families__]
     for f, family in enumerate(__families__):
