@@ -1,4 +1,4 @@
-# Cell Complex Networks
+# CW Networks
 
 This repository contains the code used in the experimental section of the NeurIPS 2021 submission:
 > Weisfeiler and Lehman Go Cellular: CW Networks
@@ -73,13 +73,15 @@ For example, `sh exp/zinc-small.sh` will run the training on ZINC with parameter
 
 In order to run an experiment on the SR benchmark, run the following:
 ```
-sh exp/sr.sh
+sh exp/sr.sh <k>
 ```
-The shell script will internally run the `exp/run_sr_ex.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/sr/`.
+Replacing `<k>` with the a value amongst `4`, `5`, `6` (this corresponds to the maximum ring size employed in the lifting procedure).
+The shell script will internally run the `exp/run_sr_ex.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/sr-<k>/`.
 
 _Note_: before the inference starts, the script will perform the appropriate ring-lifting procedure on the SR graphs in the family.
 
 Finally, the following command will run the MLP-sum (strong) baseline described in the paper:
 ```
-sh exp/sr_base.sh
+sh exp/sr-base.sh
 ```
+Results will be written under `exp/results/sr-base-<k>/`.
