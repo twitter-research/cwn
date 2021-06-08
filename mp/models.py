@@ -469,7 +469,8 @@ class EdgeOrient(torch.nn.Module):
         super(EdgeOrient, self).__init__()
 
         self.max_dim = 1
-        self.fully_invar=fully_invar
+        self.fully_invar = fully_invar
+        orient = not self.fully_invar
         self.dropout_rate = dropout_rate
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
@@ -485,7 +486,7 @@ class EdgeOrient(torch.nn.Module):
             self.convs.append(
                 OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
-                    act_fn=get_nonlinearity(nonlinearity, return_module=False)))
+                    act_fn=get_nonlinearity(nonlinearity, return_module=False), orient=orient))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1 = Linear(hidden, hidden)
         self.lin2 = Linear(hidden, num_classes)
