@@ -109,7 +109,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     elif name == 'FLOW':
         dataset = FlowDataset(os.path.join(root, name), name, num_points=kwargs['flow_points'],
             train_samples=1000, val_samples=200, train_orient=kwargs['train_orient'],
-            test_orient=kwargs['test_orient'])
+            test_orient=kwargs['test_orient'], n_jobs=n_jobs)
     elif name == 'OCEAN':
         dataset = OceanDataset(os.path.join(root, name), name)
     elif name == 'ZINC':

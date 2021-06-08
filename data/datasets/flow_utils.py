@@ -6,7 +6,11 @@ import itertools
 
 from tqdm import tqdm
 from scipy.spatial import Delaunay
+from scipy import sparse
 from data.complex import Chain
+
+from data.parallel import ProgressParallel
+from joblib import delayed
 
 
 def is_inside_rectangle(x, rect):
@@ -195,34 +199,34 @@ def generate_trajectory(start_rect, end_rect, ckpt_rect, G: nx.Graph):
 
 
 def extract_adj_from_boundary(B, G=None):
-    A = B.T @ B
+    A = sparse.csr_matrix(B.T).dot(sparse.csr_matrix(B))
 
-    n = len(A)
+    n = A.shape[0]
     if G is not None:
-        assert np.all((A - A.T) == 0)
         assert n == G.number_of_edges()
 
     # Subtract self-loops, which we do not count.
-    connections = np.count_nonzero(A) - np.sum(np.diag(A) != 0)
+    connections = A.count_nonzero() - np.sum(A.diagonal() != 0)
 
     index = torch.empty((2, connections), dtype=torch.long)
     orient = torch.empty(connections)
 
     connection = 0
-    for i, j in itertools.combinations(list(range(n)), 2):
-        assert i < j
-        if A[i, j] != 0.0:
-            assert np.sign(A[i, j]) == 1 or np.sign(A[i, j]) == -1
+    cA = A.tocoo()
+    for i, j, v in zip(cA.row, cA.col, cA.data):
+        if j >= i:
+            continue
+        assert v == 1 or v == -1, print(v)
 
-            index[0, connection] = i
-            index[1, connection] = j
-            orient[connection] = np.sign(A[i, j])
+        index[0, connection] = i
+        index[1, connection] = j
+        orient[connection] = np.sign(v)
 
-            index[0, connection + 1] = j
-            index[1, connection + 1] = i
-            orient[connection + 1] = np.sign(A[i, j])
+        index[0, connection + 1] = j
+        index[1, connection + 1] = i
+        orient[connection + 1] = np.sign(v)
 
-            connection += 2
+        connection += 2
 
     assert connection == connections
     return index, orient
@@ -230,8 +234,8 @@ def extract_adj_from_boundary(B, G=None):
 
 def build_complex(B1, B2, T2, x, class_id, G=None):
     # Change the orientation of the boundary matrices
-    B1 = B1 @ T2
-    B2 = T2 @ B2
+    B1 = sparse.csr_matrix(B1).dot(sparse.csr_matrix(T2)).toarray()
+    B2 = sparse.csr_matrix(T2).dot(sparse.csr_matrix(B2)).toarray()
 
     # Extract the adjacencies in pyG edge_index format.
     lower_index, lower_orient = extract_adj_from_boundary(B1, G)
@@ -244,7 +248,7 @@ def build_complex(B1, B2, T2, x, class_id, G=None):
     }
 
     # Change the orientation of the features
-    x = T2 @ x
+    x = sparse.csr_matrix(T2).dot(sparse.csr_matrix(x)).toarray()
     x = torch.tensor(x, dtype=torch.float32)
 
     return Chain(dim=1, x=x, **index_dict, y=torch.tensor([class_id]))
@@ -280,7 +284,7 @@ def get_orient_matrix(B1, B2, orientation):
 
 
 def load_flow_dataset(num_points=1000, num_train=1000, num_test=200,
-                      train_orientation='default', test_orientation='default'):
+                      train_orientation='default', test_orientation='default', n_jobs=2):
     points = np.random.uniform(low=-0.05, high=1.05, size=(num_points, 2))
     tri = Delaunay(points)
 
@@ -312,21 +316,18 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200,
     B1, B2 = extract_boundary_matrices(G)
     classes = 2
 
-    train_samples = []
+    # Process these in parallel because it's slow
     samples_per_class = num_train // classes
-    for i in tqdm(range(num_train), desc='Generating training dataset'):
-        T2 = get_orient_matrix(B1, B2, train_orientation)
-        class_id = min(i // samples_per_class, 1)
-        complex = generate_flow_complex(class_id=class_id, G=G, B1=B1, B2=B2, T2=T2)
-        train_samples.append(complex)
+    parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=num_train)
+    train_samples = parallel(delayed(generate_flow_complex)(
+        class_id=min(i // samples_per_class, 1), G=G, B1=B1, B2=B2,
+        T2=get_orient_matrix(B1, B2, train_orientation)) for i in range(num_train))
 
-    test_samples = []
     samples_per_class = num_test // classes
-    for i in tqdm(range(num_test), desc='Generating testing dataset'):
-        T2 = get_orient_matrix(B1, B2, test_orientation)
-        class_id = min(i // samples_per_class, 1)
-        complex = generate_flow_complex(class_id=class_id, G=G, B1=B1, B2=B2, T2=T2)
-        test_samples.append(complex)
+    parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=num_test)
+    test_samples = parallel(delayed(generate_flow_complex)(
+        class_id=min(i // samples_per_class, 1), G=G, B1=B1, B2=B2,
+        T2=get_orient_matrix(B1, B2, test_orientation)) for i in range(num_test))
 
     return train_samples, test_samples, G
 
