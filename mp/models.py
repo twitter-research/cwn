@@ -565,6 +565,7 @@ class EdgeMPNN(torch.nn.Module):
 
     def forward(self, data: ChainBatch, include_partial=False):
         x, jump_x = data.x, None
+        x = torch.abs(x)
         for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
@@ -572,7 +573,6 @@ class EdgeMPNN(torch.nn.Module):
         cell_pred = x
 
         batch_size = data.batch.max() + 1
-        x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
         x = torch.relu(self.lin1(x))
