@@ -30,42 +30,35 @@ def test_flow_util_dataset_loading():
     # Fix seed for reproducibility
     np.random.seed(0)
 
-    for num_classes in [2, 3]:
-        train, test, _ = load_flow_dataset(num_points=300, num_train=200, num_test=20,
-            num_classes=num_classes)
-        assert len(train) == 200
-        assert len(test) == 20
+    train, test, _ = load_flow_dataset(num_points=300, num_train=10, num_test=10)
+    assert len(train) == 10
+    assert len(test) == 10
 
-        label_count = {0: 0, 1: 0, 2: 0}
+    label_count = {0: 0, 1: 0, 2: 0}
 
-        for chain in train + test:
-            # checks x values (flow direction) are either +1 or -1
-            assert (torch.sum(chain.x == 1) + torch.sum(chain.x == -1)
-                    == torch.count_nonzero(chain.x))
+    for chain in train + test:
+        # checks x values (flow direction) are either +1 or -1
+        assert (torch.sum(chain.x == 1) + torch.sum(chain.x == -1)
+                == torch.count_nonzero(chain.x))
 
-            # checks the upper/lower orientation features are consistent
-            # in shape with the upper/lower indices
-            assert len(chain.upper_orient) == chain.upper_index.size(1)
-            assert len(chain.lower_orient) == chain.lower_index.size(1)
-            # checks the upper and lower indices are consistent with the number of edges
-            assert chain.upper_index.max() < chain.x.size(0), print(chain.upper_index.max(),
-                chain.x.size(0))
-            assert chain.lower_index.max() < chain.x.size(0), print(chain.lower_index.max(),
-                chain.x.size(0))
+        # checks the upper/lower orientation features are consistent
+        # in shape with the upper/lower indices
+        assert len(chain.upper_orient) == chain.upper_index.size(1)
+        assert len(chain.lower_orient) == chain.lower_index.size(1)
+        # checks the upper and lower indices are consistent with the number of edges
+        assert chain.upper_index.max() < chain.x.size(0), print(chain.upper_index.max(),
+            chain.x.size(0))
+        assert chain.lower_index.max() < chain.x.size(0), print(chain.lower_index.max(),
+            chain.x.size(0))
 
-            # checks the values for orientations are either +1 (coherent) or -1 (not coherent)
-            assert (torch.sum(chain.upper_orient == 1)
-                    + torch.sum(chain.upper_orient == -1) == chain.upper_orient.numel())
-            assert (torch.sum(chain.lower_orient == 1)
-                    + torch.sum(chain.lower_orient == -1) == chain.lower_orient.numel())
+        # checks the values for orientations are either +1 (coherent) or -1 (not coherent)
+        assert (torch.sum(chain.upper_orient == 1)
+                + torch.sum(chain.upper_orient == -1) == chain.upper_orient.numel())
+        assert (torch.sum(chain.lower_orient == 1)
+                + torch.sum(chain.lower_orient == -1) == chain.lower_orient.numel())
 
-            label_count[chain.y.item()] += 1
+        label_count[chain.y.item()] += 1
 
-        # checks distribution of labels
-        if num_classes == 3:
-            assert label_count[0] == 200 // 3 + 20 // 3
-            assert label_count[1] == 200 // 3 + 20 // 3
-            assert label_count[2] == 200 - 2 * (200 // 3) + 20 - 2 * (20 // 3)
-        else:
-            assert label_count[0] == 200 // 2 + 20 // 2
-            assert label_count[1] == 200 // 2 + 20 // 2
+    # checks distribution of labels
+    assert label_count[0] == 10 // 2 + 10 // 2
+    assert label_count[1] == 10 // 2 + 10 // 2

@@ -194,13 +194,13 @@ def generate_trajectory(start_rect, end_rect, ckpt_rect, G: nx.Graph):
     return x, path
 
 
-def extract_adj_from_boundary(B, G):
+def extract_adj_from_boundary(B, G=None):
     A = B.T @ B
 
     n = len(A)
-    # assert np.all(np.diag(A) != 0)
-    assert np.all((A - A.T) == 0)
-    assert n == G.number_of_edges()
+    if G is not None:
+        assert np.all((A - A.T) == 0)
+        assert n == G.number_of_edges()
 
     # Subtract self-loops, which we do not count.
     connections = np.count_nonzero(A) - np.sum(np.diag(A) != 0)
@@ -228,26 +228,58 @@ def extract_adj_from_boundary(B, G):
     return index, orient
 
 
-def generate_samples(samples, class_id, G, index_dict):
+def build_complex(B1, B2, T2, x, class_id, G=None):
+    # Change the orientation of the boundary matrices
+    B1 = B1 @ T2
+    B2 = T2 @ B2
+
+    # Extract the adjacencies in pyG edge_index format.
+    lower_index, lower_orient = extract_adj_from_boundary(B1, G)
+    upper_index, upper_orient = extract_adj_from_boundary(B2.T, G)
+    index_dict = {
+        'lower_index': lower_index,
+        'lower_orient': lower_orient,
+        'upper_index': upper_index,
+        'upper_orient': upper_orient,
+    }
+
+    # Change the orientation of the features
+    x = T2 @ x
+    x = torch.tensor(x, dtype=torch.float32)
+
+    return Chain(dim=1, x=x, **index_dict, y=torch.tensor([class_id]))
+
+
+def generate_flow_complex(class_id, G, B1, B2, T2):
+    assert 0 <= class_id <= 1
+
+    # Define the start, midpoint and and stop regions for the trajectories.
     start_rect = np.array([[0.0, 0.8], [0.2, 1.0]])
     end_rect = np.array([[0.8, 0.0], [1.0, 0.2]])
-
     bot_ckpt_rect = np.array([[0.0, 0.0], [0.2, 0.2]])
-    mid_ckpt_rect = np.array([[0.4, 0.4], [0.6, 0.6]])
     top_ckpt_rect = np.array([[0.8, 0.8], [1.0, 1.0]])
-    ckpts = [bot_ckpt_rect, top_ckpt_rect, mid_ckpt_rect]
+    ckpts = [bot_ckpt_rect, top_ckpt_rect]
 
-    chains = []
-    for i in range(samples):
-        x, _ = generate_trajectory(start_rect, end_rect, ckpts[class_id], G)
-        x = torch.tensor(x, dtype=torch.float32)
-        chain = Chain(dim=1, x=x, **index_dict, y=torch.tensor([class_id]))
-        chains.append(chain)
-    return chains
+    # Generate flow
+    x, _ = generate_trajectory(start_rect, end_rect, ckpts[class_id], G)
+
+    return build_complex(B1, B2, T2, x, class_id, G)
 
 
-def load_flow_dataset(num_points=1000, num_train=1000, num_test=200, num_classes=2):
-    assert num_classes == 2 or num_classes == 3
+def get_orient_matrix(B1, B2, orientation):
+    assert B1.shape[-1] == B2.shape[0]
+    n = B1.shape[-1]
+
+    if orientation == 'default':
+        return np.identity(n)
+    elif orientation == 'random':
+        diag = 2*np.random.randint(0, 2, size=n) - 1
+        return np.diag(diag).astype(np.long)
+    else:
+        raise ValueError(f'Unsupported orientation {orientation}')
+
+
+def load_flow_dataset(num_points=1000, num_train=1000, num_test=200, orientation='default'):
     points = np.random.uniform(low=-0.05, high=1.05, size=(num_points, 2))
     tri = Delaunay(points)
 
@@ -277,33 +309,23 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200, num_classes
     assert G.number_of_nodes() == len(points)
 
     B1, B2 = extract_boundary_matrices(G)
-
-    lower_index, lower_orient = extract_adj_from_boundary(B1, G)
-    upper_index, upper_orient = extract_adj_from_boundary(B2.T, G)
-    index_dict = {
-        'lower_index': lower_index,
-        'lower_orient': lower_orient,
-        'upper_index': upper_index,
-        'upper_orient': upper_orient,
-    }
-
-    classes = num_classes
+    classes = 2
 
     train_samples = []
     samples_per_class = num_train // classes
-    for class_id in range(classes):
-        samples = (samples_per_class if class_id < classes - 1 else
-                   num_train - (classes-1)*samples_per_class)
-        train_samples += generate_samples(samples=samples, class_id=class_id, G=G,
-            index_dict=index_dict)
+    for i in range(num_train):
+        T2 = get_orient_matrix(B1, B2, orientation)
+        class_id = min(i // samples_per_class, 1)
+        complex = generate_flow_complex(class_id=class_id, G=G, B1=B1, B2=B2, T2=T2)
+        train_samples.append(complex)
 
     test_samples = []
     samples_per_class = num_test // classes
-    for class_id in range(classes):
-        samples = (samples_per_class if class_id < classes - 1 else
-                   num_test - (classes-1)*samples_per_class)
-        test_samples += generate_samples(samples=samples, class_id=class_id, G=G,
-            index_dict=index_dict)
+    for i in range(num_test):
+        T2 = get_orient_matrix(B1, B2, orientation)
+        class_id = min(i // samples_per_class, 1)
+        complex = generate_flow_complex(class_id=class_id, G=G, B1=B1, B2=B2, T2=T2)
+        test_samples.append(complex)
 
     return train_samples, test_samples, G
 

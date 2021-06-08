@@ -464,7 +464,7 @@ class EdgeOrient(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 dropout_rate: float = 0.5, jump_mode=None, nonlinearity='relu', readout='sum',
+                 dropout_rate: float = 0.5, jump_mode=None, nonlinearity='id', readout='sum',
                  final_hidden_multiplier: int = 1):
         super(EdgeOrient, self).__init__()
 
@@ -476,9 +476,10 @@ class EdgeOrient(torch.nn.Module):
         self.pooling_fn = get_pooling_fn(readout)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
-            update_up = Sequential(Linear(layer_dim, hidden), BN(hidden))
-            update_down = Sequential(Linear(layer_dim, hidden), BN(hidden))
-            update = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            # !!!!! Biases must be set to false. Otherwise, the model is not equivariant !!!!
+            update_up = Linear(layer_dim, hidden, bias=False)
+            update_down = Linear(layer_dim, hidden, bias=False)
+            update = Linear(layer_dim, hidden, bias=False)
             self.convs.append(
                 OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
@@ -495,7 +496,7 @@ class EdgeOrient(torch.nn.Module):
         self.lin1.reset_parameters()
         self.lin2.reset_parameters()
 
-    def forward(self, data: ChainBatch):
+    def forward(self, data: ChainBatch, include_partial=False):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
 
         x, jump_x = data.x, None
@@ -503,8 +504,10 @@ class EdgeOrient(torch.nn.Module):
             x = conv(data)
             data.x = x
 
-        batch_size = data.batch.max() + 1
+        cell_pred = x
+
         # To obtain orientation invariance, we take the absolute value of the features.
+        batch_size = data.batch.max() + 1
         x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
@@ -512,6 +515,8 @@ class EdgeOrient(torch.nn.Module):
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
 
+        if include_partial:
+            return x, cell_pred
         return x
 
     def __repr__(self):
@@ -538,8 +543,8 @@ class EdgeMPNN(torch.nn.Module):
             layer_dim = num_input_features if i == 0 else hidden
             # We pass this lambda function to discard upper adjacencies
             update_up = lambda x: 0
-            update_down = Sequential(Linear(layer_dim, hidden), BN(hidden))
-            update = Sequential(Linear(layer_dim, hidden), BN(hidden))
+            update_down = Linear(layer_dim, hidden, bias=False)
+            update = Linear(layer_dim, hidden, bias=False)
             self.convs.append(
                 OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
@@ -556,13 +561,15 @@ class EdgeMPNN(torch.nn.Module):
         self.lin1.reset_parameters()
         self.lin2.reset_parameters()
 
-    def forward(self, data: ChainBatch):
+    def forward(self, data: ChainBatch, include_partial=False):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
 
         x, jump_x = data.x, None
         for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
+
+        cell_pred = x
 
         batch_size = data.batch.max() + 1
         x = self.pooling_fn(x, data.batch, size=batch_size)
@@ -571,6 +578,8 @@ class EdgeMPNN(torch.nn.Module):
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
 
+        if include_partial:
+            return x, cell_pred
         return x
 
     def __repr__(self):
