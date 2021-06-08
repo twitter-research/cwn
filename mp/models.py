@@ -480,6 +480,11 @@ class EdgeOrient(torch.nn.Module):
             update_up = Linear(layer_dim, hidden, bias=False)
             update_down = Linear(layer_dim, hidden, bias=False)
             update = Linear(layer_dim, hidden, bias=False)
+
+            # torch.nn.init.xavier_uniform(update_up.weight)
+            # torch.nn.init.xavier_uniform(update_down.weight)
+            # torch.nn.init.xavier_uniform(update.weight)
+
             self.convs.append(
                 OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,

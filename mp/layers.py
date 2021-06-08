@@ -328,7 +328,7 @@ class OrientedConv(ChainMessagePassing):
         out_up = self.update_up_nn(out_up)
         out_down = self.update_down_nn(out_down)
         x = self.update_nn(chain.x)
-        return self.act_fn(out_up + out_down)
+        return self.act_fn(x + out_up + out_down)
 
     def reset_parameters(self):
         reset(self.update_up_nn)
