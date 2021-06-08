@@ -53,6 +53,7 @@ class FlowDataset(InMemoryComplexDataset):
 
         chains = train + val
         path = self.processed_paths[0]
+        print(f"Saving dataset in {path}...")
         with open(path, 'wb') as handle:
             pickle.dump(chains, handle)
 
@@ -66,3 +67,7 @@ class FlowDataset(InMemoryComplexDataset):
 
     def download(self):
         pass
+
+    def len(self):
+        """Override method to make the class work with deprecated stoarage"""
+        return len(self.__data_list__)
