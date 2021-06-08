@@ -5,6 +5,7 @@ and the original can be found at https://github.com/nglaze00/SCoNe_GCN/tree/mast
 
 import h5py
 import os.path as osp
+import matplotlib.pyplot as plt
 
 from data.datasets.flow_utils import *
 from definitions import ROOT_DIR
@@ -112,7 +113,6 @@ def color_faces(G, V, coords, faces, filename='graph_faces.pdf', paths=None):
                                    arrows=True, arrowsize=7, node_size=3)
 
     plt.scatter(x=[np.mean(coords[:, 0]) - 0.03], y=[np.mean(coords[:, 1])])
-
     plt.savefig(filename)
 
 
@@ -142,16 +142,11 @@ def extract_label(path, coords):
     return orientation(center, coords[path[0]], coords[path[-1]])
 
 
-def load_ocean_dataset():
+def load_ocean_dataset(train_orient='default', test_orient='default'):
     raw_dir = osp.join(ROOT_DIR, 'datasets', 'OCEAN', 'raw')
     raw_filename = osp.join(raw_dir, 'dataBuoys.jld2')
 
     f = h5py.File(raw_filename, 'r')
-    print(f.keys())
-
-    ### Load arrays from file
-
-    ## Graph
 
     # elist (edge list)
     edge_list = f['elist'][:] - 1 # 1-index -> 0-index
@@ -159,22 +154,17 @@ def load_ocean_dataset():
     # tlist (triangle list)
     face_list = f['tlist'][:] - 1
 
-    print("Faces", np.shape(face_list))
+    # print("Faces", np.shape(face_list))
 
     # NodeToHex (map node id <-> hex coords) # nodes are 1-indexed in data source
     node_hex_map = [tuple(f[x][()]) for x in f['NodeToHex'][:]]
     hex_node_map = {tuple(hex_coords): node for node, hex_coords in enumerate(node_hex_map)}
-
-
-    ## trajectories
 
     # coords
     hex_coords = np.array([tuple(x) for x in f['HexcentersXY'][()]])
 
     # nodes
     traj_nodes = [[f[x][()] - 1 for x in f[ref][()]] for ref in f['TrajectoriesNodes'][:]]
-
-    #### Convert to SCoNe dataset
 
     # generate graph + faces
     G = nx.Graph()
@@ -234,22 +224,15 @@ def load_ocean_dataset():
     print('Test Clockwise', sum(1 - labels[test_mask.astype(bool)]))
     print('Test Anticlockwise', sum(labels[test_mask.astype(bool)]))
 
-    lower_index, lower_orient = extract_adj_from_boundary(B1, G_undir)
-    upper_index, upper_orient = extract_adj_from_boundary(B2.T, G_undir)
-    index_dict = {
-        'lower_index': lower_index,
-        'lower_orient': lower_orient,
-        'upper_index': upper_index,
-        'upper_orient': upper_orient,
-    }
-    flows = torch.tensor(flows, dtype=torch.float32)
-
     train_chains, test_chains = [], []
     for i in range(len(flows)):
-        chain = Chain(dim=1, x=flows[i], **index_dict, y=torch.tensor([labels[i]]))
         if train_mask[i] == 1:
+            T2 = get_orient_matrix(B1, B2, train_orient)
+            chain = build_complex(B1, B2, T2, flows[i], labels[i], G_undir)
             train_chains.append(chain)
         else:
+            T2 = get_orient_matrix(B1, B2, test_orient)
+            chain = build_complex(B1, B2, T2, flows[i], labels[i], G_undir)
             test_chains.append(chain)
 
     return train_chains, test_chains, G_undir

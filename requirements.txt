@@ -17,3 +17,11 @@ jupyter==1.0
 matplotlib==3.3.3
 joblib==1.0.0
 networkx==2.5
+
+numpy==1.19.4
+tqdm==4.54.1
+sklearn==0.0
+scikit-learn==0.23.2
+scipy==1.5.4
+h5py==3.1.0
+seaborn==0.11.1

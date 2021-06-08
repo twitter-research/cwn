@@ -6,11 +6,16 @@ from data.datasets.ocean_utils import load_ocean_dataset
 
 
 # TODO: Set up a chain dataset structure or make complex dataset better support chain-only data.
+# TODO: Refactor the dataset to use the latest storage formatting.
 class OceanDataset(InMemoryComplexDataset):
 
-    def __init__(self, root, name, load_graph=False):
+    def __init__(self, root, name, load_graph=False, train_orient='default',
+                 test_orient='default', n_jobs=1):
         self.name = name
         self._num_classes = 2
+        self._train_orient = train_orient
+        self._test_orient = test_orient
+        self._n_jobs = n_jobs
 
         super(OceanDataset, self).__init__(root, max_dim=1,
             num_classes=self._num_classes, include_down_adj=True)
@@ -21,7 +26,7 @@ class OceanDataset(InMemoryComplexDataset):
         with open(self.processed_paths[1], 'rb') as handle:
             val = pickle.load(handle)
 
-        self._data_list = train + val
+        self.__data_list__ = train + val
 
         self.G = None
         if load_graph:
@@ -35,7 +40,7 @@ class OceanDataset(InMemoryComplexDataset):
     @property
     def processed_dir(self):
         """This is overwritten, so the simplicial complex data is placed in another folder"""
-        return osp.join(self.root, 'complex')
+        return osp.join(self.root, f'complex_{self._train_orient}_{self._test_orient}')
 
     @property
     def processed_file_names(self):
@@ -44,16 +49,22 @@ class OceanDataset(InMemoryComplexDataset):
                 '{}_graph.pkl'.format(self.name)]
 
     def process(self):
-        train, val, G = load_ocean_dataset()
+        train, val, G = load_ocean_dataset(self._train_orient, self._test_orient)
 
         train_path = self.processed_paths[0]
+        print(f"Saving train dataset to {train_path}")
         with open(train_path, 'wb') as handle:
             pickle.dump(train, handle)
 
         val_path = self.processed_paths[1]
+        print(f"Saving val dataset to {val_path}")
         with open(val_path, 'wb') as handle:
             pickle.dump(val, handle)
 
         graph_path = self.processed_paths[2]
         with open(graph_path, 'wb') as handle:
             pickle.dump(G, handle)
+
+    def len(self):
+        """Override method to make the class work with deprecated stoarage"""
+        return len(self.__data_list__)

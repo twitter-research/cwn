@@ -111,7 +111,8 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
             train_samples=1000, val_samples=200, train_orient=kwargs['train_orient'],
             test_orient=kwargs['test_orient'], n_jobs=n_jobs)
     elif name == 'OCEAN':
-        dataset = OceanDataset(os.path.join(root, name), name)
+        dataset = OceanDataset(os.path.join(root, name), name, train_orient=kwargs['train_orient'],
+            test_orient=kwargs['test_orient'])
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
                               use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
