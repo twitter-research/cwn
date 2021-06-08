@@ -22,7 +22,7 @@ def get_parser():
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
     parser.add_argument('--indrop_rate', type=float, default=0.0,
                         help='inputs dropout rate for molec models(default: 0.0)')
-    parser.add_argument('--drop_rate', type=float, default=0.5,
+    parser.add_argument('--drop_rate', type=float, default=0.0,
                         help='dropout rate (default: 0.5)')
     parser.add_argument('--drop_position', type=str, default='lin2',
                         help='where to apply the final dropout (default: lin2, i.e. _before_ lin2)')
