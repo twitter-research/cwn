@@ -481,10 +481,6 @@ class EdgeOrient(torch.nn.Module):
             update_down = Linear(layer_dim, hidden, bias=False)
             update = Linear(layer_dim, hidden, bias=False)
 
-            # torch.nn.init.xavier_uniform(update_up.weight)
-            # torch.nn.init.xavier_uniform(update_down.weight)
-            # torch.nn.init.xavier_uniform(update.weight)
-
             self.convs.append(
                 OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
@@ -516,7 +512,8 @@ class EdgeOrient(torch.nn.Module):
         x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
-        x = act(self.lin1(x))
+        # We can use relu here since we applied abs() before
+        x = torch.relu(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
 
