@@ -512,7 +512,7 @@ class EdgeOrient(torch.nn.Module):
         x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
-        # We can use relu here since we applied abs() before
+        # We can use relu here since we applied abs()
         x = torch.relu(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
@@ -564,8 +564,6 @@ class EdgeMPNN(torch.nn.Module):
         self.lin2.reset_parameters()
 
     def forward(self, data: ChainBatch, include_partial=False):
-        act = get_nonlinearity(self.nonlinearity, return_module=False)
-
         x, jump_x = data.x, None
         for c, conv in enumerate(self.convs):
             x = conv(data)
@@ -574,9 +572,10 @@ class EdgeMPNN(torch.nn.Module):
         cell_pred = x
 
         batch_size = data.batch.max() + 1
+        x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
-        x = act(self.lin1(x))
+        x = torch.relu(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
 
