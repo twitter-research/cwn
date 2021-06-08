@@ -164,7 +164,8 @@ def main(args):
                       args.emb_dim,  # hidden
                       readout=args.readout,
                       nonlinearity=args.nonlinearity,  # nonlinearity
-                     ).to(device)
+                      dropout_rate=args.drop_rate,  # dropout rate
+        ).to(device)
     elif args.model == 'edge_mpnn':
         model = EdgeMPNN(1,
                       dataset.num_classes,
@@ -172,7 +173,8 @@ def main(args):
                       args.emb_dim,  # hidden
                       readout=args.readout,
                       nonlinearity=args.nonlinearity,  # nonlinearity
-                      ).to(device)
+                      dropout_rate=args.drop_rate,  # dropout rate
+        ).to(device)
     elif args.model == 'embed_sparse_sin':
         model = EmbedSparseSIN(dataset.num_node_type,  # The number of atomic types
                                dataset.num_edge_type,  # The number of bond types

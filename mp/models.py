@@ -464,8 +464,7 @@ class EdgeOrient(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 dropout_rate: float = 0.5, jump_mode=None, nonlinearity='id', readout='sum',
-                 final_hidden_multiplier: int = 1):
+                 dropout_rate: float = 0.0, jump_mode=None, nonlinearity='id', readout='sum'):
         super(EdgeOrient, self).__init__()
 
         self.max_dim = 1
@@ -486,8 +485,8 @@ class EdgeOrient(torch.nn.Module):
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
                     act_fn=get_nonlinearity(nonlinearity, return_module=False)))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
-        self.lin1 = Linear(hidden, final_hidden_multiplier * hidden)
-        self.lin2 = Linear(final_hidden_multiplier * hidden, num_classes)
+        self.lin1 = Linear(hidden, hidden)
+        self.lin2 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
         for conv in self.convs:
@@ -498,8 +497,6 @@ class EdgeOrient(torch.nn.Module):
         self.lin2.reset_parameters()
 
     def forward(self, data: ChainBatch, include_partial=False):
-        act = get_nonlinearity(self.nonlinearity, return_module=False)
-
         x, jump_x = data.x, None
         for c, conv in enumerate(self.convs):
             x = conv(data)
@@ -531,7 +528,7 @@ class EdgeMPNN(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 dropout_rate: float = 0.5, jump_mode=None, nonlinearity='relu', readout='sum'):
+                 dropout_rate: float = 0.0, jump_mode=None, nonlinearity='relu', readout='sum'):
         super(EdgeMPNN, self).__init__()
 
         self.max_dim = 1
@@ -568,7 +565,6 @@ class EdgeMPNN(torch.nn.Module):
         for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
-
         cell_pred = x
 
         batch_size = data.batch.max() + 1
