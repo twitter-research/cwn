@@ -146,3 +146,14 @@ def validate_args(args):
         assert args.readout == 'sum'
         assert args.final_readout == 'sum'
         assert not args.simple_features
+    elif args.dataset == 'FLOW':
+        assert args.model == 'edge_orient' or args.model == 'edge_mpnn'
+        assert args.eval_metric == 'accuracy'
+        assert args.task_type == 'classification'
+        assert args.jump_mode is None
+        assert args.drop_rate == 0.0
+        assert not args.untrained
+        assert not args.simple_features
+        assert args.lr_scheduler == 'None'
+        assert not args.minimize
+
