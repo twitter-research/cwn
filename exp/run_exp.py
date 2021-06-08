@@ -175,6 +175,7 @@ def main(args):
                       readout=args.readout,
                       nonlinearity=args.nonlinearity,  # nonlinearity
                       dropout_rate=args.drop_rate,  # dropout rate
+                      fully_invar=args.fully_orient_invar,
         ).to(device)
     elif args.model == 'embed_sparse_sin':
         model = EmbedSparseSIN(dataset.num_node_type,  # The number of atomic types

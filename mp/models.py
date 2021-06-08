@@ -534,11 +534,14 @@ class EdgeMPNN(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 dropout_rate: float = 0.0, jump_mode=None, nonlinearity='relu', readout='sum'):
+                 dropout_rate: float = 0.0, jump_mode=None, nonlinearity='relu', readout='sum',
+                 fully_invar=True):
         super(EdgeMPNN, self).__init__()
 
         self.max_dim = 1
         self.dropout_rate = dropout_rate
+        self.fully_invar = fully_invar
+        orient = not self.fully_invar
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
@@ -552,7 +555,7 @@ class EdgeMPNN(torch.nn.Module):
             self.convs.append(
                 OrientedConv(dim=1, up_msg_size=layer_dim, down_msg_size=layer_dim,
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
-                    act_fn=get_nonlinearity(nonlinearity, return_module=False), orient=False))
+                    act_fn=get_nonlinearity(nonlinearity, return_module=False), orient=orient))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1 = Linear(hidden, hidden)
         self.lin2 = Linear(hidden, num_classes)
@@ -566,13 +569,16 @@ class EdgeMPNN(torch.nn.Module):
         self.lin2.reset_parameters()
 
     def forward(self, data: ChainBatch, include_partial=False):
-        data.x = torch.abs(data.x)
+        if self.fully_invar:
+            data.x = torch.abs(data.x)
         for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
         cell_pred = x
 
         batch_size = data.batch.max() + 1
+        if not self.fully_invar:
+            x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
         x = torch.relu(self.lin1(x))
