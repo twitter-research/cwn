@@ -486,8 +486,7 @@ class EdgeOrient(torch.nn.Module):
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
                     act_fn=get_nonlinearity(nonlinearity, return_module=False)))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
-        self.lin1 = Linear(hidden, final_hidden_multiplier * hidden)
-        self.lin2 = Linear(final_hidden_multiplier * hidden, num_classes)
+        self.lin1 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
         for conv in self.convs:
@@ -495,16 +494,12 @@ class EdgeOrient(torch.nn.Module):
         if self.jump_mode is not None:
             self.jump.reset_parameters()
         self.lin1.reset_parameters()
-        self.lin2.reset_parameters()
 
     def forward(self, data: ChainBatch, include_partial=False):
-        act = get_nonlinearity(self.nonlinearity, return_module=False)
-
         x, jump_x = data.x, None
         for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
-
         cell_pred = x
 
         # To obtain orientation invariance, we take the absolute value of the features.
@@ -513,9 +508,8 @@ class EdgeOrient(torch.nn.Module):
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
         # We can use relu here since we applied abs()
-        x = torch.relu(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
-        x = self.lin2(x)
+        x = self.lin1(x)
 
         if include_partial:
             return x, cell_pred
@@ -552,8 +546,7 @@ class EdgeMPNN(torch.nn.Module):
                     update_up_nn=update_up, update_down_nn=update_down, update_nn=update,
                     act_fn=get_nonlinearity(nonlinearity, return_module=False), orient=False))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
-        self.lin1 = Linear(hidden, final_hidden_multiplier * hidden)
-        self.lin2 = Linear(final_hidden_multiplier * hidden, num_classes)
+        self.lin1 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
         for conv in self.convs:
@@ -561,7 +554,6 @@ class EdgeMPNN(torch.nn.Module):
         if self.jump_mode is not None:
             self.jump.reset_parameters()
         self.lin1.reset_parameters()
-        self.lin2.reset_parameters()
 
     def forward(self, data: ChainBatch, include_partial=False):
         x, jump_x = data.x, None
@@ -575,9 +567,8 @@ class EdgeMPNN(torch.nn.Module):
         batch_size = data.batch.max() + 1
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
-        x = torch.relu(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
-        x = self.lin2(x)
+        x = self.lin1(x)
 
         if include_partial:
             return x, cell_pred
