@@ -3,8 +3,8 @@ import random
 import torch
 import networkx as nx
 import itertools
-import matplotlib.pyplot as plt
 
+from tqdm import tqdm
 from scipy.spatial import Delaunay
 from data.complex import Chain
 
@@ -279,7 +279,8 @@ def get_orient_matrix(B1, B2, orientation):
         raise ValueError(f'Unsupported orientation {orientation}')
 
 
-def load_flow_dataset(num_points=1000, num_train=1000, num_test=200, orientation='default'):
+def load_flow_dataset(num_points=1000, num_train=1000, num_test=200,
+                      train_orientation='default', test_orientation='default'):
     points = np.random.uniform(low=-0.05, high=1.05, size=(num_points, 2))
     tri = Delaunay(points)
 
@@ -313,16 +314,16 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200, orientation
 
     train_samples = []
     samples_per_class = num_train // classes
-    for i in range(num_train):
-        T2 = get_orient_matrix(B1, B2, orientation)
+    for i in tqdm(range(num_train), desc='Generating training dataset'):
+        T2 = get_orient_matrix(B1, B2, train_orientation)
         class_id = min(i // samples_per_class, 1)
         complex = generate_flow_complex(class_id=class_id, G=G, B1=B1, B2=B2, T2=T2)
         train_samples.append(complex)
 
     test_samples = []
     samples_per_class = num_test // classes
-    for i in range(num_test):
-        T2 = get_orient_matrix(B1, B2, orientation)
+    for i in tqdm(range(num_test), desc='Generating testing dataset'):
+        T2 = get_orient_matrix(B1, B2, test_orientation)
         class_id = min(i // samples_per_class, 1)
         complex = generate_flow_complex(class_id=class_id, G=G, B1=B1, B2=B2, T2=T2)
         test_samples.append(complex)

@@ -63,7 +63,7 @@ def main(args):
             num_classes = args.emb_dim
         else:
             num_features = graph_list[0].x.shape[1]
-    
+
     else:
         # Data loading
         dataset = load_dataset(args.dataset, max_dim=args.max_dim, fold=args.fold,
@@ -71,7 +71,8 @@ def main(args):
                                flow_points=args.flow_points, flow_classes=args.flow_classes,
                                max_ring_size=args.max_ring_size,
                                use_edge_features=args.use_edge_features,
-                               simple_features=args.simple_features, n_jobs=args.preproc_jobs)
+                               simple_features=args.simple_features, n_jobs=args.preproc_jobs,
+                               train_orient=args.train_orient, test_orient=args.test_orient)
         if args.tune:
             split_idx = dataset.get_tune_idx_split()
         else:
@@ -87,10 +88,10 @@ def main(args):
         if test_split is not None:
             test_loader = DataLoader(dataset.get_split('test'), batch_size=args.batch_size,
                 shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
-            
+
     # automatic evaluator, takes dataset name as input
     evaluator = Evaluator(args.eval_metric)
-    
+
     # use cofaces?
     use_cofaces = args.use_cofaces.lower() == 'true'
 
@@ -242,10 +243,10 @@ def main(args):
     print("============= Params stats ==================")
     print(f"Trainable params: {trainable_params}")
     print(f"Total params    : {total_params}")
-        
+
     # instantiate optimiser
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    
+
     # instantiate learning rate decay
     if args.lr_scheduler == 'ReduceLROnPlateau':
         mode = 'min' if args.minimize else 'max'
@@ -277,7 +278,7 @@ def main(args):
             epoch_train_curve = train(model, device, train_loader, optimizer, args.task_type)
             train_loss_curve += epoch_train_curve
             epoch_train_loss = float(np.mean(epoch_train_curve))
-            
+
             # evaluate model
             print('Evaluating...')
             if epoch == 1 or epoch % args.train_eval_period == 0:
@@ -298,7 +299,7 @@ def main(args):
             print(f'Train: {train_perf:.3f} | Validation: {valid_perf:.3f} | Test: {test_perf:.3f}'
                   f' | Train Loss {epoch_train_loss:.3f} | Val Loss {epoch_val_loss:.3f}'
                   f' | Test Loss {epoch_test_loss:.3f}')
-            
+
             # decay learning rate
             if scheduler is not None:
                 if args.lr_scheduler == 'ReduceLROnPlateau':
@@ -374,7 +375,7 @@ def main(args):
     if args.dump_curves:
         with open(os.path.join(result_folder, 'curves.pkl'), 'wb') as handle:
             pickle.dump(curves, handle)
-            
+
     return curves
 
 
@@ -383,5 +384,5 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
     validate_args(args)
-    
+
     main(args)

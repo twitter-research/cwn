@@ -90,6 +90,10 @@ def get_parser():
                         help='Number of points to use for the flow experiment')
     parser.add_argument('--flow_classes',  type=int, default=3,
                         help='Number of classes for the flow experiment')
+    parser.add_argument('--train_orient',  type=str, default='default',
+                        help='What orientation to use for the training complexes')
+    parser.add_argument('--test_orient',  type=str, default='default',
+                        help='What orientation to use for the testing complexes')
     parser.add_argument('--use_edge_features', action='store_true',
                         help="Use edge features for molecular graphs")
     parser.add_argument('--simple_features', action='store_true',
