@@ -154,6 +154,5 @@ def validate_args(args):
         assert args.drop_rate == 0.0
         assert not args.untrained
         assert not args.simple_features
-        assert args.lr_scheduler == 'None'
         assert not args.minimize
 
