@@ -94,6 +94,8 @@ def get_parser():
                         help='What orientation to use for the training complexes')
     parser.add_argument('--test_orient',  type=str, default='default',
                         help='What orientation to use for the testing complexes')
+    parser.add_argument('--fully_orient_invar',  action='store_true',
+                        help='Whether to apply torch.abs from the first layer')
     parser.add_argument('--use_edge_features', action='store_true',
                         help="Use edge features for molecular graphs")
     parser.add_argument('--simple_features', action='store_true',

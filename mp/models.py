@@ -464,10 +464,12 @@ class EdgeOrient(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 dropout_rate: float = 0.0, jump_mode=None, nonlinearity='id', readout='sum'):
+                 dropout_rate: float = 0.0, jump_mode=None, nonlinearity='id', readout='sum',
+                 fully_invar=False):
         super(EdgeOrient, self).__init__()
 
         self.max_dim = 1
+        self.fully_invar=fully_invar
         self.dropout_rate = dropout_rate
         self.jump_mode = jump_mode
         self.convs = torch.nn.ModuleList()
@@ -497,7 +499,8 @@ class EdgeOrient(torch.nn.Module):
         self.lin2.reset_parameters()
 
     def forward(self, data: ChainBatch, include_partial=False):
-        x, jump_x = data.x, None
+        if self.fully_invar:
+            data.x = torch.abs(data.x)
         for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
@@ -505,8 +508,10 @@ class EdgeOrient(torch.nn.Module):
         cell_pred = x
 
         # To obtain orientation invariance, we take the absolute value of the features.
+        # Unless we did that already before the first layer.
         batch_size = data.batch.max() + 1
-        x = torch.abs(x)
+        if not self.fully_invar:
+            x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
         # We can use relu here since we applied abs()

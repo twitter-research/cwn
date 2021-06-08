@@ -165,6 +165,7 @@ def main(args):
                       readout=args.readout,
                       nonlinearity=args.nonlinearity,  # nonlinearity
                       dropout_rate=args.drop_rate,  # dropout rate
+                      fully_invar=args.fully_orient_invar
         ).to(device)
     elif args.model == 'edge_mpnn':
         model = EdgeMPNN(1,
