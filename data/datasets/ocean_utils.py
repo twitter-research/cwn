@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from data.datasets.flow_utils import *
 from definitions import ROOT_DIR
+from tqdm import tqdm
 
 
 def faces_from_B2(B2, E):
@@ -225,7 +226,7 @@ def load_ocean_dataset(train_orient='default', test_orient='default'):
     print('Test Anticlockwise', sum(labels[test_mask.astype(bool)]))
 
     train_chains, test_chains = [], []
-    for i in range(len(flows)):
+    for i in tqdm(range(len(flows)), desc='Processing dataset'):
         if train_mask[i] == 1:
             T2 = get_orient_matrix(B1, B2, train_orient)
             chain = build_complex(B1, B2, T2, flows[i], labels[i], G_undir)
