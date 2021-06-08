@@ -81,7 +81,7 @@ def test_edge_orient_conv_is_orientation_equivariant():
     assert torch.equal(T2 @ (chain1.x + out_up1 + out_down1), chain2.x + out_up2 + out_down2)
 
 
-def test_edge_orient_model_with_tanh_is_orientation_equivariant():
+def test_edge_orient_model_with_tanh_is_orientation_equivariant_and_invariant_at_readout():
     chain1, chain2, T2 = generate_oriented_flow_pair()
     assert torch.equal(chain1.lower_index, chain2.lower_index)
     assert torch.equal(chain1.upper_index, chain2.upper_index)
@@ -90,12 +90,15 @@ def test_edge_orient_model_with_tanh_is_orientation_equivariant():
         nonlinearity='tanh', dropout_rate=0.0)
     model.eval()
 
-    _, pred1 = model.forward(ChainBatch.from_chain_list([chain1]), include_partial=True)
-    _, pred2 = model.forward(ChainBatch.from_chain_list([chain2]), include_partial=True)
+    final1, pred1 = model.forward(ChainBatch.from_chain_list([chain1]), include_partial=True)
+    final2, pred2 = model.forward(ChainBatch.from_chain_list([chain2]), include_partial=True)
+    # Check equivariant.
     assert torch.equal(T2 @ pred1, pred2)
+    # Check invariant after readout.
+    assert torch.equal(final1, final2)
 
 
-def test_edge_orient_model_with_id_is_orientation_equivariant():
+def test_edge_orient_model_with_id_is_orientation_equivariant_and_invariant_at_readout():
     chain1, chain2, T2 = generate_oriented_flow_pair()
     assert torch.equal(chain1.lower_index, chain2.lower_index)
     assert torch.equal(chain1.upper_index, chain2.upper_index)
@@ -104,12 +107,15 @@ def test_edge_orient_model_with_id_is_orientation_equivariant():
         nonlinearity='id', dropout_rate=0.0)
     model.eval()
 
-    _, pred1 = model.forward(ChainBatch.from_chain_list([chain1]), include_partial=True)
-    _, pred2 = model.forward(ChainBatch.from_chain_list([chain2]), include_partial=True)
+    final1, pred1 = model.forward(ChainBatch.from_chain_list([chain1]), include_partial=True)
+    final2, pred2 = model.forward(ChainBatch.from_chain_list([chain2]), include_partial=True)
+    # Check equivariant.
     assert torch.equal(T2 @ pred1, pred2)
+    # Check invariant after readout.
+    assert torch.equal(final1, final2)
 
 
-def test_edge_orient_model_with_relu_is_not_orientation_equivariant():
+def test_edge_orient_model_with_relu_is_not_orientation_equivariant_or_invariant():
     chain1, chain2, T2 = generate_oriented_flow_pair()
     assert torch.equal(chain1.lower_index, chain2.lower_index)
     assert torch.equal(chain1.upper_index, chain2.upper_index)
@@ -120,10 +126,13 @@ def test_edge_orient_model_with_relu_is_not_orientation_equivariant():
 
     _, pred1 = model.forward(ChainBatch.from_chain_list([chain1]), include_partial=True)
     _, pred2 = model.forward(ChainBatch.from_chain_list([chain2]), include_partial=True)
+    # Check not equivariant.
     assert not torch.equal(T2 @ pred1, pred2)
+    # Check not invariant.
+    assert not torch.equal(pred1, pred2)
 
 
-def test_edge_mpnn_model_is_not_orientation_equivariant():
+def test_edge_mpnn_model_is_orientation_invariant():
     chain1, chain2, T2 = generate_oriented_flow_pair()
     assert torch.equal(chain1.lower_index, chain2.lower_index)
     assert torch.equal(chain1.upper_index, chain2.upper_index)
@@ -134,4 +143,6 @@ def test_edge_mpnn_model_is_not_orientation_equivariant():
 
     _, pred1 = model.forward(ChainBatch.from_chain_list([chain1]), include_partial=True)
     _, pred2 = model.forward(ChainBatch.from_chain_list([chain2]), include_partial=True)
-    assert not torch.equal(T2 @ pred1, pred2)
+
+    # Check the model is orientation invariant.
+    assert torch.equal(pred1, pred2)

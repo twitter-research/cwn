@@ -560,8 +560,7 @@ class EdgeMPNN(torch.nn.Module):
         self.lin2.reset_parameters()
 
     def forward(self, data: ChainBatch, include_partial=False):
-        x, jump_x = data.x, None
-        x = torch.abs(x)
+        data.x = torch.abs(data.x)
         for c, conv in enumerate(self.convs):
             x = conv(data)
             data.x = x
