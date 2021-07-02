@@ -10,12 +10,11 @@ from data.datasets.ocean_utils import load_ocean_dataset
 class OceanDataset(InMemoryComplexDataset):
 
     def __init__(self, root, name, load_graph=False, train_orient='default',
-                 test_orient='default', n_jobs=1):
+                 test_orient='default'):
         self.name = name
         self._num_classes = 2
         self._train_orient = train_orient
         self._test_orient = test_orient
-        self._n_jobs = n_jobs
 
         super(OceanDataset, self).__init__(root, max_dim=1,
             num_classes=self._num_classes, include_down_adj=True)

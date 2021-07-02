@@ -581,6 +581,7 @@ class EdgeMPNN(torch.nn.Module):
             x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
+        # This is after abs, so we can now apply any non-linearity (we use ReLU)
         x = torch.relu(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)

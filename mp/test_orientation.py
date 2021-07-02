@@ -7,7 +7,7 @@ from mp.models import EdgeOrient, EdgeMPNN
 from mp.layers import OrientedConv
 from data.complex import ChainBatch
 from data.data_loading import DataLoader
-from data.datasets.flow_utils import build_complex
+from data.datasets.flow_utils import build_chain
 
 
 def generate_oriented_flow_pair():
@@ -31,10 +31,10 @@ def generate_oriented_flow_pair():
 
     x = np.array([[1.0], [0.0], [0.0], [1.0], [1.0], [-1.0]])
     id = np.identity(x.shape[0])
-    T2 = np.diag([+1.0, +1.0, 1.0, 1.0, -1.0, -1.0])
+    T2 = np.diag([+1.0, +1.0, +1.0, +1.0, -1.0, -1.0])
 
-    chain1 = build_complex(B1, B2, id, x, 0)
-    chain2 = build_complex(B1, B2, T2, x, 0)
+    chain1 = build_chain(B1, B2, id, x, 0)
+    chain2 = build_chain(B1, B2, T2, x, 0)
     return chain1, chain2, torch.tensor(T2, dtype=torch.float)
 
 
@@ -44,7 +44,7 @@ def test_edge_orient_model_on_flow_dataset_with_batching():
     np.random.seed(4)
     data_loader = DataLoader(dataset, batch_size=16)
     model = EdgeOrient(num_input_features=1, num_classes=2, num_layers=2, hidden=5)
-    # We use the model in eval mode to avoid problems with batch norm.
+    # We use the model in eval mode to test its inference behavior.
     model.eval()
 
     batched_preds = []
@@ -54,13 +54,13 @@ def test_edge_orient_model_on_flow_dataset_with_batching():
     batched_preds = torch.cat(batched_preds, dim=0)
 
     preds = []
-    for complex in dataset:
-        pred = model.forward(ChainBatch.from_chain_list([complex]))
+    for chain in dataset:
+        pred = model.forward(ChainBatch.from_chain_list([chain]))
         preds.append(pred)
     preds = torch.cat(preds, dim=0)
 
     assert (preds.size() == batched_preds.size())
-    assert torch.allclose(preds, batched_preds, atol=1e-6)
+    assert torch.allclose(preds, batched_preds, atol=1e-5)
 
 
 def test_edge_orient_conv_is_orientation_equivariant():

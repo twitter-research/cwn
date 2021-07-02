@@ -4,11 +4,9 @@ import torch
 import networkx as nx
 import itertools
 
-from tqdm import tqdm
 from scipy.spatial import Delaunay
 from scipy import sparse
 from data.complex import Chain
-
 from data.parallel import ProgressParallel
 from joblib import delayed
 
@@ -232,7 +230,7 @@ def extract_adj_from_boundary(B, G=None):
     return index, orient
 
 
-def build_complex(B1, B2, T2, x, class_id, G=None):
+def build_chain(B1, B2, T2, x, class_id, G=None):
     # Change the orientation of the boundary matrices
     B1 = sparse.csr_matrix(B1).dot(sparse.csr_matrix(T2)).toarray()
     B2 = sparse.csr_matrix(T2).dot(sparse.csr_matrix(B2)).toarray()
@@ -254,7 +252,7 @@ def build_complex(B1, B2, T2, x, class_id, G=None):
     return Chain(dim=1, x=x, **index_dict, y=torch.tensor([class_id]))
 
 
-def generate_flow_complex(class_id, G, B1, B2, T2):
+def generate_flow_chain(class_id, G, B1, B2, T2):
     assert 0 <= class_id <= 1
 
     # Define the start, midpoint and and stop regions for the trajectories.
@@ -267,17 +265,15 @@ def generate_flow_complex(class_id, G, B1, B2, T2):
     # Generate flow
     x, _ = generate_trajectory(start_rect, end_rect, ckpts[class_id], G)
 
-    return build_complex(B1, B2, T2, x, class_id, G)
+    return build_chain(B1, B2, T2, x, class_id, G)
 
 
-def get_orient_matrix(B1, B2, orientation):
-    assert B1.shape[-1] == B2.shape[0]
-    n = B1.shape[-1]
-
+def get_orient_matrix(size, orientation):
+    """Creates a change of orientation operator of the specified size."""
     if orientation == 'default':
-        return np.identity(n)
+        return np.identity(size)
     elif orientation == 'random':
-        diag = 2*np.random.randint(0, 2, size=n) - 1
+        diag = 2*np.random.randint(0, 2, size=size) - 1
         return np.diag(diag).astype(np.long)
     else:
         raise ValueError(f'Unsupported orientation {orientation}')
@@ -316,18 +312,21 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200,
     B1, B2 = extract_boundary_matrices(G)
     classes = 2
 
+    assert B1.shape[1] == B2.shape[0]
+    num_edges = B1.shape[1]
+
     # Process these in parallel because it's slow
     samples_per_class = num_train // classes
     parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=num_train)
-    train_samples = parallel(delayed(generate_flow_complex)(
+    train_samples = parallel(delayed(generate_flow_chain)(
         class_id=min(i // samples_per_class, 1), G=G, B1=B1, B2=B2,
-        T2=get_orient_matrix(B1, B2, train_orientation)) for i in range(num_train))
+        T2=get_orient_matrix(num_edges, train_orientation)) for i in range(num_train))
 
     samples_per_class = num_test // classes
     parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=num_test)
-    test_samples = parallel(delayed(generate_flow_complex)(
+    test_samples = parallel(delayed(generate_flow_chain)(
         class_id=min(i // samples_per_class, 1), G=G, B1=B1, B2=B2,
-        T2=get_orient_matrix(B1, B2, test_orientation)) for i in range(num_test))
+        T2=get_orient_matrix(num_edges, test_orientation)) for i in range(num_test))
 
     return train_samples, test_samples, G
 

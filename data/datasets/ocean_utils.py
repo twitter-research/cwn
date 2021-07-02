@@ -3,11 +3,13 @@ Most functions are adapted from Nicholas Glaze, Rice ECE (nkg2 at rice.edu)
 and the original can be found at https://github.com/nglaze00/SCoNe_GCN/tree/master/ocean_drifters_data
 """
 
+import networkx as nx
+import numpy as np
 import h5py
 import os.path as osp
 import matplotlib.pyplot as plt
+import data.datasets.flow_utils as fu
 
-from data.datasets.flow_utils import *
 from definitions import ROOT_DIR
 from tqdm import tqdm
 
@@ -64,7 +66,7 @@ def incidence_matrices(G, V, E, faces, edge_to_idx):
     B1 = np.array(nx.incidence_matrix(G, nodelist=V, edgelist=E, oriented=True).todense())
     B2 = np.zeros([len(E),len(faces)])
 
-    for f_idx, face in enumerate(faces): # face is sorted
+    for f_idx, face in enumerate(faces):  # face is sorted
         edges = [face[:-1], face[1:], [face[0], face[2]]]
         e_idxs = [edge_to_idx[tuple(e)] for e in edges]
 
@@ -225,15 +227,18 @@ def load_ocean_dataset(train_orient='default', test_orient='default'):
     print('Test Clockwise', sum(1 - labels[test_mask.astype(bool)]))
     print('Test Anticlockwise', sum(labels[test_mask.astype(bool)]))
 
+    assert B1.shape[1] == B2.shape[0]
+    num_edges = B1.shape[1]
+
     train_chains, test_chains = [], []
     for i in tqdm(range(len(flows)), desc='Processing dataset'):
         if train_mask[i] == 1:
-            T2 = get_orient_matrix(B1, B2, train_orient)
-            chain = build_complex(B1, B2, T2, flows[i], labels[i], G_undir)
+            T2 = fu.get_orient_matrix(num_edges, train_orient)
+            chain = fu.build_chain(B1, B2, T2, flows[i], labels[i], G_undir)
             train_chains.append(chain)
         else:
-            T2 = get_orient_matrix(B1, B2, test_orient)
-            chain = build_complex(B1, B2, T2, flows[i], labels[i], G_undir)
+            T2 = fu.get_orient_matrix(num_edges, test_orient)
+            chain = fu.build_chain(B1, B2, T2, flows[i], labels[i], G_undir)
             test_chains.append(chain)
 
     return train_chains, test_chains, G_undir

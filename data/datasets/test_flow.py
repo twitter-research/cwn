@@ -30,11 +30,11 @@ def test_flow_util_dataset_loading():
     # Fix seed for reproducibility
     np.random.seed(0)
 
-    train, test, _ = load_flow_dataset(num_points=300, num_train=10, num_test=10)
-    assert len(train) == 10
+    train, test, _ = load_flow_dataset(num_points=300, num_train=20, num_test=10)
+    assert len(train) == 20
     assert len(test) == 10
 
-    label_count = {0: 0, 1: 0, 2: 0}
+    label_count = {0: 0, 1: 0}
 
     for chain in train + test:
         # checks x values (flow direction) are either +1 or -1
@@ -60,5 +60,5 @@ def test_flow_util_dataset_loading():
         label_count[chain.y.item()] += 1
 
     # checks distribution of labels
-    assert label_count[0] == 10 // 2 + 10 // 2
-    assert label_count[1] == 10 // 2 + 10 // 2
+    assert label_count[0] == 20 // 2 + 10 // 2
+    assert label_count[1] == 20 // 2 + 10 // 2
