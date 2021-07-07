@@ -8,10 +8,12 @@ from data.utils import convert_graph_dataset_with_rings
 
 class RingTransferDataset(InMemoryComplexDataset):
 
-    def __init__(self, root, nodes=10, num_classes=5):
+    def __init__(self, root, nodes=10, train=5000, test=500):
         self.name = 'RING-TRANSFER'
         self._nodes = nodes
         self._num_classes = 5
+        self._train = train
+        self._test = test
 
         super(RingTransferDataset, self).__init__(root, None, None, None,
                                               max_dim=2, cellular=True, num_classes=5)
@@ -42,8 +44,8 @@ class RingTransferDataset(InMemoryComplexDataset):
         pass
 
     def process(self):
-        train = generate_ringtree_graph_dataset(self._nodes, samples=5000)
-        val = generate_ringtree_graph_dataset(self._nodes, samples=500)
+        train = generate_ringtree_graph_dataset(self._nodes, samples=self._train)
+        val = generate_ringtree_graph_dataset(self._nodes, samples=self._test)
         dataset = train + val
 
         train_ids = list(range(len(train)))
@@ -80,9 +82,9 @@ class RingTransferDataset(InMemoryComplexDataset):
         torch.save(idx, path)
 
 
-def load_ring_transfer_dataset(nodes=10, num_classes=5):
-    train = generate_ringtree_graph_dataset(nodes, samples=5000)
-    val = generate_ringtree_graph_dataset(nodes, samples=500)
+def load_ring_transfer_dataset(nodes=10, train=5000, test=500):
+    train = generate_ringtree_graph_dataset(nodes, samples=train)
+    val = generate_ringtree_graph_dataset(nodes, samples=test)
     dataset = train + val
 
     train_ids = list(range(len(train)))

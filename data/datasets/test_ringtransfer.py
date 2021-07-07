@@ -10,15 +10,14 @@ from data.datasets import RingTransferDataset
 from definitions import ROOT_DIR
 
 
-@pytest.mark.runslow
-def test_visualise_ringtree_dataset():
-    dataset = generate_ringtree_graph_dataset(nodes=10, samples=100, classes=5)
-    data = dataset[0]
-
-    graph = convert.to_networkx(data, to_undirected=True)
-    plt.figure()
-    nx.draw_networkx(graph)
-    plt.show()
+# def test_visualise_ringtree_dataset():
+#     dataset = generate_ringtree_graph_dataset(nodes=10, samples=100, classes=5)
+#     data = dataset[0]
+#
+#     graph = convert.to_networkx(data, to_undirected=True)
+#     plt.figure()
+#     nx.draw_networkx(graph)
+#     plt.show()
 
 
 def test_ringtree_dataset_generation():
@@ -51,6 +50,6 @@ def test_ringtree_dataset_conversion():
 
 def test_ringtree_dataset_loading():
     # Test everything runs without errors.
-    root = osp.join(ROOT_DIR, 'RINGTREE')
-    dataset = RingTransferDataset(root=root)
+    root = osp.join(ROOT_DIR, 'datasets', 'RING-TRANSFER')
+    dataset = RingTransferDataset(root=root, train=100, test=20)
     dataset.get(0)
