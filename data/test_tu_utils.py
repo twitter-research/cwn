@@ -98,15 +98,22 @@ def validate_constant_scalar_features(graphs):
         
 # def test_degree_as_tag_on_redditbinary(redditbinary_graphs):
 #     validate_degree_as_tag(redditbinary_graphs)
-    
+
+@pytest.mark.data
 def test_get_fold_indices_on_imdbbinary(imdbbinary_graphs):
     validate_get_fold_indices(imdbbinary_graphs)
-    
+
+
+@pytest.mark.data
 def test_degree_as_tag_on_imdbbinary(imdbbinary_graphs):
     validate_degree_as_tag(imdbbinary_graphs)
-    
+
+
+@pytest.mark.data
 def test_constant_scalar_features_on_imdbbinary_without_tags(imdbbinary_nonattributed_graphs):
     validate_constant_scalar_features(imdbbinary_nonattributed_graphs)
-    
+
+
+@pytest.mark.data
 def test_degree_as_tag_on_proteins(proteins_graphs):
     validate_degree_as_tag(proteins_graphs)

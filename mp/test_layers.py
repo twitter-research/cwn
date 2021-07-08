@@ -8,6 +8,7 @@ from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
 from data.datasets.flow import load_flow_dataset
 
+
 def test_dummy_simplicial_message_passing_with_down_msg():
     house_complex = get_house_complex()
     v_params = house_complex.get_chain_params(dim=0)

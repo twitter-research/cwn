@@ -1,3 +1,4 @@
+import pytest
 import os
 
 from data.data_loading import load_graph_dataset
@@ -25,7 +26,7 @@ def validate_data_retrieval(dataset, graph_list, exp_dim, include_down_adj, ring
         compare_complexes(yielded, expected, include_down_adj)
         
 
-                
+@pytest.mark.data
 def test_data_retrieval_on_proteins():
     dataset = TUDataset(os.path.join(ROOT_DIR, 'datasets', 'PROTEINS'), 'PROTEINS', max_dim=3,
                         num_classes=2, fold=0, degree_as_tag=False, init_method='sum', include_down_adj=True)
@@ -38,6 +39,7 @@ def test_data_retrieval_on_proteins():
     return
 
 
+@pytest.mark.data
 def test_data_retrieval_on_proteins_with_rings():
     dataset = TUDataset(os.path.join(ROOT_DIR, 'datasets', 'PROTEINS'), 'PROTEINS', max_dim=2,
                         num_classes=2, fold=0, degree_as_tag=False, init_method='sum', include_down_adj=True,

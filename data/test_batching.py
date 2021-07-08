@@ -1,4 +1,5 @@
 import torch
+import pytest
 import itertools
 
 from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex, get_square_dot_complex, get_kite_complex
@@ -622,6 +623,7 @@ def test_batching_returns_the_same_features():
                 assert torch.equal(batched_xs[i], xs[i])
 
 
+@pytest.mark.data
 def test_batching_returns_the_same_features_on_proteins():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113
@@ -658,8 +660,9 @@ def test_batching_returns_the_same_features_on_proteins():
             assert xs[i] == batched_xs[i]
         else:
             assert torch.equal(batched_xs[i], xs[i])
-            
-        
+
+
+@pytest.mark.data
 def test_batching_returns_the_same_features_on_ring_proteins():
     dataset = load_dataset('PROTEINS', max_dim=2, fold=0, init_method='mean',
                            max_ring_size=7)
@@ -700,6 +703,7 @@ def test_batching_returns_the_same_features_on_ring_proteins():
             assert torch.equal(batched_xs[i], xs[i])
 
 
+@pytest.mark.data
 def test_batching_returns_the_same_up_attr_on_proteins():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113
@@ -792,6 +796,7 @@ def test_batching_returns_the_same_up_attr():
                 assert torch.equal(xs[i], batched_xs[i])
 
 
+@pytest.mark.data
 def test_batching_returns_the_same_down_attr_on_proteins():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113
@@ -880,6 +885,7 @@ def test_batching_returns_the_same_down_attr():
                 assert torch.equal(xs[i], batched_xs[i])
                 
 
+@pytest.mark.data
 def test_batching_of_face_index_on_proteins():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113
@@ -1013,6 +1019,7 @@ def test_batching_of_face_index():
                 assert torch.equal(xs_simplices[i], batched_xs_simplices[i])
                 
 
+@pytest.mark.data
 def test_data_loader_shuffling():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     data_loader = DataLoader(dataset, batch_size=32)
@@ -1033,6 +1040,7 @@ def test_data_loader_shuffling():
     assert not torch.equal(unshuffled_ys, shuffled_ys)
 
 
+@pytest.mark.data
 def test_idx_splitting_works():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     splits = dataset.get_idx_split()
