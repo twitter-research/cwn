@@ -1,14 +1,18 @@
-# Message Passing Simplicial Networks
+# CW Networks
+
+This repository contains the code used in the experimental section of
+[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575)
+and [Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212)
 
 ## Installation
 
 We use `Python 3.8` and `PyTorch 1.7.0` on `CUDA 10.2` for this project.
-Please follow these steps to prepare the virtual environment needed to run any experiment.
+Please open a terminal window and follow these steps to prepare the virtual environment needed to run any experiment.
 
 Create the environment:
 ```
-conda create --name scn_102 python=3.8
-conda activate scn_102
+conda create --name cwn python=3.8
+conda activate cwn
 ```
 
 Install torch:
@@ -31,54 +35,58 @@ Install graph-tool via conda:
 sh graph-tool_install.sh
 ```
 
-At this point you should be good to go 😈.
+At this point you should be good to go. Please remind to always activate the environment before running any of the commads listed in the following.
 
+## Testing
 
-## Tuning SparseSIN on TU datasets
-
-#### Unpack dataset folder
-
-First and foremost, decompress the dataset folder with:
+We provide a series of Python unit tests that can be conveniently run by `pytest`.
+We suggest running all tests in the repository after installation to verify everything is in place. Simply run:
 ```
-unzip datasets.zip
+pytest .
 ```
-When prompted whether to replace datasets already present in the repository, simply enter `N` (None).
+This command will recursively fetch all unit tests present in the repository and run them. A summary will be printed out in the end. All tests should pass (typically showed in green).
 
-#### Define the search space
+## Experiments on molecular benchmarks
 
-Grids are defined via `yaml` configuration files under `exp/tuning_configurations/`.
-Choose one of them or define a new one following the same scheme as in `exp/tuning_configurations/template.yml`.
+### CIN
 
-#### Prepare the scripts
-
-Open file `./exp/run_tu_tuning.py`. Change global variable `__max_devices__` to the number of GPUs you want to run the tuning on, in parallel. The deafult is `8`.
-
-Open file `./exp/launch_tu_tuning.sh`.
-On lines `2, 3`, specify the device index range on which the tuning will run in parallel. The range must include the same number of devices specified in the step above. For example, if you have set `__max_devices__ = 8`, then specify `lower=0` and `upper=7`.
-Mind that you do have a certain freedom to define how many devices to use and which ones. For example, suppose you have a server with `8` devices, but you want to only use devices `3, 4, 5, 6`, it is sufficient to set `__max_devices__ = 4`, `lower=3`, `upper=6`.
-
-On line `4`, specify the grid you want to use and the folder where to save the results. Change `<path_to_grid>` with the absolute path to the `yaml` file specifying the grid. For example, if this repository is rooted at `/home/ubuntu/git/scn`, and the config file is called `IMDBB_ring_grid.yaml`, then replace `<path_to_grid>` with `/home/ubuntu/git/scn/exp/tuning_configurations/IMDBB_ring_grid.yaml`.
-On line `5`, change `<exp_name>` with the name you want to give to the tuning experiment. This will determine where name of the folder where results will be stored. An example could be `imdbb_20210515_rings`.
-
-#### Launch the jobs
-
-Suggestion: open a `tmux` or `screen` session from where to execute the following commands.
-
-Activate the virtual environment. Open a terminal and run:
+In order to run an experiment on a molecular benchmark simply execute:
 ```
-conda activate scn_102
+sh exp/<benchmark>.sh
 ```
+where `<benchmark>` with one amongst `zinc`, `zinc-full`, `molhiv`.
 
-Then, from the root repository folder, launch the tuning with:
+These shell scripts will run the `exp/run_mol_exp.py` script passing the required parameters for each experiment.
+
+Internally, for a specified range of random seeds, the script will run the trainings sequentially, compute final performance statistics and print them on screen in the end. Additionally, the script will write these results under `exp/results/<BENCHMARK>-<benchmark>/`.
+
+_Note_: before the training starts, the script will download the corresponding graph datasets and perform the appropriate ring-lifting procedure.
+
+### CIN-small
+
+Imposing the parameter budget: in order to run the 'smaller' `CIN` counterparts on these benchmarks, it is sufficient to add the suffix `-small` to the `<benchmark>` placeholder.
 ```
-sh ./exp/launch_tu_tuning.sh
+sh exp/<benchmark>-small.sh`
 ```
+For example, `sh exp/zinc-small.sh` will run the training on ZINC with parameter budget.
 
-At this point the jobs should be running in parallel in the background, and you should see their outputs printed on your terminal window. 
+## SR synthetic experiment
 
-#### Inspect the tuning results
+In order to run an experiment on the SR benchmark, run the following:
+```
+sh exp/sr.sh <k>
+```
+Replacing `<k>` with the a value amongst `4`, `5`, `6` (this corresponds to the maximum ring size employed in the lifting procedure).
+The shell script will internally run the `exp/run_sr_exp.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/sr-<k>/`.
 
-The tuning jobs will write the results under `exp/results/<dataset_name>_tuning_<exp_name>/`.
-You can inspect tuning results via Jupyter Notebook / Lab. Open notebook `exp/analyse_TU_tuning.ipynb`. In the second cell, set the `exp_name` and `dataset` variables. Run all cells.
+_Note_: before the inference starts, the script will perform the appropriate ring-lifting procedure on the SR graphs in the family.
 
-The last cell will print the top-5 scores and the configurations hyperparameters in variable `inspect_args`.
+Finally, the following command will run the MLP-sum (strong) baseline described in the paper:
+```
+sh exp/sr-base.sh
+```
+Results will be written under `exp/results/sr-base-<k>/`.
+
+### Known issues
+
+- Coboundary adjacencies are not supported
