@@ -1,4 +1,5 @@
 import torch
+import pytest
 import itertools
 import numpy as np
 
@@ -186,6 +187,7 @@ def test_sparse_sin0_model_with_batching():
                     print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
+@pytest.mark.data
 def test_sparse_sin0_model_with_batching_on_proteins():
     """Check this runs without errors and that batching and no batching produce the same output."""
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
