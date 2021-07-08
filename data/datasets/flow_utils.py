@@ -3,7 +3,6 @@ import random
 import torch
 import networkx as nx
 import itertools
-import matplotlib.pyplot as plt
 
 from scipy.spatial import Delaunay
 from data.complex import Chain

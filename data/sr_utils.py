@@ -2,8 +2,8 @@ import networkx as nx
 import torch
 from torch_geometric.utils import to_undirected
 
+
 def load_sr_dataset(path):
-    
     nx_graphs = nx.read_graph6(path)
     graphs = list()
     for nx_graph in nx_graphs:

@@ -2,7 +2,6 @@ import torch
 from torch_geometric.data import Data
 from data.utils import compute_connectivity, get_adj_index, compute_clique_complex_with_gudhi
 from data.utils import convert_graph_dataset_with_gudhi, compute_ring_2complex, convert_graph_dataset_with_rings
-from data.ogbg_ppa_utils import draw_ppa_ego, extract_complex
 from torch_sparse import coalesce
 from data.complex import ComplexBatch
 from data.dummy_complexes import convert_to_graph, get_testing_complex_list
@@ -176,31 +175,6 @@ def test_edge_lower_adj(yielded_connectivity, house_edge_lower_adjacency):
     edge_lower_adj, edge_mappings = get_adj_index(all_simplices_by_size[2],  lower_adjacencies[2], 2)
     validate_index(edge_lower_adj, expected_edge_lower_index, edge_mappings, tuples_to_edges)
 
-    return
-
-
-def test_clique_complex(house_edge_index, house_node_upper_adjacency, house_edge_upper_adjacency, house_edge_lower_adjacency):
-
-    # Test the overall construction of a clique-Complex object from a ppa egonet -like structure
-
-    house = Data(edge_index=house_edge_index, edge_attr=torch.ones((house_edge_index.shape[1]), 7))
-    house.num_nodes = house_edge_index.max().item() + 1
-
-    house_complex, upper, lower = extract_complex(house, 0.0, 0.0, max_size=3)
-    expected_node_upper, expected_node_upper_index, tuples_to_nodes = house_node_upper_adjacency
-    expected_edge_upper, expected_edge_upper_index, tuples_to_edges = house_edge_upper_adjacency
-    expected_edge_lower, expected_edge_lower_index, _ = house_edge_lower_adjacency
-    
-    validate_adj_dict(upper[1], expected_node_upper)  # <- node upper adjacency
-    validate_adj_dict(upper[2], expected_edge_upper)  # <- edge upper adjacency
-    validate_adj_dict(lower[2], expected_edge_lower)  # <- edge lower adjacency
-
-    nodes = house_complex.chains[0]
-    edges = house_complex.chains[1]
-    validate_index(nodes.upper_index, expected_node_upper_index, nodes.mapping, tuples_to_nodes)  # <- node upper index
-    validate_index(edges.upper_index, expected_edge_upper_index, edges.mapping, tuples_to_edges)  # <- edge upper index
-    validate_index(edges.lower_index, expected_edge_lower_index, edges.mapping, tuples_to_edges)  # <- edge lower index
-    
     return
 
 

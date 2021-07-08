@@ -1,33 +1,34 @@
-# see https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
+"""
+Code based on https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
+
+Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
+Copyright (c) 2021 The SCN Project Authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
 
 import torch
 import torch.nn.functional as F
-from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN
-from torch_geometric.nn import GINConv, global_mean_pool, global_add_pool, JumpingKnowledge
+from torch.nn import Linear, Sequential, BatchNorm1d as BN
+from torch_geometric.nn import GINConv, JumpingKnowledge
+from mp.nn import get_nonlinearity, get_pooling_fn
 
-def get_nonlinearity(nonlinearity, return_module=True):
-    if nonlinearity=='relu':
-        module = torch.nn.ReLU
-        function = F.relu
-    elif nonlinearity=='elu':
-        module = torch.nn.ELU
-        function = F.elu
-    elif nonlinearity=='id':
-        module = torch.nn.Identity
-        function = lambda x: x
-    else:
-        raise NotImplementError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
-    if return_module:
-        return module
-    return function
-
-def get_pooling_fn(readout):
-    if readout == 'sum':
-        return global_add_pool
-    elif readout == 'mean':
-        return global_mean_pool
-    else:
-        raise NotImplementError('Readout {} is not currently supported.'.format(readout))
 
 class GIN0(torch.nn.Module):
     def __init__(self, num_features, num_layers, hidden, num_classes, readout='sum',
