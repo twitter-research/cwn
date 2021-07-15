@@ -581,7 +581,10 @@ class EdgeMPNN(torch.nn.Module):
             x = torch.abs(x)
         x = self.pooling_fn(x, data.batch, size=batch_size)
 
-        # This is after abs, so we can now apply any non-linearity (we use ReLU)
+        # At this point we have invariance: we can use any non-linearity we like.
+        # Here, independently from previous non-linearities, we choose ReLU.
+        # Note that this makes the model non-linear even when employing identity 
+        # in previous layers.
         x = torch.relu(self.lin1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.lin2(x)
