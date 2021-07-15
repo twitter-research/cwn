@@ -18,7 +18,7 @@ def get_nonlinearity(nonlinearity, return_module=True):
         function = F.sigmoid
     elif nonlinearity == 'tanh':
         module = torch.nn.Tanh
-        function = F.tanh
+        function = torch.tanh
     else:
         raise NotImplementedError('Nonlinearity {} is not currently supported.'.format(nonlinearity))
     if return_module:

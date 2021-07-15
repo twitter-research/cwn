@@ -304,11 +304,10 @@ class SparseSINConv(torch.nn.Module):
         return out
 
 
-# TODO(Cris): Add tests on small complexes for orientation equivariance and invariance.
 class OrientedConv(ChainMessagePassing):
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
-                 update_up_nn: Callable, update_down_nn: Callable, update_nn: Callable, act_fn,
-                 orient=True):
+                 update_up_nn: Optional[Callable], update_down_nn: Optional[Callable],
+                 update_nn: Optional[Callable], act_fn, orient=True):
         super(OrientedConv, self).__init__(up_msg_size, down_msg_size, use_face_msg=False)
         self.dim = dim
         self.update_up_nn = update_up_nn

@@ -4,6 +4,8 @@ from data.dummy_complexes import get_mol_testing_complex_list, convert_to_graph
 from data.utils import convert_graph_dataset_with_rings
 from data.test_dataset import compare_complexes
 
+
+@pytest.mark.slow
 def test_parallel_conversion_returns_same_order():
     
     complexes = get_mol_testing_complex_list()

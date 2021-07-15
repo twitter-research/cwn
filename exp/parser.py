@@ -22,7 +22,7 @@ def get_parser():
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
     parser.add_argument('--indrop_rate', type=float, default=0.0,
                         help='inputs dropout rate for molec models(default: 0.0)')
-    parser.add_argument('--drop_rate', type=float, default=0.5,
+    parser.add_argument('--drop_rate', type=float, default=0.0,
                         help='dropout rate (default: 0.5)')
     parser.add_argument('--drop_position', type=str, default='lin2',
                         help='where to apply the final dropout (default: lin2, i.e. _before_ lin2)')
@@ -90,6 +90,12 @@ def get_parser():
                         help='Number of points to use for the flow experiment')
     parser.add_argument('--flow_classes',  type=int, default=3,
                         help='Number of classes for the flow experiment')
+    parser.add_argument('--train_orient',  type=str, default='default',
+                        help='What orientation to use for the training complexes')
+    parser.add_argument('--test_orient',  type=str, default='default',
+                        help='What orientation to use for the testing complexes')
+    parser.add_argument('--fully_orient_invar',  action='store_true',
+                        help='Whether to apply torch.abs from the first layer')
     parser.add_argument('--use_edge_features', action='store_true',
                         help="Use edge features for molecular graphs")
     parser.add_argument('--simple_features', action='store_true',
@@ -142,3 +148,13 @@ def validate_args(args):
         assert args.readout == 'sum'
         assert args.final_readout == 'sum'
         assert not args.simple_features
+    elif args.dataset == 'FLOW' or args.dataset == 'OCEAN':
+        assert args.model == 'edge_orient' or args.model == 'edge_mpnn'
+        assert args.eval_metric == 'accuracy'
+        assert args.task_type == 'classification'
+        assert args.jump_mode is None
+        assert args.drop_rate == 0.0
+        assert not args.untrained
+        assert not args.simple_features
+        assert not args.minimize
+
