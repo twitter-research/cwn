@@ -1,0 +1,49 @@
+name: Build and Test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: cache conda
+        uses: actions/cache@v2
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+            hashFiles('requirements.txt') }}
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: test
+          python-version: 3.8
+      - name: Set up env
+        run: |
+          conda activate test
+      - name: pytorch
+        run: |
+          pip install torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Install pyG
+        run: |
+          ./pyG_install.sh cpu
+      - name: Install graph-tool
+        run: |
+          conda install -c conda-forge graph-tool==2.29
+      - name: Test with pytest
+        run: |
+          pytest -v
