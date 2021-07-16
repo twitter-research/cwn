@@ -1,5 +1,7 @@
 # CW Networks
 
+![example workflow](https://github.com/twitter-research/scn/actions/workflows/python-package.yml/badge.svg)
+
 This repository contains the code used in the experimental section of
 [Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575)
 and [Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212)
