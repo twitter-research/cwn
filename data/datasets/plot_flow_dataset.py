@@ -14,7 +14,7 @@ def plot_arrow(p1, p2, color='red'):
         shape='full', lw=3, length_includes_head=True, head_width=.01, zorder=10)
 
 
-def test_visualise_flow_dataset():
+def visualise_flow_dataset():
     root = os.path.join(ROOT_DIR, 'datasets')
     name = 'FLOW'
     dataset = FlowDataset(os.path.join(root, name), name, num_points=1000, train_samples=1000,
@@ -73,3 +73,7 @@ def test_visualise_flow_dataset():
     #         plot_arrow(points[source_points[0]], points[source_points[1]], color=color)
 
     plt.show()
+
+
+if __name__ == "__main__":
+    visualise_flow_dataset()

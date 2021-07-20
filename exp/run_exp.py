@@ -13,7 +13,7 @@ from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
 from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
 from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
-from mp.ring_models import RingSparseSIN, RingGIN
+from mp.ring_exp_models import RingSparseSIN, RingGIN
 
 
 def main(args):

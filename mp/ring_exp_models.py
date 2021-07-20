@@ -77,6 +77,7 @@ class RingGIN(torch.nn.Module):
         conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         self.init_linear = Linear(num_features, num_features)
 
+        # BN is needed to make GIN work empirically beyond 2 layers for the ring experiments.
         self.conv1 = GINConv(
             Sequential(
                 Linear(num_features, hidden),
@@ -102,6 +103,7 @@ class RingGIN(torch.nn.Module):
         self.lin1 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
+        self.init_linear.reset_parameters()
         self.conv1.reset_parameters()
         for conv in self.convs:
             conv.reset_parameters()
