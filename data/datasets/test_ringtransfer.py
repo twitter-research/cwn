@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os.path as osp
 import pytest
 
-from data.datasets.ring_utils import generate_ringtree_graph_dataset
+from data.datasets.ring_utils import generate_ring_transfer_graph_dataset
 from data.utils import convert_graph_dataset_with_rings
 from torch_geometric.utils import convert
 from data.datasets import RingTransferDataset
@@ -21,7 +21,7 @@ from definitions import ROOT_DIR
 
 
 def test_ringtree_dataset_generation():
-    dataset = generate_ringtree_graph_dataset(nodes=10, samples=100)
+    dataset = generate_ring_transfer_graph_dataset(nodes=10, samples=100)
     labels = dict()
     for data in dataset:
         assert data.edge_index.min() == 0
@@ -37,7 +37,7 @@ def test_ringtree_dataset_generation():
 
 
 def test_ringtree_dataset_conversion():
-    dataset = generate_ringtree_graph_dataset(nodes=10, samples=100)
+    dataset = generate_ring_transfer_graph_dataset(nodes=10, samples=100)
     complexes, _, _ = convert_graph_dataset_with_rings(dataset, max_ring_size=10,
                                                        include_down_adj=False)
 

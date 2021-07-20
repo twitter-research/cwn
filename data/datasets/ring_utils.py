@@ -6,6 +6,7 @@ from torch_geometric.data import Data
 from sklearn.preprocessing import LabelBinarizer
 
 
+# TODO: Add a graph dataset for ring lookup.
 def generate_ring_lookup_graph(nodes):
     """This generates a dictionary lookup ring. No longer being used for now."""
     # Assign all the other nodes in the ring a unique key and value
@@ -29,7 +30,6 @@ def generate_ring_lookup_graph(nodes):
 
     edge_index = []
     for i in range(nodes-1):
-        # Add in one direction
         edge_index.append([i, i + 1])
         edge_index.append([i + 1, i])
 
@@ -58,13 +58,11 @@ def generate_ringlookup_graph_dataset(nodes, samples=10000):
     return dataset
 
 
-def generate_ringtree_graph(nodes, target_label):
+def generate_ring_transfer_graph(nodes, target_label):
     opposite_node = nodes // 2
 
-    # Initialise the feature matrix. All nodes have random features except the target and the opp.
-    # The target has [0, ..., 0] while the opposite has the one-hot encoded target label
-    # x = np.random.standard_normal(size=(nodes, len(target_label)))
-    # x = np.zeros((nodes, len(target_label)))
+    # Initialise the feature matrix with a constant feature vector
+    # TODO: Modify the experiment to use another random constant feature per graph
     x = np.ones((nodes, len(target_label)))
 
     x[0, :] = 0.0
@@ -73,7 +71,6 @@ def generate_ringtree_graph(nodes, target_label):
 
     edge_index = []
     for i in range(nodes-1):
-        # Add in one direction
         edge_index.append([i, i + 1])
         edge_index.append([i + 1, i])
 
@@ -93,7 +90,7 @@ def generate_ringtree_graph(nodes, target_label):
     return Data(x=x, edge_index=edge_index, mask=mask, y=y)
 
 
-def generate_ringtree_graph_dataset(nodes, classes=5, samples=10000):
+def generate_ring_transfer_graph_dataset(nodes, classes=5, samples=10000):
     # Generate the dataset
     dataset = []
     samples_per_class = samples // classes
@@ -101,6 +98,6 @@ def generate_ringtree_graph_dataset(nodes, classes=5, samples=10000):
         label = i // samples_per_class
         target_class = np.zeros(classes)
         target_class[label] = 1.0
-        graph = generate_ringtree_graph(nodes, target_class)
+        graph = generate_ring_transfer_graph(nodes, target_class)
         dataset.append(graph)
     return dataset

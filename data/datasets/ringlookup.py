@@ -72,7 +72,6 @@ class RingLookupDataset(InMemoryComplexDataset):
         print(f'Saving processed dataset in {path}....')
         torch.save(self.collate(complexes, 2), path)
 
-        # We use the same train and validation sets
         idx = [train_ids, val_ids, None]
 
         path = self.processed_paths[1]
@@ -80,7 +79,7 @@ class RingLookupDataset(InMemoryComplexDataset):
         torch.save(idx, path)
 
 
-def load_ring_lookup_dataset(nodes=10, num_classes=5):
+def load_ring_lookup_dataset(nodes=10):
     train = generate_ringlookup_graph_dataset(nodes, samples=10000)
     val = generate_ringlookup_graph_dataset(nodes, samples=1000)
     dataset = train + val
@@ -88,5 +87,4 @@ def load_ring_lookup_dataset(nodes=10, num_classes=5):
     train_ids = list(range(len(train)))
     val_ids = list(range(len(train), len(train) + len(val)))
 
-    # We use the same ids for train and val in this dataset
     return dataset, train_ids, val_ids, None

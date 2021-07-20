@@ -127,7 +127,7 @@ def main(args):
                     ).to(device)
     elif args.model == 'ring_sparse_sin':
         model = RingSparseSIN(
-                     dataset.num_features_in_dim(0),     # This line generates an error
+                     dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden

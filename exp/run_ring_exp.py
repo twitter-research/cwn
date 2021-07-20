@@ -21,6 +21,7 @@ def exp_main(passed_args):
 
     # run each experiment separately and gather results
     results = list()
+    # We use the ring_size as a "fold" for the dataset. This is just a trick to save the results.
     for fold in range(len(ring_size)):
         max_ring_size = ring_size[fold]
         num_layers = 3 if args.model == 'ring_sparse_sin' else max_ring_size // 2

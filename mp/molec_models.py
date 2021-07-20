@@ -56,7 +56,7 @@ class EmbedSparseSIN(torch.nn.Module):
                     msg_up_nn=None, inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=False, use_cofaces=use_cofaces)) # TODO: turn this into a less hacky trick
+                    apply_norm=False, use_cofaces=use_cofaces))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -211,7 +211,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
                     msg_up_nn=None, inp_update_up_nn=None,
                     inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=False, use_cofaces=use_cofaces)) # TODO: turn this into a less hacky trick
+                    apply_norm=False, use_cofaces=use_cofaces))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -359,7 +359,7 @@ class EmbedSparseSINNoRings(torch.nn.Module):
                               inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                               hidden=hidden, act_module=act_module, layer_dim=layer_dim,
                               apply_norm=(embed_dim > 1),
-                              use_cofaces=use_cofaces))  # TODO: turn this into a less hacky trick
+                              use_cofaces=use_cofaces))
         self.lin1s = torch.nn.ModuleList()
         for _ in range(self.max_dim + 1):
             self.lin1s.append(Linear(hidden, final_hidden_multiplier * hidden))

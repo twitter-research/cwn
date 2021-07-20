@@ -2,7 +2,7 @@ import torch
 import os.path as osp
 
 from data.datasets import InMemoryComplexDataset
-from data.datasets.ring_utils import generate_ringtree_graph_dataset
+from data.datasets.ring_utils import generate_ring_transfer_graph_dataset
 from data.utils import convert_graph_dataset_with_rings
 
 
@@ -44,8 +44,10 @@ class RingTransferDataset(InMemoryComplexDataset):
         pass
 
     def process(self):
-        train = generate_ringtree_graph_dataset(self._nodes, samples=self._train)
-        val = generate_ringtree_graph_dataset(self._nodes, samples=self._test)
+        train = generate_ring_transfer_graph_dataset(self._nodes, classes=self._num_classes,
+            samples=self._train)
+        val = generate_ring_transfer_graph_dataset(self._nodes, classes=self._num_classes,
+            samples=self._test)
         dataset = train + val
 
         train_ids = list(range(len(train)))
@@ -74,7 +76,6 @@ class RingTransferDataset(InMemoryComplexDataset):
         print(f'Saving processed dataset in {path}....')
         torch.save(self.collate(complexes, 2), path)
 
-        # We use the same train and validation sets
         idx = [train_ids, val_ids, None]
 
         path = self.processed_paths[1]
@@ -83,12 +84,11 @@ class RingTransferDataset(InMemoryComplexDataset):
 
 
 def load_ring_transfer_dataset(nodes=10, train=5000, test=500):
-    train = generate_ringtree_graph_dataset(nodes, samples=train)
-    val = generate_ringtree_graph_dataset(nodes, samples=test)
+    train = generate_ring_transfer_graph_dataset(nodes, samples=train)
+    val = generate_ring_transfer_graph_dataset(nodes, samples=test)
     dataset = train + val
 
     train_ids = list(range(len(train)))
     val_ids = list(range(len(train), len(train) + len(val)))
 
-    # We use the same ids for train and val in this dataset
     return dataset, train_ids, val_ids, None

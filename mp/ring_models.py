@@ -9,7 +9,7 @@ from torch_geometric.nn import GINConv
 
 class RingSparseSIN(torch.nn.Module):
     """
-    A simplicial version of GIN.
+    A simple cellular version of GIN employed for Ring experiments.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -36,6 +36,7 @@ class RingSparseSIN(torch.nn.Module):
         self.lin1 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
+        self.init_layer.reset_parameters()
         for conv in self.convs:
             conv.reset_parameters()
         self.lin1.reset_parameters()
