@@ -138,8 +138,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = OceanDataset(os.path.join(root, name), name, train_orient=kwargs['train_orient'],
             test_orient=kwargs['test_orient'])
     elif name == 'RING-TRANSFER':
-        dataset = RingTransferDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'],
-            num_classes=5)
+        dataset = RingTransferDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'])
     elif name == 'RING-LOOKUP':
         dataset = RingLookupDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'])
     elif name == 'ZINC':
