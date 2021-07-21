@@ -2,10 +2,10 @@ import torch
 import torch.nn.functional as F
 
 from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
-from torch_geometric.nn import global_mean_pool, global_add_pool, JumpingKnowledge
+from torch_geometric.nn import JumpingKnowledge
 from mp.layers import (
     SINConv, EdgeSINConv, SparseSINConv, DummySimplicialMessagePassing, OrientedConv)
-from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex
+from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex, get_graph_norm
 from data.complex import Complex, ComplexBatch, ChainBatch
 
 
@@ -121,7 +121,8 @@ class SparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum',
                  train_eps=False, final_hidden_multiplier: int = 2, use_cofaces=False,
-                 readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2'):
+                 readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
+                 graph_norm='bn'):
         super(SparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -136,29 +137,17 @@ class SparseSIN(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
         self.pooling_fn = get_pooling_fn(readout)
+        self.graph_norm = get_graph_norm(graph_norm)
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
-            # Instantiate message / update functions here if you want them to be
-            # shared across dimensions. See the example below:
-            # conv_update_up = Sequential(
-            #     Linear(layer_dim, hidden),
-            #     act_module(),
-            #     Linear(hidden, hidden),
-            #     act_module())
-            # conv_update_faces = Sequential(
-            #     Linear(layer_dim, hidden),
-            #     act_module(),
-            #     Linear(hidden, hidden),
-            #     act_module())
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     face_msg_size=layer_dim, msg_faces_nn=None, msg_up_nn=None,
-                    inp_update_up_nn=None, inp_update_faces_nn=None,
+                    update_up_nn=None, update_faces_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=(num_input_features>1), use_cofaces=use_cofaces))
-            # TODO: turn apply_norm into a less hacky trick
+                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):

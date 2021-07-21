@@ -124,7 +124,8 @@ def main(args):
                      final_readout=args.final_readout,        # final readout
                      apply_dropout_before=args.drop_position, # where to apply dropout
                      use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
-                    ).to(device)
+                     graph_norm=args.graph_norm,              # normalization layer
+        ).to(device)
     elif args.model == 'ring_sparse_sin':
         model = RingSparseSIN(
                      dataset.num_features_in_dim(0),          # num_input_features
@@ -134,6 +135,7 @@ def main(args):
                      max_dim=dataset.max_dim,                 # max_dim
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
+                     graph_norm=args.graph_norm,              # normalization layer
                     ).to(device)
     elif args.model == 'gin':
         model = GIN0(num_features,                            # num_input_features
@@ -143,14 +145,15 @@ def main(args):
                      dropout_rate=args.drop_rate,             # dropout rate
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
-                    ).to(device)
+        ).to(device)
     elif args.model == 'gin_ring':
-        model = RingGIN(num_features,                            # num_input_features
+        model = RingGIN(num_features,                                # num_input_features
                             args.num_layers,                         # num_layers
                             args.emb_dim,                            # hidden
                             num_classes,                             # num_classes
                             nonlinearity=args.nonlinearity,          # nonlinearity
-                            ).to(device)
+                            graph_norm=args.graph_norm,              # normalization layer
+        ).to(device)
     elif args.model == 'gin_jk':
         model = GINWithJK(num_features,                       # num_input_features
                      args.num_layers,                         # num_layers
@@ -159,7 +162,7 @@ def main(args):
                      dropout_rate=args.drop_rate,             # dropout rate
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
-                    ).to(device)
+        ).to(device)
     elif args.model == 'mp_agnostic':
         model = MessagePassingAgnostic(
                      dataset.num_features_in_dim(0),          # num_input_features
@@ -211,8 +214,9 @@ def main(args):
                                final_readout=args.final_readout,  # final readout
                                apply_dropout_before=args.drop_position,  # where to apply dropout
                                use_cofaces=use_cofaces,
-                               embed_edge=args.use_edge_features
-                               ).to(device)
+                               embed_edge=args.use_edge_features,
+                               graph_norm=args.graph_norm,  # normalization layer
+        ).to(device)
     elif args.model == 'embed_sparse_sin_no_rings':
         model = EmbedSparseSINNoRings(dataset.num_node_type,  # The number of atomic types
                                       dataset.num_edge_type,  # The number of bond types
@@ -225,8 +229,9 @@ def main(args):
                                       final_readout=args.final_readout,  # final readout
                                       apply_dropout_before=args.drop_position,  # where to apply dropout
                                       use_cofaces=use_cofaces,
-                                      embed_edge=args.use_edge_features
-                                      ).to(device)
+                                      embed_edge=args.use_edge_features,
+                                      graph_norm=args.graph_norm,  # normalization layer
+        ).to(device)
     elif args.model == 'embed_gin':
         model = EmbedGIN(dataset.num_node_type,  # The number of atomic types
                          dataset.num_edge_type,  # The number of bond types
@@ -237,8 +242,8 @@ def main(args):
                          nonlinearity=args.nonlinearity,  # nonlinearity
                          readout=args.readout,  # readout
                          apply_dropout_before=args.drop_position,  # where to apply dropout
-                         embed_edge=args.use_edge_features
-                        ).to(device)
+                         embed_edge=args.use_edge_features,
+        ).to(device)
     # TODO: handle this as above
     elif args.model == 'ogb_embed_sparse_sin':
         model = OGBEmbedSparseSIN(dataset.num_tasks,                       # out_size
@@ -253,8 +258,9 @@ def main(args):
                                   final_readout=args.final_readout,        # final readout
                                   apply_dropout_before=args.drop_position, # where to apply dropout
                                   use_cofaces=use_cofaces,                 # whether to use cofaces
-                                  embed_edge=args.use_edge_features        # whether to use edge feats
-                                  ).to(device)
+                                  embed_edge=args.use_edge_features,       # whether to use edge feats
+                                  graph_norm=args.graph_norm,              # normalization layer
+        ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
 

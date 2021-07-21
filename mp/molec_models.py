@@ -6,7 +6,7 @@ from torch_geometric.nn import JumpingKnowledge, GINEConv
 from mp.layers import InitReduceConv, EmbedVEWithReduce, OGBEmbedVEWithReduce, SparseSINConv
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 from data.complex import ComplexBatch
-from mp.nn import pool_complex, get_pooling_fn, get_nonlinearity
+from mp.nn import pool_complex, get_pooling_fn, get_nonlinearity, get_graph_norm
 
 
 class EmbedSparseSIN(torch.nn.Module):
@@ -21,7 +21,8 @@ class EmbedSparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False,
+                 graph_norm='bn'):
         super(EmbedSparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -47,16 +48,17 @@ class EmbedSparseSIN(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
         self.readout = readout
+        self.graph_norm = get_graph_norm(graph_norm)
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     face_msg_size=layer_dim, msg_faces_nn=None,
-                    msg_up_nn=None, inp_update_up_nn=None,
-                    inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                    msg_up_nn=None, update_up_nn=None,
+                    update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=False, use_cofaces=use_cofaces))
+                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -175,7 +177,8 @@ class OGBEmbedSparseSIN(torch.nn.Module):
                  indropout_rate: float = 0.0, max_dim: int = 2, jump_mode=None,
                  nonlinearity='relu', readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False,
+                 graph_norm='bn'):
         super(OGBEmbedSparseSIN, self).__init__()
 
         self.max_dim = max_dim
@@ -203,15 +206,16 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         self.nonlinearity = nonlinearity
         self.readout = readout
         act_module = get_nonlinearity(nonlinearity, return_module=True)
+        self.graph_norm = get_graph_norm(graph_norm)
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     face_msg_size=layer_dim, msg_faces_nn=None,
-                    msg_up_nn=None, inp_update_up_nn=None,
-                    inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                    msg_up_nn=None, update_up_nn=None,
+                    update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=False, use_cofaces=use_cofaces))
+                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -327,7 +331,8 @@ class EmbedSparseSINNoRings(torch.nn.Module):
                  dropout_rate: float = 0.5, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False):
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False,
+                 graph_norm='bn'):
         super(EmbedSparseSINNoRings, self).__init__()
 
         self.max_dim = 1
@@ -349,17 +354,18 @@ class EmbedSparseSINNoRings(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
         self.readout = readout
+        self.graph_norm = get_graph_norm(graph_norm)
+
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                               face_msg_size=layer_dim, msg_faces_nn=None,
-                              msg_up_nn=None, inp_update_up_nn=None,
-                              inp_update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                              msg_up_nn=None, update_up_nn=None,
+                              update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                               hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                              apply_norm=(embed_dim > 1),
-                              use_cofaces=use_cofaces))
+                              graph_norm=self.graph_norm, use_cofaces=use_cofaces))
         self.lin1s = torch.nn.ModuleList()
         for _ in range(self.max_dim + 1):
             self.lin1s.append(Linear(hidden, final_hidden_multiplier * hidden))

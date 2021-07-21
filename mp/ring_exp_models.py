@@ -1,7 +1,7 @@
 import torch
 
 from mp.layers import SparseSINConv
-from mp.nn import get_nonlinearity
+from mp.nn import get_nonlinearity, get_graph_norm
 from data.complex import ComplexBatch
 from torch.nn import Linear, Sequential, BatchNorm1d as BN
 from torch_geometric.nn import GINConv
@@ -16,23 +16,27 @@ class RingSparseSIN(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 max_dim: int = 2, nonlinearity='relu', train_eps=False, use_cofaces=False):
+                 max_dim: int = 2, nonlinearity='relu', train_eps=False, use_cofaces=False,
+                 graph_norm='id'):
         super(RingSparseSIN, self).__init__()
 
         self.max_dim = max_dim
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
+        self.graph_norm = graph_norm
         self.init_layer = Linear(num_input_features, num_input_features)
         act_module = get_nonlinearity(nonlinearity, return_module=True)
+        self.graph_norm = get_graph_norm(graph_norm)
+
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     face_msg_size=layer_dim, msg_faces_nn=None, msg_up_nn=None,
-                    inp_update_up_nn=None, inp_update_faces_nn=None,
+                    update_up_nn=None, update_faces_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    apply_norm=False, use_cofaces=use_cofaces))
+                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
         self.lin1 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
@@ -71,20 +75,22 @@ class RingSparseSIN(torch.nn.Module):
 
 
 class RingGIN(torch.nn.Module):
-    def __init__(self, num_features, num_layers, hidden, num_classes, nonlinearity='relu'):
+    def __init__(self, num_features, num_layers, hidden, num_classes, nonlinearity='relu',
+                 graph_norm='bn'):
         super(RingGIN, self).__init__()
         self.nonlinearity = nonlinearity
         conv_nonlinearity = get_nonlinearity(nonlinearity, return_module=True)
         self.init_linear = Linear(num_features, num_features)
+        self.graph_norm = get_graph_norm(graph_norm)
 
         # BN is needed to make GIN work empirically beyond 2 layers for the ring experiments.
         self.conv1 = GINConv(
             Sequential(
                 Linear(num_features, hidden),
-                BN(hidden),
+                self.graph_norm(hidden),
                 conv_nonlinearity(),
                 Linear(hidden, hidden),
-                BN(hidden),
+                self.graph_norm(hidden),
                 conv_nonlinearity(),
             ), train_eps=False)
 
@@ -94,10 +100,10 @@ class RingGIN(torch.nn.Module):
                 GINConv(
                     Sequential(
                         Linear(hidden, hidden),
-                        BN(hidden),
+                        self.graph_norm(hidden),
                         conv_nonlinearity(),
                         Linear(hidden, hidden),
-                        BN(hidden),
+                        self.graph_norm(hidden),
                         conv_nonlinearity(),
                     ), train_eps=False))
         self.lin1 = Linear(hidden, num_classes)

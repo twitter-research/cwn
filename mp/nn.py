@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import global_mean_pool, global_add_pool
+from torch.nn import BatchNorm1d as BN, LayerNorm as LN, Identity
 
 
 def get_nonlinearity(nonlinearity, return_module=True):
@@ -33,6 +34,17 @@ def get_pooling_fn(readout):
         return global_mean_pool
     else:
         raise NotImplementedError('Readout {} is not currently supported.'.format(readout))
+
+
+def get_graph_norm(norm):
+    if norm == 'bn':
+        return BN
+    elif norm == 'ln':
+        return LN
+    elif norm == 'id':
+        return Identity
+    else:
+        raise ValueError(f'Graph Normalisation {norm} not currently supported')
 
 
 def pool_complex(xs, data, max_dim, readout_type):

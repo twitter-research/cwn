@@ -1,5 +1,4 @@
 import os.path as osp
-import pytest
 
 from data.datasets.ring_utils import generate_ring_transfer_graph_dataset
 from data.utils import convert_graph_dataset_with_rings
@@ -48,5 +47,5 @@ def test_ringtree_dataset_conversion():
 def test_ringtree_dataset_loading():
     # Test everything runs without errors.
     root = osp.join(ROOT_DIR, 'datasets', 'RING-TRANSFER')
-    dataset = RingTransferDataset(root=root, train=100, test=20)
+    dataset = RingTransferDataset(root=root, train=20, test=10)
     dataset.get(0)

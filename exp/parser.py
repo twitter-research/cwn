@@ -34,6 +34,8 @@ def get_parser():
                         help='final readout function (default: sum)')
     parser.add_argument('--jump_mode', type=str, default=None,
                         help='Mode for JK (default: None, i.e. no JK)')
+    parser.add_argument('--graph_norm', type=str, default='bn', choices=['bn', 'ln', 'id'],
+                        help='Normalization layer to use inside the model')
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate (default: 0.001)')
     parser.add_argument('--lr_scheduler', type=str, default='StepLR',
@@ -110,7 +112,6 @@ def get_parser():
 
 
 def validate_args(args):
-    # TODO(Cris): Add more detailed validation for more datasets in the future
     if args.dataset == 'CSL':
         assert args.model == 'embed_sparse_sin'
         assert args.task_type == 'classification'
@@ -119,6 +120,7 @@ def validate_args(args):
         assert args.eval_metric == 'accuracy'
         assert args.fold is not None
         assert not args.simple_features
+        assert args.graph_norm == 'ln'
     elif args.dataset == 'RING-TRANSFER' or args.dataset == 'RING-LOOKUP':
         assert args.model == 'ring_sparse_sin' or args.model == 'gin_ring'
         assert args.task_type == 'classification'
@@ -128,6 +130,10 @@ def validate_args(args):
         assert args.fold is None
         assert not args.simple_features
         assert args.max_ring_size is not None and args.max_ring_size > 3
+        if args.model == 'ring_sparse_sin':
+            assert args.graph_norm == 'id'
+        if args.model == 'gin_ring':
+            assert args.graph_norm == 'bn'
     elif args.dataset.startswith('ZINC'):
         assert args.model.startswith('embed')
         assert args.task_type == 'regression'
