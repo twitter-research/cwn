@@ -204,7 +204,7 @@ class SparseSINChainConv(ChainMessagePassing):
         return self.msg_up_nn((up_x_j, up_attr))
     
     def message_face(self, face_x_j: Tensor) -> Tensor:
-        return self.msg_up_faces(face_x_j)
+        return self.msg_faces_nn(face_x_j)
     
 
 class Catter(torch.nn.Module):
