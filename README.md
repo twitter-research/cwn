@@ -6,7 +6,7 @@ This repository contains the code used for the papers
 [Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (Under review)
 and [Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212) (ICML 2021)
 
-![alt text](./figures/glue_disks.jpeg) ![alt text](./figures/sphere.jpeg)
+![alt text](./figures/glue_disks.jpeg)&nbsp;  ![alt text](./figures/sphere.jpeg)
 
 ## Installation
 
