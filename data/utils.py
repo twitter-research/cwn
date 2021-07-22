@@ -359,7 +359,7 @@ def extract_boundaries_and_coboundaries_from_simplex_tree(simplex_tree, id_maps,
 
         # This operation should be roughly be O(dim_complex), so that is very efficient for us.
         # For details see pages 6-7 https://hal.inria.fr/hal-00707901v1/document
-        simplex_coboundaries = simplex_tree.get_coboundaries(simplex, codimension=1)
+        simplex_coboundaries = simplex_tree.get_cofaces(simplex, codimension=1)
         for coboundary, _ in simplex_coboundaries:
             assert len(coboundary) == len(simplex) + 1
 
