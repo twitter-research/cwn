@@ -583,7 +583,7 @@ class Complex(object):
         self.chains = {i: chains[i] for i in range(dimension + 1)}
         self.nodes = chains[0]
         self.edges = chains[1] if dimension >= 1 else None
-        self.triangles = chains[2] if dimension >= 2 else None
+        self.two_cells = chains[2] if dimension >= 2 else None
 
         self.y = y  # complex-wise label for complex-level tasks
         
