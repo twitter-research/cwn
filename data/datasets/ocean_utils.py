@@ -87,7 +87,7 @@ def incidence_matrices(G, V, E, faces, edge_to_idx):
     B2 = np.zeros([len(E),len(faces)])
 
     for f_idx, face in enumerate(faces):  # face is sorted
-        edges = [face[:-1], face[1:], [face[0], face[2]]]
+        edges = [boundary[:-1], boundary[1:], [boundary[0], boundary[2]]]
         e_idxs = [edge_to_idx[tuple(e)] for e in edges]
 
         B2[e_idxs[:-1], f_idx] = 1

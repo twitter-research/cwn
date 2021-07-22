@@ -75,7 +75,7 @@ class ChainMessagePassing(torch.nn.Module):
                  up_msg_size, down_msg_size,
                  aggr_up: Optional[str] = "add",
                  aggr_down: Optional[str] = "add",
-                 aggr_face: Optional[str] = "add",
+                 aggr_boundary: Optional[str] = "add",
                  flow: str = "source_to_target", node_dim: int = -2,
                  boundary_msg_size=None, use_down_msg=True, use_boundary_msg=True):
 
@@ -89,7 +89,7 @@ class ChainMessagePassing(torch.nn.Module):
         self.boundary_msg_size = down_msg_size if boundary_msg_size is None else boundary_msg_size
         self.aggr_up = aggr_up
         self.aggr_down = aggr_down
-        self.aggr_boundary = aggr_face
+        self.aggr_boundary = aggr_boundary
         assert self.aggr_up in ['add', 'mean', 'max', None]
         assert self.aggr_down in ['add', 'mean', 'max', None]
 
@@ -106,31 +106,31 @@ class ChainMessagePassing(torch.nn.Module):
         # I presume this doesn't pop first to avoid including the self parameter multiple times.
         self.inspector.inspect(self.message_up)
         self.inspector.inspect(self.message_down)
-        self.inspector.inspect(self.message_face)
+        self.inspector.inspect(self.message_boundary)
         self.inspector.inspect(self.aggregate_up, pop_first_n=1)
         self.inspector.inspect(self.aggregate_down, pop_first_n=1)
-        self.inspector.inspect(self.aggregate_face, pop_first_n=1)
+        self.inspector.inspect(self.aggregate_`boundary, pop_first_n=1)
         self.inspector.inspect(self.message_and_aggregate_up, pop_first_n=1)
         self.inspector.inspect(self.message_and_aggregate_down, pop_first_n=1)
-        self.inspector.inspect(self.message_and_aggregate_face, pop_first_n=1)
+        self.inspector.inspect(self.message_and_aggregate_boundary, pop_first_n=1)
         self.inspector.inspect(self.update, pop_first_n=3)
 
         # Return the parameter name for these functions minus those specified in special_args
         # TODO(Cris): Split user args by type of adjacency to make sure no bugs are introduced.
         self.__user_args__ = self.inspector.keys(
-            ['message_up', 'message_down', 'message_face', 'aggregate_up',
-             'aggregate_down', 'aggregate_face']).difference(self.special_args)
+            ['message_up', 'message_down', 'message_boundary', 'aggregate_up',
+             'aggregate_down', 'aggregate_boundary']).difference(self.special_args)
         self.__fused_user_args__ = self.inspector.keys(
             ['message_and_aggregate_up',
              'message_and_aggregate_down',
-             'message_and_aggregate_face']).difference(self.special_args)
+             'message_and_aggregate_boundary']).difference(self.special_args)
         self.__update_user_args__ = self.inspector.keys(
             ['update']).difference(self.special_args)
 
         # Support for "fused" message passing.
         self.fuse_up = self.inspector.implements('message_and_aggregate_up')
         self.fuse_down = self.inspector.implements('message_and_aggregate_down')
-        self.fuse_boundary = self.inspector.implements('message_and_aggregate_face')
+        self.fuse_boundary = self.inspector.implements('message_and_aggregate_boundary')
 
     def __check_input_together__(self, index_up, index_down, size_up, size_down):
         # If we have both up and down adjacency, then check the sizes agree.
@@ -197,7 +197,7 @@ class ChainMessagePassing(torch.nn.Module):
 
     def __collect__(self, args, index, size, adjacency, kwargs):
         i, j = (1, 0) if self.flow == 'source_to_target' else (0, 1)
-        assert adjacency in ['up', 'down', 'face']
+        assert adjacency in ['up', 'down', 'boundary']
 
         out = {}
         for arg in args:
@@ -214,7 +214,7 @@ class ChainMessagePassing(torch.nn.Module):
                 elif adjacency == 'down' and arg.startswith('down_'):
                     data = kwargs.get(arg[5:-2], Parameter.empty)
                     size_data = data
-                elif adjacency == 'face' and arg.startswith('boundary_'):
+                elif adjacency == 'boundary' and arg.startswith('boundary_'):
                     if dim == 0:
                         # We need to use the boundary attribute matrix (i.e. boundary_attr) for the features
                         # And we need to use the x matrix to extract the number of parent cells
@@ -275,7 +275,7 @@ class ChainMessagePassing(torch.nn.Module):
             return self.message_and_aggregate_up
         if adjacency == 'down':
             return self.message_and_aggregate_down
-        elif adjacency == 'face':
+        elif adjacency == 'boundary':
             return self.message_and_aggregate_boundaries
         else:
             return None
@@ -285,8 +285,8 @@ class ChainMessagePassing(torch.nn.Module):
             return self.message_up
         elif adjacency == 'down':
             return self.message_down
-        elif adjacency == 'face':
-            return self.message_face
+        elif adjacency == 'boundary':
+            return self.message_boundary
         else:
             return None
 
@@ -295,8 +295,8 @@ class ChainMessagePassing(torch.nn.Module):
             return self.aggregate_up
         elif adjacency == 'down':
             return self.aggregate_down
-        elif adjacency == 'face':
-            return self.aggregate_face
+        elif adjacency == 'boundary':
+            return self.aggregate_boundary
         else:
             return None
 
@@ -305,8 +305,8 @@ class ChainMessagePassing(torch.nn.Module):
             return self.fuse_up
         elif adjacency == 'down':
             return self.fuse_down
-        elif adjacency == 'face':
-            return self.fuse_face
+        elif adjacency == 'boundary':
+            return self.fuse_boundary
         else:
             return None
 
@@ -314,7 +314,7 @@ class ChainMessagePassing(torch.nn.Module):
                                   adjacency: str,
                                   size: List[Optional[int]] = None,
                                   **kwargs):
-        assert adjacency in ['up', 'down', 'face']
+        assert adjacency in ['up', 'down', 'boundary']
 
         # Fused message and aggregation
         fuse = self.get_fuse_boolean(adjacency)
@@ -370,7 +370,7 @@ class ChainMessagePassing(torch.nn.Module):
         # boundary messaging and aggregation
         boundary_out = None
         if self.use_boundary_msg and 'boundary_attr' in kwargs and kwargs['boundary_attr'] is not None:
-            boundary_out = self.__message_and_aggregate__(boundary_index, 'face', boundary_size, **kwargs)
+            boundary_out = self.__message_and_aggregate__(boundary_index, 'boundary', boundary_size, **kwargs)
 
         coll_dict = {}
         up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
@@ -406,7 +406,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return down_x_j
 
-    def message_face(self, boundary_x_j: Tensor):
+    def message_boundary(self, boundary_x_j: Tensor):
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -458,7 +458,7 @@ class ChainMessagePassing(torch.nn.Module):
             return scatter(inputs, agg_down_index, dim=self.node_dim, dim_size=down_dim_size,
                            reduce=self.aggr_down)
 
-    def aggregate_face(self, inputs: Tensor, agg_boundary_index: Tensor,
+    def aggregate_boundary(self, inputs: Tensor, agg_boundary_index: Tensor,
                        boundary_ptr: Optional[Tensor] = None,
                        boundary_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
@@ -474,10 +474,10 @@ class ChainMessagePassing(torch.nn.Module):
         # import pdb; pdb.set_trace()
         if boundary_ptr is not None:
             down_ptr = expand_left(boundary_ptr, dim=self.node_dim, dims=inputs.dim())
-            return segment_csr(inputs, down_ptr, reduce=self.aggr_face)
+            return segment_csr(inputs, down_ptr, reduce=self.aggr_boundary)
         else:
             return scatter(inputs, agg_boundary_index, dim=self.node_dim, dim_size=boundary_dim_size,
-                           reduce=self.aggr_face)
+                           reduce=self.aggr_boundary)
 
     def message_and_aggregate_up(self, up_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
@@ -499,7 +499,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         raise NotImplementedError
 
-    def message_and_aggregate_face(self, boundary_adj_t: SparseTensor) -> Tensor:
+    def message_and_aggregate_boundary(self, boundary_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not

@@ -203,7 +203,7 @@ class SparseSINChainConv(ChainMessagePassing):
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
         return self.msg_up_nn((up_x_j, up_attr))
     
-    def message_face(self, boundary_x_j: Tensor) -> Tensor:
+    def message_boundary(self, boundary_x_j: Tensor) -> Tensor:
         return self.msg_boundaries_nn(boundary_x_j)
     
 

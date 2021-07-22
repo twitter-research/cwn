@@ -65,7 +65,7 @@ def lower_adj(a, b, min_k=1, all_simplices=None):
         Simplices a, b are lower-adjacent when:
             - their size (k) is larger than 1;
             - they have the same dimension;
-            - the share one (k-1)-face.
+            - the share one (k-1)-boundary.
         Optionally, it is possible to also enforce the shared
         co-boundary to be present in a set of know simplices (`all_simplices`).
     '''
@@ -107,14 +107,14 @@ def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper
 
         # add adjacencies to all other boundaries in the simplex
         if boundary not in upper_adjacencies[k-1]:
-            upper_adjacencies[k-1][face] = set()
-            upper_adjacencies_labeled[k-1][face] = dict()
-        upper_adjacencies[k-1][face] |= boundaries - {face}
-        for neighbor in boundaries - {face}:
-            upper_adjacencies_labeled[k-1][face][neighbor] = nodes
+            upper_adjacencies[k-1][boundary] = set()
+            upper_adjacencies_labeled[k-1][boundary] = dict()
+        upper_adjacencies[k-1][boundary] |= boundaries - {boundary}
+        for neighbor in boundaries - {boundary}:
+            upper_adjacencies_labeled[k-1][boundary][neighbor] = nodes
 
         # recur down w.r.t. present face
-        all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(face, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
+        all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(boundary, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
 
     return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
 
@@ -261,7 +261,7 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             nodes_a = set(mappings[order+1][a].numpy().tolist())
             nodes_b = set(mappings[order+1][b].numpy().tolist())
             shared_boundary = rev_mappings[order][tuple(sorted(nodes_a & nodes_b))]
-            shared.append(shared_face)
+            shared.append(shared_boundary)
         shared_boundaries[order+1] = torch.LongTensor(shared)
 
         shared = list()
@@ -271,7 +271,7 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             nodes_a = tuple(mappings[order][a].numpy().tolist())
             nodes_b = tuple(mappings[order][b].numpy().tolist())
             shared_coboundary = rev_mappings[order+1][upper_adjs[order+1][nodes_a][nodes_b]]
-            shared.append(shared_coface)
+            shared.append(shared_coboundary)
         shared_coboundaries[order] = torch.LongTensor(shared)
 
     chains = list()
@@ -313,7 +313,7 @@ def pyg_to_simplex_tree(edge_index: Tensor, size: int):
 
 def get_simplex_boundaries(simplex):
     boundaries = itertools.combinations(simplex, len(simplex) - 1)
-    return [tuple(face) for boundary in boundaries]
+    return [tuple(boundary) for boundary in boundaries]
 
 
 def build_tables(simplex_tree, size):
@@ -354,22 +354,22 @@ def extract_boundaries_and_coboundaries_from_simplex_tree(simplex_tree, id_maps,
 
         # Add the boundaries of the simplex to the boundaries table
         if simplex_dim > 0:
-            boundaries_ids = [id_maps[simplex_dim-1][face] for boundary in get_simplex_boundaries(simplex)]
+            boundaries_ids = [id_maps[simplex_dim-1][boundary] for boundary in get_simplex_boundaries(simplex)]
             boundaries_tables[simplex_dim].append(boundaries_ids)
 
         # This operation should be roughly be O(dim_complex), so that is very efficient for us.
         # For details see pages 6-7 https://hal.inria.fr/hal-00707901v1/document
         simplex_coboundaries = simplex_tree.get_coboundaries(simplex, codimension=1)
-        for coface, _ in simplex_coboundaries:
-            assert len(coface) == len(simplex) + 1
+        for coboundary, _ in simplex_coboundaries:
+            assert len(coboundary) == len(simplex) + 1
 
             if tuple(simplex) not in level_coboundaries:
                 level_coboundaries[tuple(simplex)] = list()
-            level_coboundaries[tuple(simplex)].append(tuple(coface))
+            level_coboundaries[tuple(simplex)].append(tuple(coboundary))
 
-            if tuple(coface) not in level_boundaries:
-                level_boundaries[tuple(coface)] = list()
-            level_boundaries[tuple(coface)].append(tuple(simplex))
+            if tuple(coboundary) not in level_boundaries:
+                level_boundaries[tuple(coboundary)] = list()
+            level_boundaries[tuple(coboundary)].append(tuple(simplex))
 
     return boundaries_tables, boundaries, coboundaries
 
@@ -397,15 +397,15 @@ def build_adj(boundaries: List[Dict], coboundaries: List[Dict], id_maps: List[Di
         for simplex, id in id_maps[dim].items():
             # Add the upper adjacent neighbours from the level below
             if dim > 0:
-                for face1, face2 in itertools.combinations(boundaries[dim][simplex], 2):
-                    id1, id2 = id_maps[dim - 1][face1], id_maps[dim - 1][face2]
+                for boundary1, boundary2 in itertools.combinations(boundaries[dim][simplex], 2):
+                    id1, id2 = id_maps[dim - 1][boundary1], id_maps[dim - 1][boundary2]
                     upper_indexes[dim - 1].extend([[id1, id2], [id2, id1]])
                     all_shared_coboundaries[dim - 1].extend([id, id])
 
             # Add the lower adjacent neighbours from the level above
             if include_down_adj and dim < complex_dim and simplex in coboundaries[dim]:
-                for coface1, coface2 in itertools.combinations(coboundaries[dim][simplex], 2):
-                    id1, id2 = id_maps[dim + 1][coface1], id_maps[dim + 1][coface2]
+                for coboundary1, coboundary2 in itertools.combinations(coboundaries[dim][simplex], 2):
+                    id1, id2 = id_maps[dim + 1][coboundary1], id_maps[dim + 1][coboundary2]
                     lower_indexes[dim + 1].extend([[id1, id2], [id2, id1]])
                     all_shared_boundaries[dim + 1].extend([id, id])
 
@@ -474,7 +474,7 @@ def generate_chain(dim, x, all_upper_index, all_lower_index,
         for s, simplex in enumerate(boundaries_tables[dim]):
             for boundary in simplex:
                 boundary_index[1].append(s)
-                boundary_index[0].append(face)
+                boundary_index[0].append(boundary)
         boundary_index = torch.LongTensor(boundary_index)
         
     if num_simplices_down is None:
@@ -661,12 +661,12 @@ def extract_boundaries_and_coboundaries_with_rings(simplex_tree, id_maps):
             boundaries[2][cell] = list()
             boundaries_tables[2].append([])
             for boundary in cell_boundaries:
-                assert boundary in id_maps[1], face
-                boundaries[2][cell].append(face)
+                assert boundary in id_maps[1], boundary
+                boundaries[2][cell].append(boundary)
                 if boundary not in coboundaries[1]:
-                    coboundaries[1][face] = list()
-                coboundaries[1][face].append(cell)
-                boundaries_tables[2][-1].append(id_maps[1][face])
+                    coboundaries[1][boundary] = list()
+                coboundaries[1][boundary].append(cell)
+                boundaries_tables[2][-1].append(id_maps[1][boundary])
     
     return boundaries_tables, boundaries, coboundaries
 

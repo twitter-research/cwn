@@ -179,7 +179,7 @@ def test_cmp_messaging_with_two_isolated_nodes_only():
 def test_cmp_messaging_with_replicated_adjs():
     """
     This checks message passing works as expected in case cells/simplices
-    share more than one (co)face.
+    share more than one (co)boundary.
     """
     bridged_complex = get_bridged_complex()
     bridged_graph = convert_to_graph(bridged_complex)

@@ -32,7 +32,7 @@ def get_table(boundary_index):
         boundary = boundary_index[0, i].item()
         if cell_id not in id_to_cell:
             id_to_cell[cell_id] = []
-        id_to_cell[cell_id].append(face)
+        id_to_cell[cell_id].append(boundary)
     return id_to_cell
 
 

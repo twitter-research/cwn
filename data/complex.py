@@ -637,7 +637,7 @@ class Complex(object):
                     This is only used in conjunction with include_top_features.
                 include_top_features: Whether to include the top features from level max_dim+1.
                 include_down_features: Include the features for down adjacency
-                include_boundary_features: Include the features for the face
+                include_boundary_features: Include the features for the boundary
         """
         if dim in self.chains:
             simplices = self.chains[dim]
@@ -685,7 +685,7 @@ class Complex(object):
             max_dim: The maximum dimension to extract
             include_top_features: Whether to include the features from level max_dim+1
             include_down_features: Include the features for down adjacency
-            include_boundary_features: Include the features for the face
+            include_boundary_features: Include the features for the boundary
         """
         all_params = []
         return_dim = min(max_dim, self.dimension)
