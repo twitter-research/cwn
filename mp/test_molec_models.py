@@ -29,7 +29,7 @@ def test_zinc_sparse_sin0_model_with_batching():
 
         batched_res = {}
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:
@@ -48,7 +48,7 @@ def test_zinc_sparse_sin0_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:
@@ -88,7 +88,7 @@ def test_embed_sparse_sin_no_rings_model_with_batching():
 
         batched_res = []
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:
@@ -103,7 +103,7 @@ def test_embed_sparse_sin_no_rings_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:
@@ -136,7 +136,7 @@ def test_embed_gin_model_with_batching():
 
         batched_res = []
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:
@@ -151,7 +151,7 @@ def test_embed_gin_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:
@@ -182,7 +182,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
 
     batched_res = {}
     for batch in data_loader:
-        # Simulate no edge and triangle features to test init layer
+        # Simulate no edge and two_cell features to test init layer
         batch.chains[1].x = None
         if len(batch.chains) == 3:
             batch.chains[2].x = None
@@ -201,7 +201,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
     unbatched_res = {}
     for complex in dataset:
         batch = ComplexBatch.from_complex_list([complex], max_dim=max_dim)
-        # Simulate no edge and triangle features to test init layer
+        # Simulate no edge and two_cell features to test init layer
         batch.chains[1].x = None
         if len(batch.chains) == 3:
             batch.chains[2].x = None
@@ -243,7 +243,7 @@ def test_ogb_sparse_sin0_model_with_batching():
 
         batched_res = {}
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:
@@ -263,7 +263,7 @@ def test_ogb_sparse_sin0_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
+            # Simulate no edge and two_cell features to test init layer
             if len(batch.chains) >= 2:
                 batch.chains[1].x = None
             if len(batch.chains) == 3:

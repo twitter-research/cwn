@@ -102,12 +102,12 @@ def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_
     assert not torch.equal(batched_preds1, batched_preds2)
 
 
-def test_sin_model_with_batching_over_complexes_missing_triangles():
+def test_sin_model_with_batching_over_complexes_missing_two_cells():
     """Check this runs without errors"""
     data_list = get_testing_complex_list()
     data_loader = DataLoader(data_list, batch_size=2)
 
-    # Run using a model that works up to triangles.
+    # Run using a model that works up to two_cells.
     model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=2,
                  jump_mode='max')
     # We use the model in eval mode to avoid problems with batch norm.
@@ -131,7 +131,7 @@ def test_sin_model_with_batching_over_complexes_missing_triangles():
         preds2.append(out)
     preds2 = torch.cat(preds2, dim=0)
 
-    # Make sure the two outputs are different. The model using triangles set the triangle outputs
+    # Make sure the two outputs are different. The model using two_cells set the two_cell outputs
     # to zero, so the output of the readout should also be different.
     assert not torch.equal(preds1, preds2)
 

@@ -209,8 +209,8 @@ def test_gudhi_clique_complex(house_edge_index):
     assert house_complex.nodes.num_simplices_up == 6
     assert house_complex.edges.num_simplices_down == 5
     assert house_complex.edges.num_simplices_up == 1
-    assert house_complex.triangles.num_simplices_down == 6
-    assert house_complex.triangles.num_simplices_up == 0
+    assert house_complex.two_cells.num_simplices_down == 6
+    assert house_complex.two_cells.num_simplices_up == 0
 
     # Check the returned parameters
     v_params = house_complex.get_chain_params(dim=0)
@@ -258,7 +258,7 @@ def test_gudhi_clique_complex(house_edge_index):
     assert t_params.down_index is None
     assert t_params.up_index is None
     assert torch.equal(t_params.kwargs['boundary_attr'], expected_e_x)
-    assert list(t_params.kwargs['boundary_index'].size()) == [2, 3*house_complex.triangles.num_simplices]
+    assert list(t_params.kwargs['boundary_index'].size()) == [2, 3*house_complex.two_cells.num_simplices]
     assert torch.equal(t_params.kwargs['boundary_index'][1], torch.LongTensor([0, 0, 0]))
     assert torch.equal(t_params.kwargs['boundary_index'][0], torch.LongTensor([3, 4, 5]))
 
@@ -282,7 +282,7 @@ def test_gudhi_clique_complex_dataset_conversion(house_edge_index):
         assert complexes[i].dimension == 2
         assert complexes[i].nodes.boundary_index is None
         assert list(complexes[i].edges.boundary_index.size()) == [2, 2*6]
-        assert list(complexes[i].triangles.boundary_index.size()) == [2, 3*1]
+        assert list(complexes[i].two_cells.boundary_index.size()) == [2, 3*1]
         assert complexes[i].edges.lower_index.size(1) == 18
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].y, house1.y)
@@ -306,7 +306,7 @@ def test_gudhi_clique_complex_dataset_conversion_with_down_adj_excluded(house_ed
         assert complexes[i].dimension == 2
         assert complexes[i].nodes.boundary_index is None
         assert list(complexes[i].edges.boundary_index.size()) == [2, 2*6]
-        assert list(complexes[i].triangles.boundary_index.size()) == [2, 3*1]
+        assert list(complexes[i].two_cells.boundary_index.size()) == [2, 3*1]
         assert complexes[i].edges.lower_index is None
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].y, house1.y)
@@ -330,7 +330,7 @@ def test_gudhi_integration_with_batching_without_adj(house_edge_index):
     assert batch.edges.lower_index is None
     assert batch.nodes.boundary_index is None
     assert list(batch.edges.boundary_index.size()) == [2, 3*2*6]
-    assert list(batch.triangles.boundary_index.size()) == [2, 1*3*3]
+    assert list(batch.two_cells.boundary_index.size()) == [2, 1*3*3]
 
 
 def test_gudhi_integration_with_batching_with_adj(house_edge_index):
@@ -350,7 +350,7 @@ def test_gudhi_integration_with_batching_with_adj(house_edge_index):
     assert batch.dimension == 2
     assert batch.edges.lower_index.size(1) == 18*3
     assert list(batch.edges.boundary_index.size()) == [2, 3*2*6]
-    assert list(batch.triangles.boundary_index.size()) == [2, 1*3*3]
+    assert list(batch.two_cells.boundary_index.size()) == [2, 1*3*3]
     
 
 def test_construction_of_ring_2complex(house_edge_index):
@@ -569,11 +569,11 @@ def test_construction_of_ring_2complex_with_larger_k_size(house_edge_index):
     assert house_cell_a.edges.num_simplices_down == house_cell_b.edges.num_simplices_down
     assert house_cell_a.edges.num_simplices_up == house_cell_b.edges.num_simplices_up
     assert list(house_cell_a.edges.boundary_index.size()) == list(house_cell_b.edges.boundary_index.size())
-    assert house_cell_a.triangles.num_simplices == 2  # We have 2 rings in the house complex
-    assert house_cell_a.triangles.num_simplices == house_cell_b.triangles.num_simplices
-    assert house_cell_a.triangles.num_simplices_down == house_cell_b.triangles.num_simplices_down
-    assert house_cell_a.triangles.num_simplices_up == house_cell_b.triangles.num_simplices_up
-    assert list(house_cell_a.triangles.boundary_index.size()) == list(house_cell_b.triangles.boundary_index.size())
+    assert house_cell_a.two_cells.num_simplices == 2  # We have 2 rings in the house complex
+    assert house_cell_a.two_cells.num_simplices == house_cell_b.two_cells.num_simplices
+    assert house_cell_a.two_cells.num_simplices_down == house_cell_b.two_cells.num_simplices_down
+    assert house_cell_a.two_cells.num_simplices_up == house_cell_b.two_cells.num_simplices_up
+    assert list(house_cell_a.two_cells.boundary_index.size()) == list(house_cell_b.two_cells.boundary_index.size())
 
     # Check the returned node parameters
     v_params_a = house_cell_a.get_chain_params(dim=0)
@@ -641,11 +641,11 @@ def test_construction_of_ring_2complex_with_smaller_k_size(house_edge_index):
     assert house_cell.edges.num_simplices_down == house_simp.edges.num_simplices_down
     assert house_cell.edges.num_simplices_up == house_simp.edges.num_simplices_up
     assert list(house_cell.edges.boundary_index.size()) == list(house_simp.edges.boundary_index.size())
-    assert house_cell.triangles.num_simplices == 1
-    assert house_cell.triangles.num_simplices == house_simp.triangles.num_simplices
-    assert house_cell.triangles.num_simplices_down == house_simp.triangles.num_simplices_down
-    assert house_cell.triangles.num_simplices_up == house_simp.triangles.num_simplices_up
-    assert list(house_cell.triangles.boundary_index.size()) == list(house_simp.triangles.boundary_index.size())
+    assert house_cell.two_cells.num_simplices == 1
+    assert house_cell.two_cells.num_simplices == house_simp.two_cells.num_simplices
+    assert house_cell.two_cells.num_simplices_down == house_simp.two_cells.num_simplices_down
+    assert house_cell.two_cells.num_simplices_up == house_simp.two_cells.num_simplices_up
+    assert list(house_cell.two_cells.boundary_index.size()) == list(house_simp.two_cells.boundary_index.size())
 
     # Check the returned node parameters
     v_params_a = house_cell.get_chain_params(dim=0)
@@ -712,7 +712,7 @@ def test_ring_2complex_dataset_conversion(house_edge_index):
         assert complexes[i].dimension == 2
         assert complexes[i].nodes.boundary_index is None
         assert list(complexes[i].edges.boundary_index.size()) == [2, 2*6]
-        assert list(complexes[i].triangles.boundary_index.size()) == [2, 3+4]
+        assert list(complexes[i].two_cells.boundary_index.size()) == [2, 3+4]
         assert complexes[i].edges.lower_index.size(1) == 18
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].y, house1.y)
@@ -756,11 +756,11 @@ def test_ring_2complex_dataset_conversion_with_edge_feats(house_edge_index):
         assert complexes[i].dimension == 2
         assert complexes[i].nodes.boundary_index is None
         assert list(complexes[i].edges.boundary_index.size()) == [2, 2*6]
-        assert list(complexes[i].triangles.boundary_index.size()) == [2, 3+4]
+        assert list(complexes[i].two_cells.boundary_index.size()) == [2, 3+4]
         assert complexes[i].edges.lower_index.size(1) == 18
         assert torch.equal(complexes[i].nodes.x, house1.x)
         assert torch.equal(complexes[i].edges.x, e_x)
-        assert complexes[i].triangles.x is None
+        assert complexes[i].two_cells.x is None
         assert torch.equal(complexes[i].y, house1.y)
 
         

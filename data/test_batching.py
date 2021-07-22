@@ -31,9 +31,9 @@ def validate_double_house(batch):
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=torch.long)
     expected_edge_batch = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
     
-    expected_triangle_x = torch.tensor([[1], [1]], dtype=torch.float)
-    expected_triangle_y = torch.tensor([2, 2], dtype=torch.long)
-    expected_triangle_batch = torch.tensor([0, 1], dtype=torch.long)
+    expected_two_cell_x = torch.tensor([[1], [1]], dtype=torch.float)
+    expected_two_cell_y = torch.tensor([2, 2], dtype=torch.long)
+    expected_two_cell_batch = torch.tensor([0, 1], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
     assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
@@ -51,13 +51,13 @@ def validate_double_house(batch):
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
-    assert batch.triangles.upper_index is None
-    assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_coboundaries is None
-    assert batch.triangles.shared_boundaries is None
-    assert torch.equal(expected_triangle_x, batch.triangles.x)
-    assert torch.equal(expected_triangle_y, batch.triangles.y)
-    assert torch.equal(expected_triangle_batch, batch.triangles.batch)
+    assert batch.two_cells.upper_index is None
+    assert batch.two_cells.lower_index is None
+    assert batch.two_cells.shared_coboundaries is None
+    assert batch.two_cells.shared_boundaries is None
+    assert torch.equal(expected_two_cell_x, batch.two_cells.x)
+    assert torch.equal(expected_two_cell_y, batch.two_cells.y)
+    assert torch.equal(expected_two_cell_batch, batch.two_cells.batch)
     
 
 def validate_square_dot_and_square(batch):
@@ -134,12 +134,12 @@ def validate_kite_and_house(batch):
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=torch.long)
     expected_edge_batch = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
     
-    expected_triangle_lower = torch.tensor([[0, 1],
+    expected_two_cell_lower = torch.tensor([[0, 1],
                                             [1, 0]], dtype=torch.long)
-    expected_triangle_shared_boundaries = torch.tensor([1, 1], dtype=torch.long)
-    expected_triangle_x = torch.tensor([[1], [2], [1]], dtype=torch.float)
-    expected_triangle_y = torch.tensor([2, 2, 2], dtype=torch.long)
-    expected_triangle_batch = torch.tensor([0, 0, 1], dtype=torch.long)
+    expected_two_cell_shared_boundaries = torch.tensor([1, 1], dtype=torch.long)
+    expected_two_cell_x = torch.tensor([[1], [2], [1]], dtype=torch.float)
+    expected_two_cell_y = torch.tensor([2, 2, 2], dtype=torch.long)
+    expected_two_cell_batch = torch.tensor([0, 0, 1], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
     assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
@@ -157,13 +157,13 @@ def validate_kite_and_house(batch):
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
-    assert batch.triangles.upper_index is None
-    assert batch.triangles.shared_coboundaries is None
-    assert torch.equal(expected_triangle_lower, batch.triangles.lower_index)
-    assert torch.equal(expected_triangle_shared_boundaries, batch.triangles.shared_boundaries)
-    assert torch.equal(expected_triangle_x, batch.triangles.x)
-    assert torch.equal(expected_triangle_y, batch.triangles.y)
-    assert torch.equal(expected_triangle_batch, batch.triangles.batch)
+    assert batch.two_cells.upper_index is None
+    assert batch.two_cells.shared_coboundaries is None
+    assert torch.equal(expected_two_cell_lower, batch.two_cells.lower_index)
+    assert torch.equal(expected_two_cell_shared_boundaries, batch.two_cells.shared_boundaries)
+    assert torch.equal(expected_two_cell_x, batch.two_cells.x)
+    assert torch.equal(expected_two_cell_y, batch.two_cells.y)
+    assert torch.equal(expected_two_cell_batch, batch.two_cells.batch)
     
     
 def validate_house_and_square(batch):
@@ -187,9 +187,9 @@ def validate_house_and_square(batch):
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1,], dtype=torch.long)
     expected_edge_batch = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1], dtype=torch.long)
     
-    expected_triangle_x = torch.tensor([[1]], dtype=torch.float)
-    expected_triangle_y = torch.tensor([2], dtype=torch.long)
-    expected_triangle_batch = torch.tensor([0], dtype=torch.long)
+    expected_two_cell_x = torch.tensor([[1]], dtype=torch.float)
+    expected_two_cell_y = torch.tensor([2], dtype=torch.long)
+    expected_two_cell_batch = torch.tensor([0], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
     assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
@@ -207,13 +207,13 @@ def validate_house_and_square(batch):
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
-    assert batch.triangles.upper_index is None
-    assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_coboundaries is None
-    assert batch.triangles.shared_boundaries is None
-    assert torch.equal(expected_triangle_x, batch.triangles.x)
-    assert torch.equal(expected_triangle_y, batch.triangles.y)
-    assert torch.equal(expected_triangle_batch, batch.triangles.batch)
+    assert batch.two_cells.upper_index is None
+    assert batch.two_cells.lower_index is None
+    assert batch.two_cells.shared_coboundaries is None
+    assert batch.two_cells.shared_boundaries is None
+    assert torch.equal(expected_two_cell_x, batch.two_cells.x)
+    assert torch.equal(expected_two_cell_y, batch.two_cells.y)
+    assert torch.equal(expected_two_cell_batch, batch.two_cells.batch)
     
     
 def validate_house_square_house(batch):
@@ -239,9 +239,9 @@ def validate_house_square_house(batch):
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=torch.long)
     expected_edge_batch = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2], dtype=torch.long)
     
-    expected_triangle_x = torch.tensor([[1], [1]], dtype=torch.float)
-    expected_triangle_y = torch.tensor([2, 2], dtype=torch.long)
-    expected_triangle_batch = torch.tensor([0, 2], dtype=torch.long)
+    expected_two_cell_x = torch.tensor([[1], [1]], dtype=torch.float)
+    expected_two_cell_y = torch.tensor([2, 2], dtype=torch.long)
+    expected_two_cell_batch = torch.tensor([0, 2], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
     assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
@@ -259,13 +259,13 @@ def validate_house_square_house(batch):
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
-    assert batch.triangles.upper_index is None
-    assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_coboundaries is None
-    assert batch.triangles.shared_boundaries is None
-    assert torch.equal(expected_triangle_x, batch.triangles.x)
-    assert torch.equal(expected_triangle_y, batch.triangles.y)
-    assert torch.equal(expected_triangle_batch, batch.triangles.batch)
+    assert batch.two_cells.upper_index is None
+    assert batch.two_cells.lower_index is None
+    assert batch.two_cells.shared_coboundaries is None
+    assert batch.two_cells.shared_boundaries is None
+    assert torch.equal(expected_two_cell_x, batch.two_cells.x)
+    assert torch.equal(expected_two_cell_y, batch.two_cells.y)
+    assert torch.equal(expected_two_cell_batch, batch.two_cells.batch)
     
     
 def validate_house_no_batching(batch):
@@ -289,9 +289,9 @@ def validate_house_no_batching(batch):
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.long)
     expected_edge_batch = torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
     
-    expected_triangle_x = torch.tensor([[1]], dtype=torch.float)
-    expected_triangle_y = torch.tensor([2], dtype=torch.long)
-    expected_triangle_batch = torch.tensor([0], dtype=torch.long)
+    expected_two_cell_x = torch.tensor([[1]], dtype=torch.float)
+    expected_two_cell_y = torch.tensor([2], dtype=torch.long)
+    expected_two_cell_batch = torch.tensor([0], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
     assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
@@ -309,13 +309,13 @@ def validate_house_no_batching(batch):
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
-    assert batch.triangles.upper_index is None
-    assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_coboundaries is None
-    assert batch.triangles.shared_boundaries is None
-    assert torch.equal(expected_triangle_x, batch.triangles.x)
-    assert torch.equal(expected_triangle_y, batch.triangles.y)
-    assert torch.equal(expected_triangle_batch, batch.triangles.batch)
+    assert batch.two_cells.upper_index is None
+    assert batch.two_cells.lower_index is None
+    assert batch.two_cells.shared_coboundaries is None
+    assert batch.two_cells.shared_boundaries is None
+    assert torch.equal(expected_two_cell_x, batch.two_cells.x)
+    assert torch.equal(expected_two_cell_y, batch.two_cells.y)
+    assert torch.equal(expected_two_cell_batch, batch.two_cells.batch)
     
     
 def test_double_house_batching():

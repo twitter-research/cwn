@@ -70,7 +70,7 @@ class RingTransferDataset(InMemoryComplexDataset):
 
             # Make HOF zero
             complex.edges.x = torch.zeros_like(complex.edges.x)
-            complex.triangles.x = torch.zeros_like(complex.triangles.x)
+            complex.two_cells.x = torch.zeros_like(complex.two_cells.x)
 
         path = self.processed_paths[0]
         print(f'Saving processed dataset in {path}....')

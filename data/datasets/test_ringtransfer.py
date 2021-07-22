@@ -40,8 +40,8 @@ def test_ringtree_dataset_conversion():
         assert complex.nodes.x.size(1) == 5
         assert complex.edges.x.size(0) == 10
         assert complex.edges.x.size(1) == 5
-        assert complex.triangles.x.size(0) == 1
-        assert complex.triangles.x.size(1) == 5
+        assert complex.two_cells.x.size(0) == 1
+        assert complex.two_cells.x.size(1) == 5
 
 
 def test_ringtree_dataset_loading():

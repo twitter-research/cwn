@@ -259,7 +259,7 @@ class SparseSIN(torch.nn.Module):
     
 class EdgeSIN0(torch.nn.Module):
     """
-    A variant of SIN0 operating up to edge level. It may optionally ignore triangle features.
+    A variant of SIN0 operating up to edge level. It may optionally ignore two_cell features.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -365,7 +365,7 @@ class EdgeSIN0(torch.nn.Module):
                 include_top_features=self.include_top_features)
             xs = conv(*params)
             # If we are at the last convolutional layer, we do not need to update after
-            # We also check triangle features do indeed exist in this batch before doing this.
+            # We also check two_cell features do indeed exist in this batch before doing this.
             if self.update_top_features and c < len(self.convs) - 1 and 2 in data.chains:
                 top_x = self.update_top_nns[c](data.chains[2].x)
                 data.set_xs(xs + [top_x])

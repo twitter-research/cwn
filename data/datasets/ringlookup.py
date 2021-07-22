@@ -65,8 +65,8 @@ class RingLookupDataset(InMemoryComplexDataset):
 
             # Make HOF zero
             complex.edges.x = torch.zeros_like(complex.edges.x)
-            complex.triangles.x = torch.zeros_like(complex.triangles.x)
-            assert complex.triangles.num_simplices == 1
+            complex.two_cells.x = torch.zeros_like(complex.two_cells.x)
+            assert complex.two_cells.num_simplices == 1
 
         path = self.processed_paths[0]
         print(f'Saving processed dataset in {path}....')

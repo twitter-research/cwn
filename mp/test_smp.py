@@ -62,9 +62,9 @@ def test_propagate_at_vertex_level_in_cmp():
     assert torch.equal(boundary_msg, expected_boundary_msg)
 
 
-def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one():
+def test_propagate_at_two_cell_level_in_cmp_when_there_is_a_single_one():
     """We build a graph in the shape of a house (a triangle on top of a square)
-    and test propagation at the triangle level. This makes sure that propagate works when
+    and test propagation at the two_cell level. This makes sure that propagate works when
     up_index is None."""
 
     house_complex = get_house_complex()
@@ -88,12 +88,12 @@ def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one():
     assert torch.equal(boundary_msg, expected_boundary_msg)
 
 
-def test_propagate_at_triangle_level_in_cmp():
+def test_propagate_at_two_cell_level_in_cmp():
     """We build a graph formed of two triangles sharing an edge.
     This makes sure that propagate works when up_index is None."""
     # TODO: Refactor this test to use the kite complex
 
-    # When there is a single triangle, there is no upper or lower adjacency
+    # When there is a single two_cell, there is no upper or lower adjacency
     up_index = None
     down_index = torch.tensor([[0, 1],
                                [1, 0]], dtype=torch.long)
@@ -187,7 +187,7 @@ def test_cmp_messaging_with_replicated_adjs():
         bridged_graph.x, bridged_graph.edge_index, bridged_graph.edge_attr, bridged_graph.num_nodes,
         bridged_graph.y, init_method='sum', init_edges=True, init_rings=True)
     check_edge_index_are_the_same(bridged_complex_from_graph.edges.upper_index, bridged_complex.edges.upper_index)
-    check_edge_index_are_the_same(bridged_complex_from_graph.triangles.lower_index, bridged_complex.triangles.lower_index)
+    check_edge_index_are_the_same(bridged_complex_from_graph.two_cells.lower_index, bridged_complex.two_cells.lower_index)
     check_edge_attr_are_the_same(bridged_complex.chains[1].boundary_index, bridged_complex.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
     check_edge_attr_are_the_same(bridged_complex_from_graph.chains[1].boundary_index, bridged_complex_from_graph.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
     
