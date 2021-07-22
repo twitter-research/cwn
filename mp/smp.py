@@ -109,7 +109,7 @@ class ChainMessagePassing(torch.nn.Module):
         self.inspector.inspect(self.message_boundary)
         self.inspector.inspect(self.aggregate_up, pop_first_n=1)
         self.inspector.inspect(self.aggregate_down, pop_first_n=1)
-        self.inspector.inspect(self.aggregate_`boundary, pop_first_n=1)
+        self.inspector.inspect(self.aggregate_boundary, pop_first_n=1)
         self.inspector.inspect(self.message_and_aggregate_up, pop_first_n=1)
         self.inspector.inspect(self.message_and_aggregate_down, pop_first_n=1)
         self.inspector.inspect(self.message_and_aggregate_boundary, pop_first_n=1)
