@@ -698,7 +698,8 @@ def test_ring_2complex_dataset_conversion(house_edge_index):
     house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), y=torch.tensor([1]))
     dataset = [house1, house2, house3]
-    complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, init_rings=True)
+    complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, include_down_adj=True,
+        init_rings=True)
     assert dim == 2
     assert len(num_features) == 3
     for i in range(len(num_features)):
@@ -742,7 +743,8 @@ def test_ring_2complex_dataset_conversion_with_edge_feats(house_edge_index):
     house2 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
     house3 = Data(edge_index=house_edge_index, x=torch.arange(0, 5, dtype=torch.float).view(5, 1), edge_attr=edge_attr, y=torch.tensor([1]))
     dataset = [house1, house2, house3]
-    complexes, dim, num_features = convert_graph_dataset_with_rings(dataset, init_edges=True, init_rings=False)
+    complexes, dim, num_features = convert_graph_dataset_with_rings(dataset,
+        init_edges=True, include_down_adj=True, init_rings=False)
     assert dim == 2
     assert len(num_features) == 3
     assert num_features[0] == 1

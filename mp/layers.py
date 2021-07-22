@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from torch import Tensor
 from mp.smp import ChainMessagePassing, ChainMessagePassingParams
 from torch_geometric.nn.inits import reset
-from torch.nn import Linear, Sequential, BatchNorm1d as BN
+from torch.nn import Linear, Sequential, BatchNorm1d as BN, Identity
 from data.complex import Chain
 from torch_scatter import scatter
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
@@ -201,11 +201,10 @@ class SparseSINChainConv(ChainMessagePassing):
         self.eps2.data.fill_(self.initial_eps)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        # return self.msg_up_nn(torch.cat([up_x_j, up_attr], dim=-1))
         return self.msg_up_nn((up_x_j, up_attr))
     
-    def message_faces(self, face_x_j: Tensor) -> Tensor:
-        return self.msg_up_faces(faces_x_j)
+    def message_face(self, face_x_j: Tensor) -> Tensor:
+        return self.msg_faces_nn(face_x_j)
     
 
 class Catter(torch.nn.Module):
@@ -222,9 +221,9 @@ class SparseSINConv(torch.nn.Module):
     """
 
     def __init__(self, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
-                 msg_up_nn: Callable, msg_faces_nn: Callable, inp_update_up_nn: Callable,
-                 inp_update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
-                 max_dim: int = 2, apply_norm=True, use_cofaces=False, **kwargs):
+                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable,
+                 update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
+                 max_dim: int = 2, graph_norm=BN, use_cofaces=False, **kwargs):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
@@ -239,53 +238,29 @@ class SparseSINConv(torch.nn.Module):
                     msg_up_nn = lambda xs: xs[0]
             if msg_faces_nn is None:
                 msg_faces_nn = lambda x: x
-            if inp_update_up_nn is None:
-                if apply_norm:
-                    update_up_nn = Sequential(
-                        Linear(kwargs['layer_dim'], kwargs['hidden']),
-                        BN(kwargs['hidden']),
-                        kwargs['act_module'](),
-                        Linear(kwargs['hidden'], kwargs['hidden']),
-                        BN(kwargs['hidden']),
-                        kwargs['act_module']()
-                    )
-                else:
-                    update_up_nn = Sequential(
-                        Linear(kwargs['layer_dim'], kwargs['hidden']),
-                        kwargs['act_module'](),
-                        Linear(kwargs['hidden'], kwargs['hidden']),
-                        kwargs['act_module']()
-                    )
-            else:
-                update_up_nn = inp_update_up_nn
-            if inp_update_faces_nn is None:
-                if apply_norm:
-                    update_faces_nn = Sequential(
-                        Linear(kwargs['layer_dim'], kwargs['hidden']),
-                        BN(kwargs['hidden']),
-                        kwargs['act_module'](),
-                        Linear(kwargs['hidden'], kwargs['hidden']),
-                        BN(kwargs['hidden']),
-                        kwargs['act_module']()
-                    )
-                else:
-                    update_faces_nn = Sequential(
-                        Linear(kwargs['layer_dim'], kwargs['hidden']),
-                        kwargs['act_module'](),
-                        Linear(kwargs['hidden'], kwargs['hidden']),
-                        kwargs['act_module']()
-                    )
-            else:
-                update_faces_nn = inp_update_faces_nn
-            if apply_norm:
-                combine_nn = Sequential(
-                    Linear(kwargs['hidden']*2, kwargs['hidden']),
-                    BN(kwargs['hidden']),
-                    kwargs['act_module']())
-            else:
-                combine_nn = Sequential(
-                    Linear(kwargs['hidden']*2, kwargs['hidden']),
-                    kwargs['act_module']())
+            if update_up_nn is None:
+                update_up_nn = Sequential(
+                    Linear(kwargs['layer_dim'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module'](),
+                    Linear(kwargs['hidden'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module']()
+                )
+            if update_faces_nn is None:
+                update_faces_nn = Sequential(
+                    Linear(kwargs['layer_dim'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module'](),
+                    Linear(kwargs['hidden'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module']()
+                )
+            combine_nn = Sequential(
+                Linear(kwargs['hidden']*2, kwargs['hidden']),
+                graph_norm(kwargs['hidden']),
+                kwargs['act_module']())
+
             mp = SparseSINChainConv(dim, up_msg_size, down_msg_size, face_msg_size=face_msg_size,
                 msg_up_nn=msg_up_nn, msg_faces_nn=msg_faces_nn, update_up_nn=update_up_nn,
                 update_faces_nn=update_faces_nn, combine_nn=combine_nn, eps=eps,
