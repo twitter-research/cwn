@@ -23,7 +23,6 @@ class RingSparseSIN(torch.nn.Module):
         self.max_dim = max_dim
         self.convs = torch.nn.ModuleList()
         self.nonlinearity = nonlinearity
-        self.graph_norm = graph_norm
         self.init_layer = Linear(num_input_features, num_input_features)
         act_module = get_nonlinearity(nonlinearity, return_module=True)
         self.graph_norm = get_graph_norm(graph_norm)

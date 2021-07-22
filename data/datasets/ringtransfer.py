@@ -16,7 +16,7 @@ class RingTransferDataset(InMemoryComplexDataset):
         self._test = test
 
         super(RingTransferDataset, self).__init__(root, None, None, None,
-                                              max_dim=2, cellular=True, num_classes=5)
+            max_dim=2, cellular=True, num_classes=self._num_classes)
 
         self.data, self.slices = torch.load(self.processed_paths[0])
         idx = torch.load(self.processed_paths[1])
@@ -83,9 +83,9 @@ class RingTransferDataset(InMemoryComplexDataset):
         torch.save(idx, path)
 
 
-def load_ring_transfer_dataset(nodes=10, train=5000, test=500):
-    train = generate_ring_transfer_graph_dataset(nodes, samples=train)
-    val = generate_ring_transfer_graph_dataset(nodes, samples=test)
+def load_ring_transfer_dataset(nodes=10, train=5000, test=500, classes=5):
+    train = generate_ring_transfer_graph_dataset(nodes, classes=classes, samples=train)
+    val = generate_ring_transfer_graph_dataset(nodes, classes=classes, samples=test)
     dataset = train + val
 
     train_ids = list(range(len(train)))

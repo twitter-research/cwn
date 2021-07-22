@@ -19,8 +19,8 @@ def exp_main(passed_args):
     assert args.max_ring_size is None
 
     # run each experiment separately and gather results
-    train_results = {seed: [] for seed in range(args.start_seed, args.stop_seed + 1)}
-    val_results = {seed: [] for seed in range(args.start_seed, args.stop_seed + 1)}
+    train_results = {fold: [] for fold in range(len(RING_SIZES))}
+    val_results = {fold: [] for fold in range(len(RING_SIZES))}
     for seed in range(args.start_seed, args.stop_seed + 1):
         # We use the ring_size as a "fold" for the dataset.
         # This is just a hack to save the results properly using our usual infrastructure.
@@ -37,8 +37,8 @@ def exp_main(passed_args):
             curves = main(parsed_args)
 
             # Extract results
-            train_results[seed].append(curves['last_train'])
-            val_results[seed].append(curves['last_val'])
+            train_results[fold].append(curves['last_train'])
+            val_results[fold].append(curves['last_val'])
 
     msg = (
         f"========= Final result ==========\n"
@@ -46,17 +46,17 @@ def exp_main(passed_args):
         f'SHA:                    {sha}\n'
         f'----------- Train ----------\n')
 
-    for ring_size, results in train_results.items():
+    for fold, results in train_results.items():
         mean = np.mean(results)
         std = np.std(results)
-        msg += f'Ring size: {ring_size}            {mean}+-{std}\n'
+        msg += f'Ring size: {RING_SIZES[fold]}            {mean}+-{std}\n'
 
     msg += f'----------- Test ----------\n'
 
-    for ring_size, results in val_results.items():
+    for fold, results in val_results.items():
         mean = np.mean(results)
         std = np.std(results)
-        msg += f'Ring size: {ring_size}            {mean}+-{std}\n'
+        msg += f'Ring size: {RING_SIZES[fold]}            {mean}+-{std}\n'
 
     print(msg)
 
