@@ -42,7 +42,7 @@ max_ring_size:
     - 6
 model:
     - sparse_sin
-use_cofaces:
+use_coboundaries:
     - True
     - False
 nonlinearity:

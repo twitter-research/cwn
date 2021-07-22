@@ -16,7 +16,7 @@ class RingSparseSIN(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 max_dim: int = 2, nonlinearity='relu', train_eps=False, use_cofaces=False,
+                 max_dim: int = 2, nonlinearity='relu', train_eps=False, use_coboundaries=False,
                  graph_norm='id'):
         super(RingSparseSIN, self).__init__()
 
@@ -31,11 +31,11 @@ class RingSparseSIN(torch.nn.Module):
             layer_dim = num_input_features if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=None, msg_up_nn=None,
-                    update_up_nn=None, update_faces_nn=None,
+                    boundary_msg_size=layer_dim, msg_boundaries_nn=None, msg_up_nn=None,
+                    update_up_nn=None, update_boundaries_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
+                    graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
         self.lin1 = Linear(hidden, num_classes)
 
     def reset_parameters(self):

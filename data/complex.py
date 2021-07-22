@@ -47,8 +47,8 @@ class Chain(object):
         Class representing a chain of k-dim simplices.
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
-                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None, 
-                 face_index: Adj = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
+                 shared_boundaries: Tensor = None, shared_coboundaries: Tensor = None, mapping: Tensor = None,
+                 boundary_index: Adj = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
         """
         Args:
             Constructs a `dim`-chain.
@@ -58,18 +58,18 @@ class Chain(object):
                 may not be available, e.g. when `dim` is the top level dim of a complex
             lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
                 may not be available, e.g. when `dim` is 0
-            shared_faces: a tensor of shape (num_lower_adjacencies,) specifying the indices of
-                the shared face for each lower adjacency
-            shared_cofaces: a tensor of shape (num_upper_adjacencies,) specifying the indices of
-                the shared coface for each upper adjacency
-            face_index: face adjacency, matrix, shape [2, num_faces_connections];
+            shared_boundaries: a tensor of shape (num_lower_adjacencies,) specifying the indices of
+                the shared boundary for each lower adjacency
+            shared_coboundaries: a tensor of shape (num_upper_adjacencies,) specifying the indices of
+                the shared coboundary for each upper adjacency
+            boundary_index: boundary adjacency, matrix, shape [2, num_boundaries_connections];
                 may not be available, e.g. when `dim` is 0
             y: labels over simplices in the chain, shape [num_simplices,]
         """
         if dim == 0:
             assert lower_index is None
-            assert shared_faces is None
-            assert face_index is None
+            assert shared_boundaries is None
+            assert boundary_index is None
 
         # Note, everything that is not of form __smth__ is made None during batching
         # So dim must be stored like this.
@@ -78,10 +78,10 @@ class Chain(object):
         self.__x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
-        self.face_index = face_index
+        self.boundary_index = boundary_index
         self.y = y
-        self.shared_faces = shared_faces
-        self.shared_cofaces = shared_cofaces
+        self.shared_boundaries = shared_boundaries
+        self.shared_coboundaries = shared_coboundaries
         self.upper_orient = upper_orient
         self.lower_orient = lower_orient
         self.__oriented__ = False
@@ -148,8 +148,8 @@ class Chain(object):
             Returns the dimension for which :obj:`value` of attribute
             :obj:`key` will get concatenated when creating batches.
         """
-        if key in ['upper_index', 'lower_index', 'shared_faces', 
-                   'shared_cofaces', 'face_index']:
+        if key in ['upper_index', 'lower_index', 'shared_boundaries',
+                   'shared_coboundaries', 'boundary_index']:
             return -1
         # by default, concatenate sparse matrices diagonally.
         elif isinstance(value, SparseTensor):
@@ -163,14 +163,14 @@ class Chain(object):
         """
         if key in ['upper_index', 'lower_index']:
             inc = self.num_simplices
-        elif key in ['shared_faces']:
+        elif key in ['shared_boundaries']:
             inc = self.num_simplices_down
-        elif key == 'shared_cofaces':
+        elif key == 'shared_coboundaries':
             inc = self.num_simplices_up
-        elif key == 'face_index':
-            face_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
+        elif key == 'boundary_index':
+            boundary_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
             simplex_inc = self.num_simplices if self.num_simplices is not None else 0
-            inc = [[face_inc], [simplex_inc]]
+            inc = [[boundary_inc], [simplex_inc]]
         else:
             inc = 0
         if inc is None:
@@ -211,8 +211,8 @@ class Chain(object):
             return self.__num_simplices__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
-        if self.face_index is not None:
-            return int(self.face_index[1,:].max()) + 1
+        if self.boundary_index is not None:
+            return int(self.boundary_index[1,:].max()) + 1
         if self.upper_index is not None:
             logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
             return int(self.upper_index.max()) + 1
@@ -229,16 +229,16 @@ class Chain(object):
     def num_simplices_up(self):
         """
             Returns or sets the number of simplices in the upper chain.
-            In fact, this correspond to the overall number of cofaces in the current chain.
+            In fact, this correspond to the overall number of coboundaries in the current chain.
         """
         if hasattr(self, '__num_simplices_up__'):
             return self.__num_simplices_up__
         if self.upper_index is None:
             return 0
-        if self.shared_cofaces is not None:
-            logging.warning(__num_warn_msg__.format('cofaces', 'shared_cofaces'))
-            # TODO: how can this be different than the actual number of cofaces?
-            return int(self.shared_cofaces.max()) + 1
+        if self.shared_coboundaries is not None:
+            logging.warning(__num_warn_msg__.format('coboundaries', 'shared_coboundaries'))
+            # TODO: how can this be different than the actual number of coboundaries?
+            return int(self.shared_coboundaries.max()) + 1
         return None
 
     @num_simplices_up.setter
@@ -248,7 +248,7 @@ class Chain(object):
     @property
     def num_simplices_down(self):
         """
-            Returns or sets the number of overall faces in the chain.
+            Returns or sets the number of overall boundaries in the chain.
         """
         if self.dim == 0:
             return None
@@ -256,12 +256,12 @@ class Chain(object):
             return self.__num_simplices_down__
         if self.lower_index is None:
             return 0
-        if self.shared_faces is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'shared_faces'))
-            return int(self.shared_faces.max()) + 1
-        if self.face_index is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'face_index'))
-            return int(self.face_index[0,:].max()) + 1
+        if self.shared_boundaries is not None:
+            logging.warning(__num_warn_msg__.format('boundaries', 'shared_boundaries'))
+            return int(self.shared_boundaries.max()) + 1
+        if self.boundary_index is not None:
+            logging.warning(__num_warn_msg__.format('boundaries', 'boundary_index'))
+            return int(self.boundary_index[0,:].max()) + 1
         return None
 
     @num_simplices_down.setter
@@ -626,7 +626,7 @@ class Complex(object):
     def get_chain_params(self, dim, max_dim=2,
                          include_top_features=True,
                          include_down_features=True,
-                         include_face_features=True) -> ChainMessagePassingParams:
+                         include_boundary_features=True) -> ChainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim
             neural message passing at the specified `dim`.
@@ -637,7 +637,7 @@ class Complex(object):
                     This is only used in conjunction with include_top_features.
                 include_top_features: Whether to include the top features from level max_dim+1.
                 include_down_features: Include the features for down adjacency
-                include_face_features: Include the features for the face
+                include_boundary_features: Include the features for the face
         """
         if dim in self.chains:
             simplices = self.chains[dim]
@@ -651,7 +651,7 @@ class Complex(object):
                 upper_index = simplices.upper_index
                 if self.chains[dim + 1].x is not None and (dim < max_dim or include_top_features):
                     upper_features = torch.index_select(self.chains[dim + 1].x, 0,
-                                                        self.chains[dim].shared_cofaces)
+                                                        self.chains[dim].shared_coboundaries)
 
             # Add down features
             lower_index, lower_features = None, None
@@ -659,17 +659,17 @@ class Complex(object):
                 lower_index = simplices.lower_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
-                                                        self.chains[dim].shared_faces)            
-            # Add face features
-            face_index, face_features = None, None
-            if include_face_features and simplices.face_index is not None:
-                face_index = simplices.face_index
+                                                        self.chains[dim].shared_boundaries)
+            # Add boundary features
+            boundary_index, boundary_features = None, None
+            if include_boundary_features and simplices.boundary_index is not None:
+                boundary_index = simplices.boundary_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
-                    face_features = self.chains[dim - 1].x
+                    boundary_features = self.chains[dim - 1].x
 
             inputs = ChainMessagePassingParams(x, upper_index, lower_index,
                                                up_attr=upper_features, down_attr=lower_features,
-                                               face_attr=face_features, face_index=face_index)
+                                               boundary_attr=boundary_features, boundary_index=boundary_index)
         else:
             raise NotImplementedError(
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
@@ -678,14 +678,14 @@ class Complex(object):
     def get_all_chain_params(self, max_dim=2,
                              include_top_features=True,
                              include_down_features=True,
-                             include_face_features=True):
+                             include_boundary_features=True):
         """Gets the chain parameters for message passing at all layers.
 
         Args:
             max_dim: The maximum dimension to extract
             include_top_features: Whether to include the features from level max_dim+1
             include_down_features: Include the features for down adjacency
-            include_face_features: Include the features for the face
+            include_boundary_features: Include the features for the face
         """
         all_params = []
         return_dim = min(max_dim, self.dimension)
@@ -693,7 +693,7 @@ class Complex(object):
             all_params.append(self.get_chain_params(dim, max_dim=max_dim,
                                                     include_top_features=include_top_features,
                                                     include_down_features=include_down_features,
-                                                    include_face_features=include_face_features))
+                                                    include_boundary_features=include_boundary_features))
         return all_params
 
     def get_labels(self, dim=None):
@@ -773,7 +773,7 @@ class ComplexBatch(Complex):
                     chains[dim].append(Chain(dim=dim))
                     if dim-1 in comp.chains:
                         # If the chain below exists in the complex, we need to add the number of
-                        # faces to the newly initialised complex, otherwise batching will not work.
+                        # boundaries to the newly initialised complex, otherwise batching will not work.
                         chains[dim][-1].num_simplices_down = comp.chains[dim - 1].num_simplices
                 else:
                     chains[dim].append(comp.chains[dim])

@@ -13,11 +13,11 @@ from abc import ABC, abstractmethod
 
 class DummyChainMessagePassing(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
-    def __init__(self, up_msg_size, down_msg_size, face_msg_size=None,
-                 use_face_msg=False, use_down_msg=True):
+    def __init__(self, up_msg_size, down_msg_size, boundary_msg_size=None,
+                 use_boundary_msg=False, use_down_msg=True):
         super(DummyChainMessagePassing, self).__init__(up_msg_size, down_msg_size,
-                                                       face_msg_size=face_msg_size,
-                                                       use_face_msg=use_face_msg,
+                                                       boundary_msg_size=boundary_msg_size,
+                                                       use_boundary_msg=use_boundary_msg,
                                                        use_down_msg=use_down_msg)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
@@ -31,23 +31,23 @@ class DummyChainMessagePassing(ChainMessagePassing):
         return down_x_j + down_attr
 
     def forward(self, chain: ChainMessagePassingParams):
-        up_out, down_out, face_out = self.propagate(chain.up_index, chain.down_index, 
-                                                    chain.face_index, x=chain.x,
+        up_out, down_out, boundary_out = self.propagate(chain.up_index, chain.down_index,
+                                                    chain.boundary_index, x=chain.x,
                                                     up_attr=chain.kwargs['up_attr'],
                                                     down_attr=chain.kwargs['down_attr'],
-                                                    face_attr=chain.kwargs['face_attr'])
-        # down or face will be zero if one of them is not used.
-        return chain.x + up_out + down_out + face_out
+                                                    boundary_attr=chain.kwargs['boundary_attr'])
+        # down or boundary will be zero if one of them is not used.
+        return chain.x + up_out + down_out + boundary_out
 
 
 class DummySimplicialMessagePassing(torch.nn.Module):
-    def __init__(self, input_dim=1, max_dim: int = 2, use_face_msg=False, use_down_msg=True):
+    def __init__(self, input_dim=1, max_dim: int = 2, use_boundary_msg=False, use_down_msg=True):
         super(DummySimplicialMessagePassing, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = DummyChainMessagePassing(input_dim, input_dim, face_msg_size=input_dim,
-                                          use_face_msg=use_face_msg, use_down_msg=use_down_msg)
+            mp = DummyChainMessagePassing(input_dim, input_dim, boundary_msg_size=input_dim,
+                                          use_boundary_msg=use_boundary_msg, use_down_msg=use_down_msg)
             self.mp_levels.append(mp)
     
     def forward(self, *chain_params: ChainMessagePassingParams):
@@ -64,7 +64,7 @@ class SINChainConv(ChainMessagePassing):
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
                  eps: float = 0., train_eps: bool = False):
-        super(SINChainConv, self).__init__(up_msg_size, down_msg_size, use_face_msg=False)
+        super(SINChainConv, self).__init__(up_msg_size, down_msg_size, use_boundary_msg=False)
         self.msg_up_nn = msg_up_nn
         self.msg_down_nn = msg_down_nn
         self.update_nn = update_nn
@@ -153,17 +153,17 @@ class EdgeSINConv(torch.nn.Module):
 
 
 class SparseSINChainConv(ChainMessagePassing):
-    """This is a SIN Chain layer that operates of faces and upper adjacent simplices."""
-    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
-                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable, update_faces_nn,
+    """This is a SIN Chain layer that operates of boundaries and upper adjacent simplices."""
+    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
+                 msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable, update_boundaries_nn,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False):
-        super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, face_msg_size=face_msg_size,
+        super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
                                                  use_down_msg=False)
         self.dim = dim
         self.msg_up_nn = msg_up_nn
-        self.msg_faces_nn = msg_faces_nn
+        self.msg_boundaries_nn = msg_boundaries_nn
         self.update_up_nn = update_up_nn
-        self.update_faces_nn = update_faces_nn
+        self.update_boundaries_nn = update_boundaries_nn
         self.combine_nn = combine_nn
         self.initial_eps = eps
         if train_eps:
@@ -175,27 +175,27 @@ class SparseSINChainConv(ChainMessagePassing):
         self.reset_parameters()
 
     def forward(self, chain: ChainMessagePassingParams):
-        out_up, _, out_faces = self.propagate(chain.up_index, chain.down_index, 
-                                              chain.face_index, x=chain.x,
+        out_up, _, out_boundaries = self.propagate(chain.up_index, chain.down_index,
+                                              chain.boundary_index, x=chain.x,
                                               up_attr=chain.kwargs['up_attr'],
-                                              face_attr=chain.kwargs['face_attr'])
+                                              boundary_attr=chain.kwargs['boundary_attr'])
 
         # As in GIN, we can learn an injective update function for each multi-set
         out_up += (1 + self.eps1) * chain.x
-        out_faces += (1 + self.eps2) * chain.x
+        out_boundaries += (1 + self.eps2) * chain.x
         out_up = self.update_up_nn(out_up)
-        out_faces = self.update_faces_nn(out_faces)
+        out_boundaries = self.update_boundaries_nn(out_boundaries)
 
         # We need to combine the two such that the output is injective
         # Because the cross product of countable spaces is countable, then such a function exists.
         # And we can learn it with another MLP.
-        return self.combine_nn(torch.cat([out_up, out_faces], dim=-1))
+        return self.combine_nn(torch.cat([out_up, out_boundaries], dim=-1))
 
     def reset_parameters(self):
         reset(self.msg_up_nn)
-        reset(self.msg_faces_nn)
+        reset(self.msg_boundaries_nn)
         reset(self.update_up_nn)
-        reset(self.update_faces_nn)
+        reset(self.update_boundaries_nn)
         reset(self.combine_nn)
         self.eps1.data.fill_(self.initial_eps)
         self.eps2.data.fill_(self.initial_eps)
@@ -203,8 +203,8 @@ class SparseSINChainConv(ChainMessagePassing):
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
         return self.msg_up_nn((up_x_j, up_attr))
     
-    def message_face(self, face_x_j: Tensor) -> Tensor:
-        return self.msg_faces_nn(face_x_j)
+    def message_face(self, boundary_x_j: Tensor) -> Tensor:
+        return self.msg_boundaries_nn(boundary_x_j)
     
 
 class Catter(torch.nn.Module):
@@ -217,27 +217,27 @@ class Catter(torch.nn.Module):
     
 class SparseSINConv(torch.nn.Module):
     """A simplicial version of GIN which performs message passing from  simplicial upper
-    neighbors and faces, but not from lower neighbors (hence why "Sparse")
+    neighbors and boundaries, but not from lower neighbors (hence why "Sparse")
     """
 
-    def __init__(self, up_msg_size: int, down_msg_size: int, face_msg_size: Optional[int],
-                 msg_up_nn: Callable, msg_faces_nn: Callable, update_up_nn: Callable,
-                 update_faces_nn: Callable, eps: float = 0., train_eps: bool = False,
-                 max_dim: int = 2, graph_norm=BN, use_cofaces=False, **kwargs):
+    def __init__(self, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
+                 msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable,
+                 update_boundaries_nn: Callable, eps: float = 0., train_eps: bool = False,
+                 max_dim: int = 2, graph_norm=BN, use_coboundaries=False, **kwargs):
         super(SparseSINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
             if msg_up_nn is None:
-                if use_cofaces:
+                if use_coboundaries:
                     msg_up_nn = Sequential(
                             Catter(),
                             Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),
                             kwargs['act_module']())
                 else:
                     msg_up_nn = lambda xs: xs[0]
-            if msg_faces_nn is None:
-                msg_faces_nn = lambda x: x
+            if msg_boundaries_nn is None:
+                msg_boundaries_nn = lambda x: x
             if update_up_nn is None:
                 update_up_nn = Sequential(
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
@@ -247,8 +247,8 @@ class SparseSINConv(torch.nn.Module):
                     graph_norm(kwargs['hidden']),
                     kwargs['act_module']()
                 )
-            if update_faces_nn is None:
-                update_faces_nn = Sequential(
+            if update_boundaries_nn is None:
+                update_boundaries_nn = Sequential(
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
                     graph_norm(kwargs['hidden']),
                     kwargs['act_module'](),
@@ -261,9 +261,9 @@ class SparseSINConv(torch.nn.Module):
                 graph_norm(kwargs['hidden']),
                 kwargs['act_module']())
 
-            mp = SparseSINChainConv(dim, up_msg_size, down_msg_size, face_msg_size=face_msg_size,
-                msg_up_nn=msg_up_nn, msg_faces_nn=msg_faces_nn, update_up_nn=update_up_nn,
-                update_faces_nn=update_faces_nn, combine_nn=combine_nn, eps=eps,
+            mp = SparseSINChainConv(dim, up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
+                msg_up_nn=msg_up_nn, msg_boundaries_nn=msg_boundaries_nn, update_up_nn=update_up_nn,
+                update_boundaries_nn=update_boundaries_nn, combine_nn=combine_nn, eps=eps,
                 train_eps=train_eps)
             self.mp_levels.append(mp)
 
@@ -283,7 +283,7 @@ class OrientedConv(ChainMessagePassing):
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
                  update_up_nn: Optional[Callable], update_down_nn: Optional[Callable],
                  update_nn: Optional[Callable], act_fn, orient=True):
-        super(OrientedConv, self).__init__(up_msg_size, down_msg_size, use_face_msg=False)
+        super(OrientedConv, self).__init__(up_msg_size, down_msg_size, use_boundary_msg=False)
         self.dim = dim
         self.update_up_nn = update_up_nn
         self.update_down_nn = update_down_nn
@@ -328,15 +328,15 @@ class InitReduceConv(torch.nn.Module):
         """
 
         Args:
-            reduce (str): Way to aggregate faces. Can be "sum, add, mean, min, max"
+            reduce (str): Way to aggregate boundaries. Can be "sum, add, mean, min, max"
         """
         super(InitReduceConv, self).__init__()
         self.reduce = reduce
 
-    def forward(self, face_x, face_index):
-        features = face_x.index_select(0, face_index[0])
-        out_size = face_index[1, :].max() + 1
-        return scatter(features, face_index[1], dim=0, dim_size=out_size, reduce=self.reduce)
+    def forward(self, boundary_x, boundary_index):
+        features = boundary_x.index_select(0, boundary_index[0])
+        out_size = boundary_index[1, :].max() + 1
+        return scatter(features, boundary_index[1], dim=0, dim_size=out_size, reduce=self.reduce)
 
     
 class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
@@ -378,7 +378,7 @@ class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
            assert c_params is None
            return out
 
-        reduced_ex = self.init_reduce(vx, e_params.face_index)
+        reduced_ex = self.init_reduce(vx, e_params.boundary_index)
         ex = reduced_ex
         if e_params.x is not None:
             ex = self.e_embed_layer(self._prepare_e_inputs(e_params))
@@ -389,7 +389,7 @@ class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
         if c_params is not None:
             # We divide by two in case this was obtained from node aggregation.
             # The division should not do any harm if this is an aggregation of learned embeddings.
-            cx = self.init_reduce(reduced_ex, c_params.face_index) / 2.
+            cx = self.init_reduce(reduced_ex, c_params.boundary_index) / 2.
             out.append(cx)
 
         return out

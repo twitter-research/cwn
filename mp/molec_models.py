@@ -21,7 +21,7 @@ class EmbedSparseSIN(torch.nn.Module):
                  dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False,
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_coboundaries=False,
                  graph_norm='bn'):
         super(EmbedSparseSIN, self).__init__()
 
@@ -54,11 +54,11 @@ class EmbedSparseSIN(torch.nn.Module):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=None,
+                    boundary_msg_size=layer_dim, msg_boundaries_nn=None,
                     msg_up_nn=None, update_up_nn=None,
-                    update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                    update_boundaries_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
+                    graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -177,7 +177,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
                  indropout_rate: float = 0.0, max_dim: int = 2, jump_mode=None,
                  nonlinearity='relu', readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False,
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_coboundaries=False,
                  graph_norm='bn'):
         super(OGBEmbedSparseSIN, self).__init__()
 
@@ -211,11 +211,11 @@ class OGBEmbedSparseSIN(torch.nn.Module):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=None,
+                    boundary_msg_size=layer_dim, msg_boundaries_nn=None,
                     msg_up_nn=None, update_up_nn=None,
-                    update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                    update_boundaries_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
+                    graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         self.lin1s = torch.nn.ModuleList()
         for _ in range(max_dim + 1):
@@ -331,7 +331,7 @@ class EmbedSparseSINNoRings(torch.nn.Module):
                  dropout_rate: float = 0.5, nonlinearity='relu',
                  readout='sum', train_eps=False, final_hidden_multiplier: int = 2,
                  final_readout='sum', apply_dropout_before='lin2',
-                 init_reduce='sum', embed_edge=False, embed_dim=None, use_cofaces=False,
+                 init_reduce='sum', embed_edge=False, embed_dim=None, use_coboundaries=False,
                  graph_norm='bn'):
         super(EmbedSparseSINNoRings, self).__init__()
 
@@ -361,11 +361,11 @@ class EmbedSparseSINNoRings(torch.nn.Module):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
                 SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                              face_msg_size=layer_dim, msg_faces_nn=None,
+                              boundary_msg_size=layer_dim, msg_boundaries_nn=None,
                               msg_up_nn=None, update_up_nn=None,
-                              update_faces_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                              update_boundaries_nn=None, train_eps=train_eps, max_dim=self.max_dim,
                               hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                              graph_norm=self.graph_norm, use_cofaces=use_cofaces))
+                              graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
         self.lin1s = torch.nn.ModuleList()
         for _ in range(self.max_dim + 1):
             self.lin1s.append(Linear(hidden, final_hidden_multiplier * hidden))

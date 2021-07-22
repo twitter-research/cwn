@@ -67,8 +67,8 @@ class ChainMessagePassing(torch.nn.Module):
         'down_index', 'down_adj_t', 'down_index_i', 'down_index_j', 'down_size',
         'down_size_i', 'down_size_j', 'down_ptr', 'agg_down_index', 'down_dim_size',
 
-        'face_index', 'face_adj_t', 'face_index_i', 'face_index_j', 'face_size',
-        'face_size_i', 'face_size_j', 'face_ptr', 'agg_face_index', 'face_dim_size',
+        'boundary_index', 'boundary_adj_t', 'boundary_index_i', 'boundary_index_j', 'boundary_size',
+        'boundary_size_i', 'boundary_size_j', 'boundary_ptr', 'agg_boundary_index', 'boundary_dim_size',
     }
 
     def __init__(self,
@@ -77,19 +77,19 @@ class ChainMessagePassing(torch.nn.Module):
                  aggr_down: Optional[str] = "add",
                  aggr_face: Optional[str] = "add",
                  flow: str = "source_to_target", node_dim: int = -2,
-                 face_msg_size=None, use_down_msg=True, use_face_msg=True):
+                 boundary_msg_size=None, use_down_msg=True, use_boundary_msg=True):
 
         super(ChainMessagePassing, self).__init__()
 
         self.up_msg_size = up_msg_size
         self.down_msg_size = down_msg_size
-        self.use_face_msg = use_face_msg
+        self.use_boundary_msg = use_boundary_msg
         self.use_down_msg = use_down_msg
-        # Use the same out dimension for faces as for down adjacency by default
-        self.face_msg_size = down_msg_size if face_msg_size is None else face_msg_size
+        # Use the same out dimension for boundaries as for down adjacency by default
+        self.boundary_msg_size = down_msg_size if boundary_msg_size is None else boundary_msg_size
         self.aggr_up = aggr_up
         self.aggr_down = aggr_down
-        self.aggr_face = aggr_face
+        self.aggr_boundary = aggr_face
         assert self.aggr_up in ['add', 'mean', 'max', None]
         assert self.aggr_down in ['add', 'mean', 'max', None]
 
@@ -130,7 +130,7 @@ class ChainMessagePassing(torch.nn.Module):
         # Support for "fused" message passing.
         self.fuse_up = self.inspector.implements('message_and_aggregate_up')
         self.fuse_down = self.inspector.implements('message_and_aggregate_down')
-        self.fuse_face = self.inspector.implements('message_and_aggregate_face')
+        self.fuse_boundary = self.inspector.implements('message_and_aggregate_face')
 
     def __check_input_together__(self, index_up, index_down, size_up, size_down):
         # If we have both up and down adjacency, then check the sizes agree.
@@ -214,11 +214,11 @@ class ChainMessagePassing(torch.nn.Module):
                 elif adjacency == 'down' and arg.startswith('down_'):
                     data = kwargs.get(arg[5:-2], Parameter.empty)
                     size_data = data
-                elif adjacency == 'face' and arg.startswith('face_'):
+                elif adjacency == 'face' and arg.startswith('boundary_'):
                     if dim == 0:
-                        # We need to use the face attribute matrix (i.e. face_attr) for the features
+                        # We need to use the boundary attribute matrix (i.e. boundary_attr) for the features
                         # And we need to use the x matrix to extract the number of parent cells
-                        data = kwargs.get('face_attr', Parameter.empty)
+                        data = kwargs.get('boundary_attr', Parameter.empty)
                         size_data = kwargs.get(arg[5:-2], Parameter.empty)
                     else:
                         data = kwargs.get(arg[5:-2], Parameter.empty)
@@ -276,7 +276,7 @@ class ChainMessagePassing(torch.nn.Module):
         if adjacency == 'down':
             return self.message_and_aggregate_down
         elif adjacency == 'face':
-            return self.message_and_aggregate_faces
+            return self.message_and_aggregate_boundaries
         else:
             return None
 
@@ -345,17 +345,17 @@ class ChainMessagePassing(torch.nn.Module):
 
     def propagate(self, up_index: Optional[Adj],
                   down_index: Optional[Adj],
-                  face_index: Optional[Adj],  # The None default does not work here!
+                  boundary_index: Optional[Adj],  # The None default does not work here!
                   up_size: Size = None,
                   down_size: Size = None,
-                  face_size: Size = None,
+                  boundary_size: Size = None,
                   **kwargs):
         r"""The initial call to start propagating messages.
 
         """
         up_size = self.__check_input_separately__(up_index, up_size)
         down_size = self.__check_input_separately__(down_index, down_size)
-        face_size = self.__check_input_separately__(face_index, face_size)
+        boundary_size = self.__check_input_separately__(boundary_index, boundary_size)
         self.__check_input_together__(up_index, down_index, up_size, down_size)
 
         up_out, down_out = None, None
@@ -367,10 +367,10 @@ class ChainMessagePassing(torch.nn.Module):
         if self.use_down_msg and down_index is not None:
             down_out = self.__message_and_aggregate__(down_index, 'down', down_size, **kwargs)
 
-        # Face messaging and aggregation
-        face_out = None
-        if self.use_face_msg and 'face_attr' in kwargs and kwargs['face_attr'] is not None:
-            face_out = self.__message_and_aggregate__(face_index, 'face', face_size, **kwargs)
+        # boundary messaging and aggregation
+        boundary_out = None
+        if self.use_boundary_msg and 'boundary_attr' in kwargs and kwargs['boundary_attr'] is not None:
+            boundary_out = self.__message_and_aggregate__(boundary_index, 'face', boundary_size, **kwargs)
 
         coll_dict = {}
         up_coll_dict = self.__collect__(self.__update_user_args__, up_index, up_size, 'up',
@@ -380,7 +380,7 @@ class ChainMessagePassing(torch.nn.Module):
         coll_dict.update(up_coll_dict)
         coll_dict.update(down_coll_dict)
         update_kwargs = self.inspector.distribute('update', coll_dict)
-        return self.update(up_out, down_out, face_out, **update_kwargs)
+        return self.update(up_out, down_out, boundary_out, **update_kwargs)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
         r"""Constructs messages from node :math:`j` to node :math:`i`
@@ -406,7 +406,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         return down_x_j
 
-    def message_face(self, face_x_j: Tensor):
+    def message_face(self, boundary_x_j: Tensor):
         r"""Constructs messages from node :math:`j` to node :math:`i`
         in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
         :obj:`edge_index`.
@@ -416,7 +416,7 @@ class ChainMessagePassing(torch.nn.Module):
         respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
         :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
         """
-        return face_x_j
+        return boundary_x_j
 
     def aggregate_up(self, inputs: Tensor, agg_up_index: Tensor,
                      up_ptr: Optional[Tensor] = None,
@@ -458,9 +458,9 @@ class ChainMessagePassing(torch.nn.Module):
             return scatter(inputs, agg_down_index, dim=self.node_dim, dim_size=down_dim_size,
                            reduce=self.aggr_down)
 
-    def aggregate_face(self, inputs: Tensor, agg_face_index: Tensor,
-                       face_ptr: Optional[Tensor] = None,
-                       face_dim_size: Optional[int] = None) -> Tensor:
+    def aggregate_face(self, inputs: Tensor, agg_boundary_index: Tensor,
+                       boundary_ptr: Optional[Tensor] = None,
+                       boundary_dim_size: Optional[int] = None) -> Tensor:
         r"""Aggregates messages from neighbors as
         :math:`\square_{j \in \mathcal{N}(i)}`.
 
@@ -472,11 +472,11 @@ class ChainMessagePassing(torch.nn.Module):
         :meth:`__init__` by the :obj:`aggr` argument.
         """
         # import pdb; pdb.set_trace()
-        if face_ptr is not None:
-            down_ptr = expand_left(face_ptr, dim=self.node_dim, dims=inputs.dim())
+        if boundary_ptr is not None:
+            down_ptr = expand_left(boundary_ptr, dim=self.node_dim, dims=inputs.dim())
             return segment_csr(inputs, down_ptr, reduce=self.aggr_face)
         else:
-            return scatter(inputs, agg_face_index, dim=self.node_dim, dim_size=face_dim_size,
+            return scatter(inputs, agg_boundary_index, dim=self.node_dim, dim_size=boundary_dim_size,
                            reduce=self.aggr_face)
 
     def message_and_aggregate_up(self, up_adj_t: SparseTensor) -> Tensor:
@@ -499,7 +499,7 @@ class ChainMessagePassing(torch.nn.Module):
         """
         raise NotImplementedError
 
-    def message_and_aggregate_face(self, face_adj_t: SparseTensor) -> Tensor:
+    def message_and_aggregate_face(self, boundary_adj_t: SparseTensor) -> Tensor:
         r"""Fuses computations of :func:`message` and :func:`aggregate` into a
         single function.
         If applicable, this saves both time and memory since messages do not
@@ -510,7 +510,7 @@ class ChainMessagePassing(torch.nn.Module):
         raise NotImplementedError
 
     def update(self, up_inputs: Optional[Tensor], down_inputs: Optional[Tensor],
-               face_inputs: Optional[Tensor], x: Tensor) -> (Tensor, Tensor, Tensor):
+               boundary_inputs: Optional[Tensor], x: Tensor) -> (Tensor, Tensor, Tensor):
         r"""Updates node embeddings in analogy to
         :math:`\gamma_{\mathbf{\Theta}}` for each node
         :math:`i \in \mathcal{V}`.
@@ -521,10 +521,10 @@ class ChainMessagePassing(torch.nn.Module):
             up_inputs = torch.zeros(x.size(0), self.up_msg_size).to(device=x.device)
         if down_inputs is None:
             down_inputs = torch.zeros(x.size(0), self.down_msg_size).to(device=x.device)
-        if face_inputs is None:
-            face_inputs = torch.zeros(x.size(0), self.face_msg_size).to(device=x.device)
+        if boundary_inputs is None:
+            boundary_inputs = torch.zeros(x.size(0), self.boundary_msg_size).to(device=x.device)
 
-        return up_inputs, down_inputs, face_inputs
+        return up_inputs, down_inputs, boundary_inputs
 
 
 class ChainMessagePassingParams:
@@ -533,11 +533,11 @@ class ChainMessagePassingParams:
         self.up_index = up_index
         self.down_index = down_index
         self.kwargs = kwargs
-        if 'face_index' in self.kwargs:
-            self.face_index = self.kwargs['face_index']
+        if 'boundary_index' in self.kwargs:
+            self.boundary_index = self.kwargs['boundary_index']
         else:
-            self.face_index = None
-        if 'face_attr' in self.kwargs:
-            self.face_attr = self.kwargs['face_attr']
+            self.boundary_index = None
+        if 'boundary_attr' in self.kwargs:
+            self.boundary_attr = self.kwargs['boundary_attr']
         else:
-            self.face_attr = None
+            self.boundary_attr = None

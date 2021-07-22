@@ -16,23 +16,23 @@ def test_edge_propagate_in_cmp():
 
     house_complex = get_house_complex()
     e = house_complex.get_chain_params(dim=1)
-    assert e.kwargs['face_index'] is not None, e.kwargs['face_index']
+    assert e.kwargs['boundary_index'] is not None, e.kwargs['boundary_index']
 
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, face_msg = cmp.propagate(e.up_index, e.down_index, 
-                                               e.face_index, x=e.x,
+    up_msg, down_msg, boundary_msg = cmp.propagate(e.up_index, e.down_index,
+                                               e.boundary_index, x=e.x,
                                                up_attr=e.kwargs['up_attr'],
                                                down_attr=e.kwargs['down_attr'],
-                                               face_attr=e.kwargs['face_attr'])
+                                               boundary_attr=e.kwargs['boundary_attr'])
     expected_down_msg = torch.tensor([[6], [10], [17], [9], [13], [10]], dtype=torch.float)
     assert torch.equal(down_msg, expected_down_msg)
 
     expected_up_msg = torch.tensor([[0], [0], [11], [0], [9], [8]], dtype=torch.float)
     assert torch.equal(up_msg, expected_up_msg)
 
-    expected_face_msg = torch.tensor([[3], [5], [7], [5], [9], [8]], dtype=torch.float)
-    assert torch.equal(face_msg, expected_face_msg)
+    expected_boundary_msg = torch.tensor([[3], [5], [7], [5], [9], [8]], dtype=torch.float)
+    assert torch.equal(boundary_msg, expected_boundary_msg)
 
 
 def test_propagate_at_vertex_level_in_cmp():
@@ -46,11 +46,11 @@ def test_propagate_at_vertex_level_in_cmp():
 
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, face_msg = cmp.propagate(v.up_index, v.down_index,
-                                               v.face_index, x=v.x,
+    up_msg, down_msg, boundary_msg = cmp.propagate(v.up_index, v.down_index,
+                                               v.boundary_index, x=v.x,
                                                up_attr=v.kwargs['up_attr'],
                                                down_attr=v.kwargs['down_attr'],
-                                               face_attr=v.kwargs['face_attr'])
+                                               boundary_attr=v.kwargs['boundary_attr'])
 
     expected_up_msg = torch.tensor([[6], [4], [11], [9], [7]], dtype=torch.float)
     assert torch.equal(up_msg, expected_up_msg)
@@ -58,8 +58,8 @@ def test_propagate_at_vertex_level_in_cmp():
     expected_down_msg = torch.zeros(5, 1)
     assert torch.equal(down_msg, expected_down_msg)
 
-    expected_face_msg = torch.zeros(5, 1)
-    assert torch.equal(face_msg, expected_face_msg)
+    expected_boundary_msg = torch.zeros(5, 1)
+    assert torch.equal(boundary_msg, expected_boundary_msg)
 
 
 def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one():
@@ -72,11 +72,11 @@ def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one():
 
     # Extract the message passing object and propagate
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, face_msg = cmp.propagate(t.up_index, t.down_index,
-                                               t.face_index, x=t.x,
+    up_msg, down_msg, boundary_msg = cmp.propagate(t.up_index, t.down_index,
+                                               t.boundary_index, x=t.x,
                                                up_attr=t.kwargs['up_attr'],
                                                down_attr=t.kwargs['down_attr'],
-                                               face_attr=t.kwargs['face_attr'])
+                                               boundary_attr=t.kwargs['boundary_attr'])
 
     expected_up_msg = torch.zeros(1, 1)
     assert torch.equal(up_msg, expected_up_msg)
@@ -84,8 +84,8 @@ def test_propagate_at_triangle_level_in_cmp_when_there_is_a_single_one():
     expected_down_msg = torch.zeros(1, 1)
     assert torch.equal(down_msg, expected_down_msg)
 
-    expected_face_msg = torch.tensor([[14]], dtype=torch.float)
-    assert torch.equal(face_msg, expected_face_msg)
+    expected_boundary_msg = torch.tensor([[14]], dtype=torch.float)
+    assert torch.equal(boundary_msg, expected_boundary_msg)
 
 
 def test_propagate_at_triangle_level_in_cmp():
@@ -128,7 +128,7 @@ def test_smp_messaging_with_isolated_nodes():
         assert not torch.equal(out[i], torch.zeros_like(out[i]))
 
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, down_msg, _ = cmp.propagate(up_index=params.up_index, down_index=None, face_index=None, 
+    up_msg, down_msg, _ = cmp.propagate(up_index=params.up_index, down_index=None, boundary_index=None,
                                         x=params.x, up_attr=None)
     assert torch.equal(out, up_msg)
     assert torch.equal(down_msg, torch.zeros_like(down_msg))
@@ -150,7 +150,7 @@ def test_cmp_messaging_with_isolated_node_only():
 
     # This confirms behavior is consistent with our framework
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, _, _ = cmp.propagate(up_index=params.up_index, down_index=None, face_index=None, 
+    up_msg, _, _ = cmp.propagate(up_index=params.up_index, down_index=None, boundary_index=None,
                                         x=params.x, up_attr=None)
     assert torch.equal(mp_out, up_msg)
 
@@ -171,7 +171,7 @@ def test_cmp_messaging_with_two_isolated_nodes_only():
 
     # This confirms behavior is consistent with our framework
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    up_msg, _, _ = cmp.propagate(up_index=params.up_index, down_index=None, face_index=None, 
+    up_msg, _, _ = cmp.propagate(up_index=params.up_index, down_index=None, boundary_index=None,
                                         x=params.x, up_attr=None)
     assert torch.equal(mp_out, up_msg)
 
@@ -188,17 +188,17 @@ def test_cmp_messaging_with_replicated_adjs():
         bridged_graph.y, init_method='sum', init_edges=True, init_rings=True)
     check_edge_index_are_the_same(bridged_complex_from_graph.edges.upper_index, bridged_complex.edges.upper_index)
     check_edge_index_are_the_same(bridged_complex_from_graph.triangles.lower_index, bridged_complex.triangles.lower_index)
-    check_edge_attr_are_the_same(bridged_complex.chains[1].face_index, bridged_complex.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
-    check_edge_attr_are_the_same(bridged_complex_from_graph.chains[1].face_index, bridged_complex_from_graph.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
+    check_edge_attr_are_the_same(bridged_complex.chains[1].boundary_index, bridged_complex.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
+    check_edge_attr_are_the_same(bridged_complex_from_graph.chains[1].boundary_index, bridged_complex_from_graph.chains[1].x, bridged_graph.edge_index, bridged_graph.edge_attr)
     
-    # verify up-messaging with multiple shared cofaces
+    # verify up-messaging with multiple shared coboundaries
     e = bridged_complex.get_chain_params(dim=1)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    e_up_msg, e_down_msg, e_face_msg = cmp.propagate(e.up_index, e.down_index,
-                                               e.face_index, x=e.x,
+    e_up_msg, e_down_msg, e_boundary_msg = cmp.propagate(e.up_index, e.down_index,
+                                               e.boundary_index, x=e.x,
                                                up_attr=e.kwargs['up_attr'],
                                                down_attr=e.kwargs['down_attr'],
-                                               face_attr=e.kwargs['face_attr'])
+                                               boundary_attr=e.kwargs['boundary_attr'])
     expected_e_up_msg = torch.tensor([[4+5+6+2+3+4],  # edge 0
                                       [3+5+6+1+3+4],  # edge 1
                                       [2+5+6+1+2+4],  # edge 2
@@ -211,11 +211,11 @@ def test_cmp_messaging_with_replicated_adjs():
     # same but start from graph instead
     e = bridged_complex_from_graph.get_chain_params(dim=1)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    e_up_msg, e_down_msg, e_face_msg = cmp.propagate(e.up_index, e.down_index,
-                                               e.face_index, x=e.x,
+    e_up_msg, e_down_msg, e_boundary_msg = cmp.propagate(e.up_index, e.down_index,
+                                               e.boundary_index, x=e.x,
                                                up_attr=e.kwargs['up_attr'],
                                                down_attr=e.kwargs['down_attr'],
-                                               face_attr=e.kwargs['face_attr'])
+                                               boundary_attr=e.kwargs['boundary_attr'])
     
     expected_e_up_msg = torch.tensor([[4+5+6+2+3+4],        # edge 0-1 (0)
                                       [1+5+6+1+2+3],        # edge 0-3 (3)
@@ -226,34 +226,34 @@ def test_cmp_messaging_with_replicated_adjs():
                                       dtype=torch.float)
     assert torch.equal(e_up_msg, expected_e_up_msg)
     
-    # verify down-messaging with multiple shared faces
+    # verify down-messaging with multiple shared boundaries
     t = bridged_complex.get_chain_params(dim=2)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    t_up_msg, t_down_msg, t_face_msg = cmp.propagate(t.up_index, t.down_index,
-                                               t.face_index, x=t.x,
+    t_up_msg, t_down_msg, t_boundary_msg = cmp.propagate(t.up_index, t.down_index,
+                                               t.boundary_index, x=t.x,
                                                up_attr=t.kwargs['up_attr'],
                                                down_attr=t.kwargs['down_attr'],
-                                               face_attr=t.kwargs['face_attr'])
+                                               boundary_attr=t.kwargs['boundary_attr'])
     expected_t_down_msg = torch.tensor([[2+2+3+3],    # ring 0
                                         [1+1+3+3],    # ring 1
                                         [1+1+2+2]],   # ring 2
                                       dtype=torch.float)
     assert torch.equal(t_down_msg, expected_t_down_msg)
     
-    expected_t_face_msg = torch.tensor([[1+6+5+4],    # ring 0
+    expected_t_boundary_msg = torch.tensor([[1+6+5+4],    # ring 0
                                         [2+3+5+6],    # ring 1
                                         [1+2+3+4]],   # ring 2
                                       dtype=torch.float)
-    assert torch.equal(t_face_msg, expected_t_face_msg)
+    assert torch.equal(t_boundary_msg, expected_t_boundary_msg)
     
     # same but start from graph instead
     t = bridged_complex_from_graph.get_chain_params(dim=2)
     cmp = ChainMessagePassing(up_msg_size=1, down_msg_size=1)
-    t_up_msg, t_down_msg, t_face_msg = cmp.propagate(t.up_index, t.down_index,
-                                               t.face_index, x=t.x,
+    t_up_msg, t_down_msg, t_boundary_msg = cmp.propagate(t.up_index, t.down_index,
+                                               t.boundary_index, x=t.x,
                                                up_attr=t.kwargs['up_attr'],
                                                down_attr=t.kwargs['down_attr'],
-                                               face_attr=t.kwargs['face_attr'])
+                                               boundary_attr=t.kwargs['boundary_attr'])
     t0_x = 1+2+4+5  # 12
     t1_x = 2+3+4+5  # 14
     t2_x = 1+2+3+4  # 10
@@ -263,8 +263,8 @@ def test_cmp_messaging_with_replicated_adjs():
                                       dtype=torch.float)
     assert torch.equal(t_down_msg, expected_t_down_msg)
     
-    expected_t_face_msg = torch.tensor([[1+6+5+4],        # ring 0
+    expected_t_boundary_msg = torch.tensor([[1+6+5+4],        # ring 0
                                         [1+2+3+4],        # ring 2
                                         [2+3+5+6]],       # ring 1
                                       dtype=torch.float)
-    assert torch.equal(t_face_msg, expected_t_face_msg)
+    assert torch.equal(t_boundary_msg, expected_t_boundary_msg)

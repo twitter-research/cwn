@@ -33,7 +33,7 @@ def test_zinc_splits_are_retained():
             assert torch.equal(data1.chains[0].x, data2.x)
             assert data1.chains[1].x.size(0) == (data2.edge_index.size(1) // 2)
             check_edge_index_are_the_same(data1.chains[0].upper_index, data2.edge_index)
-            check_edge_attr_are_the_same(data1.chains[1].face_index,
+            check_edge_attr_are_the_same(data1.chains[1].boundary_index,
                                          data1.chains[1].x, data2.edge_index, data2.edge_attr)
 
 
@@ -51,7 +51,7 @@ def test_we_find_only_the_induced_cycles_on_zinc():
             assert len(nx_rings) == 0
             continue
 
-        complex_rings = get_complex_rings(complex.chains[2].face_index, complex.edges.face_index)
+        complex_rings = get_complex_rings(complex.chains[2].boundary_index, complex.edges.boundary_index)
         assert len(complex_rings) > 0
         assert len(nx_rings) == complex.chains[2].num_simplices
         assert nx_rings == complex_rings

@@ -17,8 +17,8 @@ def get_parser():
                         help='which gpu to use if any (default: 0)')
     parser.add_argument('--model', type=str, default='sparse_sin',
                         help='model, possible choices: sin, dummy, ... (default: sin)')
-    parser.add_argument('--use_cofaces', type=str, default='False',
-                        help='whether to use coface features for up-messages in sparse_sin (default: False)')
+    parser.add_argument('--use_coboundaries', type=str, default='False',
+                        help='whether to use coboundary features for up-messages in sparse_sin (default: False)')
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
     parser.add_argument('--indrop_rate', type=float, default=0.0,
                         help='inputs dropout rate for molec models(default: 0.0)')

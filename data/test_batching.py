@@ -14,18 +14,18 @@ def validate_double_house(batch):
     
     expected_node_upper = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4, 5, 6, 5, 8, 6, 7, 7, 8, 7, 9, 8, 9],
                                         [1, 0, 3, 0, 2, 1, 3, 2, 4, 2, 4, 3, 6, 5, 8, 5, 7, 6, 8, 7, 9, 7, 9, 8]], dtype=torch.long)
-    expected_node_shared_cofaces = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4, 6, 6, 9, 9, 7, 7, 8, 8, 11, 11, 10, 10], dtype=torch.long)
+    expected_node_shared_coboundaries = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4, 6, 6, 9, 9, 7, 7, 8, 8, 11, 11, 10, 10], dtype=torch.long)
     expected_node_x = torch.tensor([[1], [2], [3], [4], [5], [1], [2], [3], [4], [5]], dtype=torch.float)
     expected_node_y = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.long)
     expected_node_batch = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1], dtype=torch.long)
     
     expected_edge_upper = torch.tensor([[2, 4, 2, 5, 4, 5, 8, 10, 8, 11, 10, 11],
                                         [4, 2, 5, 2, 5, 4, 10, 8, 11, 8, 11, 10]], dtype=torch.long)
-    expected_edge_shared_cofaces = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
+    expected_edge_shared_coboundaries = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
     expected_edge_lower = torch.tensor([[0, 1, 0, 3, 1, 2, 1, 5, 2, 3, 2, 4, 2, 5, 3, 4, 4, 5, 6, 7, 6, 9, 7, 8, 7, 11, 8, 9, 8, 10, 8, 11, 9, 10, 10, 11],
                                  [1, 0, 3, 0, 2, 1, 5, 1, 3, 2, 4, 2, 5, 2, 4, 3, 5, 4, 7, 6, 9, 6, 8, 7, 11, 7, 9, 8, 10, 8, 11, 8, 10, 9, 11, 10]],
                                 dtype=torch.long)
-    expected_edge_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4, 6, 6, 5, 5, 7, 7, 7, 7, 8, 8, 8, 8, 7, 7, 8, 8, 9, 9],
+    expected_edge_shared_boundaries = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4, 6, 6, 5, 5, 7, 7, 7, 7, 8, 8, 8, 8, 7, 7, 8, 8, 9, 9],
                                   dtype=torch.long)
     expected_edge_x = torch.tensor([[1], [2], [3], [4], [5], [6], [1], [2], [3], [4], [5], [6]], dtype=torch.float)
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=torch.long)
@@ -36,25 +36,25 @@ def validate_double_house(batch):
     expected_triangle_batch = torch.tensor([0, 1], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
-    assert torch.equal(expected_node_shared_cofaces, batch.nodes.shared_cofaces)
+    assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
     assert batch.nodes.lower_index is None
-    assert batch.nodes.shared_faces is None
+    assert batch.nodes.shared_boundaries is None
     assert torch.equal(expected_node_x, batch.nodes.x)
     assert torch.equal(expected_node_y, batch.nodes.y)
     assert torch.equal(expected_node_batch, batch.nodes.batch)
     
     assert torch.equal(expected_edge_upper, batch.edges.upper_index)
-    assert torch.equal(expected_edge_shared_cofaces, batch.edges.shared_cofaces)
+    assert torch.equal(expected_edge_shared_coboundaries, batch.edges.shared_coboundaries)
     assert torch.equal(expected_edge_lower, batch.edges.lower_index)
-    assert torch.equal(expected_edge_shared_faces, batch.edges.shared_faces)
+    assert torch.equal(expected_edge_shared_boundaries, batch.edges.shared_boundaries)
     assert torch.equal(expected_edge_x, batch.edges.x)
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
     assert batch.triangles.upper_index is None
     assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_cofaces is None
-    assert batch.triangles.shared_faces is None
+    assert batch.triangles.shared_coboundaries is None
+    assert batch.triangles.shared_boundaries is None
     assert torch.equal(expected_triangle_x, batch.triangles.x)
     assert torch.equal(expected_triangle_y, batch.triangles.y)
     assert torch.equal(expected_triangle_batch, batch.triangles.batch)
@@ -64,31 +64,31 @@ def validate_square_dot_and_square(batch):
     
     expected_node_upper = torch.tensor([        [0, 1, 0, 3, 1, 2, 2, 3, 5, 6, 5, 8, 6, 7, 7, 8],
                                                 [1, 0, 3, 0, 2, 1, 3, 2, 6, 5, 8, 5, 7, 6, 8, 7]], dtype=torch.long)
-    expected_node_shared_cofaces = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 4, 4, 7, 7, 5, 5, 6, 6], dtype=torch.long)
+    expected_node_shared_coboundaries = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 4, 4, 7, 7, 5, 5, 6, 6], dtype=torch.long)
     expected_node_x = torch.tensor([[1], [2], [3], [4], [5], [1], [2], [3], [4]], dtype=torch.float)
     expected_node_y = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.long)
     expected_node_batch = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1], dtype=torch.long)
     
     expected_edge_lower = torch.tensor([      [0, 1, 0, 3, 1, 2, 2, 3, 4, 5, 4, 7, 5, 6, 6, 7],
                                               [1, 0, 3, 0, 2, 1, 3, 2, 5, 4, 7, 4, 6, 5, 7, 6]], dtype=torch.long)
-    expected_edge_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 3, 3, 6, 6, 5, 5, 7, 7, 8, 8],
+    expected_edge_shared_boundaries = torch.tensor([1, 1, 0, 0, 2, 2, 3, 3, 6, 6, 5, 5, 7, 7, 8, 8],
                                   dtype=torch.long)
     expected_edge_x = torch.tensor([[1], [2], [3], [4], [1], [2], [3], [4]], dtype=torch.float)
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1,], dtype=torch.long)
     expected_edge_batch = torch.tensor([0, 0, 0, 0, 1, 1, 1, 1], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
-    assert torch.equal(expected_node_shared_cofaces, batch.nodes.shared_cofaces)
+    assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
     assert batch.nodes.lower_index is None
-    assert batch.nodes.shared_faces is None
+    assert batch.nodes.shared_boundaries is None
     assert torch.equal(expected_node_x, batch.nodes.x)
     assert torch.equal(expected_node_y, batch.nodes.y)
     assert torch.equal(expected_node_batch, batch.nodes.batch)
     
     assert batch.edges.upper_index is None
-    assert batch.edges.shared_cofaces is None
+    assert batch.edges.shared_coboundaries is None
     assert torch.equal(expected_edge_lower, batch.edges.lower_index)
-    assert torch.equal(expected_edge_shared_faces, batch.edges.shared_faces)
+    assert torch.equal(expected_edge_shared_boundaries, batch.edges.shared_boundaries)
     assert torch.equal(expected_edge_x, batch.edges.x)
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
@@ -102,9 +102,9 @@ def validate_kite_and_house(batch):
                                         [1, 0, 3, 0, 2, 1, 3, 2, 4, 2, 4, 3]], dtype=torch.long)
     expected_node_upper = torch.cat([kite_node_upper, shifted_house_node_upper], 1)
     
-    kite_node_shared_cofaces = torch.tensor([0, 0, 2, 2, 1, 1, 3, 3, 4, 4, 5, 5], dtype=torch.long)
-    shifted_house_node_shared_cofaces = 6 + torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4], dtype=torch.long)
-    expected_node_shared_cofaces = torch.cat([kite_node_shared_cofaces, shifted_house_node_shared_cofaces], 0)
+    kite_node_shared_coboundaries = torch.tensor([0, 0, 2, 2, 1, 1, 3, 3, 4, 4, 5, 5], dtype=torch.long)
+    shifted_house_node_shared_coboundaries = 6 + torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4], dtype=torch.long)
+    expected_node_shared_coboundaries = torch.cat([kite_node_shared_coboundaries, shifted_house_node_shared_coboundaries], 0)
     
     expected_node_x = torch.tensor([[1], [2], [3], [4], [5], [1], [2], [3], [4], [5]], dtype=torch.float)
     expected_node_y = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.long)
@@ -116,9 +116,9 @@ def validate_kite_and_house(batch):
                                                  [4, 2, 5, 2, 5, 4]], dtype=torch.long)
     expected_edge_upper = torch.cat([kite_edge_upper, shifted_house_edge_upper], 1)
     
-    kite_edge_shared_cofaces = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
-    shifted_house_edge_shared_cofaces = 2 + torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
-    expected_edge_shared_cofaces = torch.cat([kite_edge_shared_cofaces, shifted_house_edge_shared_cofaces], 0)
+    kite_edge_shared_coboundaries = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
+    shifted_house_edge_shared_coboundaries = 2 + torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
+    expected_edge_shared_coboundaries = torch.cat([kite_edge_shared_coboundaries, shifted_house_edge_shared_coboundaries], 0)
     
     kite_edge_lower = torch.tensor([ [0, 1, 0, 3, 1, 3, 0, 2, 1, 2, 2, 4, 1, 4, 3, 4, 3, 5, 4, 5],
                                      [1, 0, 3, 0, 3, 1, 2, 0, 2, 1, 4, 2, 4, 1, 4, 3, 5, 3, 5, 4]], dtype=torch.long)
@@ -126,9 +126,9 @@ def validate_kite_and_house(batch):
                                             [1, 0, 3, 0, 2, 1, 5, 1, 3, 2, 4, 2, 5, 2, 4, 3, 5, 4]], dtype=torch.long)
     expected_edge_lower = torch.cat([kite_edge_lower, shifted_house_lower], 1)
     
-    kite_edge_shared_faces = torch.tensor([1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3], dtype=torch.long)
-    shifted_house_edge_shared_faces = 5 + torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4], dtype=torch.long)
-    expected_edge_shared_faces = torch.cat([kite_edge_shared_faces, shifted_house_edge_shared_faces], 0)
+    kite_edge_shared_boundaries = torch.tensor([1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3], dtype=torch.long)
+    shifted_house_edge_shared_boundaries = 5 + torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4], dtype=torch.long)
+    expected_edge_shared_boundaries = torch.cat([kite_edge_shared_boundaries, shifted_house_edge_shared_boundaries], 0)
     
     expected_edge_x = torch.tensor([[1], [2], [3], [4], [5], [6], [1], [2], [3], [4], [5], [6]], dtype=torch.float)
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=torch.long)
@@ -136,31 +136,31 @@ def validate_kite_and_house(batch):
     
     expected_triangle_lower = torch.tensor([[0, 1],
                                             [1, 0]], dtype=torch.long)
-    expected_triangle_shared_faces = torch.tensor([1, 1], dtype=torch.long)
+    expected_triangle_shared_boundaries = torch.tensor([1, 1], dtype=torch.long)
     expected_triangle_x = torch.tensor([[1], [2], [1]], dtype=torch.float)
     expected_triangle_y = torch.tensor([2, 2, 2], dtype=torch.long)
     expected_triangle_batch = torch.tensor([0, 0, 1], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
-    assert torch.equal(expected_node_shared_cofaces, batch.nodes.shared_cofaces)
+    assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
     assert batch.nodes.lower_index is None
-    assert batch.nodes.shared_faces is None
+    assert batch.nodes.shared_boundaries is None
     assert torch.equal(expected_node_x, batch.nodes.x)
     assert torch.equal(expected_node_y, batch.nodes.y)
     assert torch.equal(expected_node_batch, batch.nodes.batch)
     
     assert torch.equal(expected_edge_upper, batch.edges.upper_index)
-    assert torch.equal(expected_edge_shared_cofaces, batch.edges.shared_cofaces)
+    assert torch.equal(expected_edge_shared_coboundaries, batch.edges.shared_coboundaries)
     assert torch.equal(expected_edge_lower, batch.edges.lower_index)
-    assert torch.equal(expected_edge_shared_faces, batch.edges.shared_faces)
+    assert torch.equal(expected_edge_shared_boundaries, batch.edges.shared_boundaries)
     assert torch.equal(expected_edge_x, batch.edges.x)
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
     assert batch.triangles.upper_index is None
-    assert batch.triangles.shared_cofaces is None
+    assert batch.triangles.shared_coboundaries is None
     assert torch.equal(expected_triangle_lower, batch.triangles.lower_index)
-    assert torch.equal(expected_triangle_shared_faces, batch.triangles.shared_faces)
+    assert torch.equal(expected_triangle_shared_boundaries, batch.triangles.shared_boundaries)
     assert torch.equal(expected_triangle_x, batch.triangles.x)
     assert torch.equal(expected_triangle_y, batch.triangles.y)
     assert torch.equal(expected_triangle_batch, batch.triangles.batch)
@@ -170,18 +170,18 @@ def validate_house_and_square(batch):
     
     expected_node_upper = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4, 5, 6, 5, 8, 6, 7, 7, 8],
                                         [1, 0, 3, 0, 2, 1, 3, 2, 4, 2, 4, 3, 6, 5, 8, 5, 7, 6, 8, 7]], dtype=torch.long)
-    expected_node_shared_cofaces = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4, 6, 6, 9, 9, 7, 7, 8, 8], dtype=torch.long)
+    expected_node_shared_coboundaries = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4, 6, 6, 9, 9, 7, 7, 8, 8], dtype=torch.long)
     expected_node_x = torch.tensor([[1], [2], [3], [4], [5], [1], [2], [3], [4]], dtype=torch.float)
     expected_node_y = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.long)
     expected_node_batch = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1], dtype=torch.long)
     
     expected_edge_upper = torch.tensor([[2, 4, 2, 5, 4, 5],
                                         [4, 2, 5, 2, 5, 4]], dtype=torch.long)
-    expected_edge_shared_cofaces = torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
+    expected_edge_shared_coboundaries = torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
     expected_edge_lower = torch.tensor([      [0, 1, 0, 3, 1, 2, 1, 5, 2, 3, 2, 4, 2, 5, 3, 4, 4, 5, 6, 7, 6, 9, 7, 8, 8, 9],
                                               [1, 0, 3, 0, 2, 1, 5, 1, 3, 2, 4, 2, 5, 2, 4, 3, 5, 4, 7, 6, 9, 6, 8, 7, 9, 8]],
                                 dtype=torch.long)
-    expected_edge_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4, 6, 6, 5, 5, 7, 7, 8, 8],
+    expected_edge_shared_boundaries = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4, 6, 6, 5, 5, 7, 7, 8, 8],
                                   dtype=torch.long)
     expected_edge_x = torch.tensor([[1], [2], [3], [4], [5], [6], [1], [2], [3], [4]], dtype=torch.float)
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1,], dtype=torch.long)
@@ -192,25 +192,25 @@ def validate_house_and_square(batch):
     expected_triangle_batch = torch.tensor([0], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
-    assert torch.equal(expected_node_shared_cofaces, batch.nodes.shared_cofaces)
+    assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
     assert batch.nodes.lower_index is None
-    assert batch.nodes.shared_faces is None
+    assert batch.nodes.shared_boundaries is None
     assert torch.equal(expected_node_x, batch.nodes.x)
     assert torch.equal(expected_node_y, batch.nodes.y)
     assert torch.equal(expected_node_batch, batch.nodes.batch)
     
     assert torch.equal(expected_edge_upper, batch.edges.upper_index)
-    assert torch.equal(expected_edge_shared_cofaces, batch.edges.shared_cofaces)
+    assert torch.equal(expected_edge_shared_coboundaries, batch.edges.shared_coboundaries)
     assert torch.equal(expected_edge_lower, batch.edges.lower_index)
-    assert torch.equal(expected_edge_shared_faces, batch.edges.shared_faces)
+    assert torch.equal(expected_edge_shared_boundaries, batch.edges.shared_boundaries)
     assert torch.equal(expected_edge_x, batch.edges.x)
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
     assert batch.triangles.upper_index is None
     assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_cofaces is None
-    assert batch.triangles.shared_faces is None
+    assert batch.triangles.shared_coboundaries is None
+    assert batch.triangles.shared_boundaries is None
     assert torch.equal(expected_triangle_x, batch.triangles.x)
     assert torch.equal(expected_triangle_y, batch.triangles.y)
     assert torch.equal(expected_triangle_batch, batch.triangles.batch)
@@ -221,7 +221,7 @@ def validate_house_square_house(batch):
     expected_node_upper = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4, 5, 6, 5, 8, 6, 7, 7, 8, 9, 10, 9, 12, 10, 11, 11, 12, 11, 13, 12, 13],
                                         [1, 0, 3, 0, 2, 1, 3, 2, 4, 2, 4, 3, 6, 5, 8, 5, 7, 6, 8, 7, 10, 9, 12, 9, 11, 10, 12, 11, 13, 11, 13, 12]],
                                        dtype=torch.long)
-    expected_node_shared_cofaces = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4, 6, 6, 9, 9, 7, 7, 8, 8, 10, 10, 13, 13, 11, 11, 12, 12, 15, 15, 14, 14],
+    expected_node_shared_coboundaries = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4, 6, 6, 9, 9, 7, 7, 8, 8, 10, 10, 13, 13, 11, 11, 12, 12, 15, 15, 14, 14],
                                                 dtype=torch.long)
     expected_node_x = torch.tensor([[1], [2], [3], [4], [5], [1], [2], [3], [4], [1], [2], [3], [4], [5]], dtype=torch.float)
     expected_node_y = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.long)
@@ -229,11 +229,11 @@ def validate_house_square_house(batch):
     
     expected_edge_upper = torch.tensor([[2, 4, 2, 5, 4, 5, 12, 14, 12, 15, 14, 15],
                                         [4, 2, 5, 2, 5, 4, 14, 12, 15, 12, 15, 14]], dtype=torch.long)
-    expected_edge_shared_cofaces = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
+    expected_edge_shared_coboundaries = torch.tensor([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=torch.long)
     expected_edge_lower = torch.tensor([      [0, 1, 0, 3, 1, 2, 1, 5, 2, 3, 2, 4, 2, 5, 3, 4, 4, 5, 6, 7, 6, 9, 7, 8, 8, 9, 10, 11, 10, 13, 11, 12, 11, 15, 12, 13, 12, 14, 12, 15, 13, 14, 14, 15],
                                               [1, 0, 3, 0, 2, 1, 5, 1, 3, 2, 4, 2, 5, 2, 4, 3, 5, 4, 7, 6, 9, 6, 8, 7, 9, 8, 11, 10, 13, 10, 12, 11, 15, 11, 13, 12, 14, 12, 15, 12, 14, 13, 15, 14]],
                                 dtype=torch.long)
-    expected_edge_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4, 6, 6, 5, 5, 7, 7, 8, 8, 10, 10, 9,  9, 11, 11, 11, 11, 12, 12, 12, 12, 11, 11, 12, 12, 13, 13],
+    expected_edge_shared_boundaries = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4, 6, 6, 5, 5, 7, 7, 8, 8, 10, 10, 9,  9, 11, 11, 11, 11, 12, 12, 12, 12, 11, 11, 12, 12, 13, 13],
                                   dtype=torch.long)
     expected_edge_x = torch.tensor([[1], [2], [3], [4], [5], [6], [1], [2], [3], [4], [1], [2], [3], [4], [5], [6]], dtype=torch.float)
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=torch.long)
@@ -244,25 +244,25 @@ def validate_house_square_house(batch):
     expected_triangle_batch = torch.tensor([0, 2], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
-    assert torch.equal(expected_node_shared_cofaces, batch.nodes.shared_cofaces)
+    assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
     assert batch.nodes.lower_index is None
-    assert batch.nodes.shared_faces is None
+    assert batch.nodes.shared_boundaries is None
     assert torch.equal(expected_node_x, batch.nodes.x)
     assert torch.equal(expected_node_y, batch.nodes.y)
     assert torch.equal(expected_node_batch, batch.nodes.batch)
     
     assert torch.equal(expected_edge_upper, batch.edges.upper_index)
-    assert torch.equal(expected_edge_shared_cofaces, batch.edges.shared_cofaces)
+    assert torch.equal(expected_edge_shared_coboundaries, batch.edges.shared_coboundaries)
     assert torch.equal(expected_edge_lower, batch.edges.lower_index)
-    assert torch.equal(expected_edge_shared_faces, batch.edges.shared_faces)
+    assert torch.equal(expected_edge_shared_boundaries, batch.edges.shared_boundaries)
     assert torch.equal(expected_edge_x, batch.edges.x)
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
     assert batch.triangles.upper_index is None
     assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_cofaces is None
-    assert batch.triangles.shared_faces is None
+    assert batch.triangles.shared_coboundaries is None
+    assert batch.triangles.shared_boundaries is None
     assert torch.equal(expected_triangle_x, batch.triangles.x)
     assert torch.equal(expected_triangle_y, batch.triangles.y)
     assert torch.equal(expected_triangle_batch, batch.triangles.batch)
@@ -272,18 +272,18 @@ def validate_house_no_batching(batch):
         
     expected_node_upper = torch.tensor([[0, 1, 0, 3, 1, 2, 2, 3, 2, 4, 3, 4],
                                         [1, 0, 3, 0, 2, 1, 3, 2, 4, 2, 4, 3]], dtype=torch.long)
-    expected_node_shared_cofaces = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4], dtype=torch.long)
+    expected_node_shared_coboundaries = torch.tensor([0, 0, 3, 3, 1, 1, 2, 2, 5, 5, 4, 4], dtype=torch.long)
     expected_node_x = torch.tensor([[1], [2], [3], [4], [5]], dtype=torch.float)
     expected_node_y = torch.tensor([0, 0, 0, 0, 0], dtype=torch.long)
     expected_node_batch = torch.tensor([0, 0, 0, 0, 0], dtype=torch.long)
     
     expected_edge_upper = torch.tensor([[2, 4, 2, 5, 4, 5],
                                         [4, 2, 5, 2, 5, 4]], dtype=torch.long)
-    expected_edge_shared_cofaces = torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
+    expected_edge_shared_coboundaries = torch.tensor([0, 0, 0, 0, 0, 0], dtype=torch.long)
     expected_edge_lower = torch.tensor([[0, 1, 0, 3, 1, 2, 1, 5, 2, 3, 2, 4, 2, 5, 3, 4, 4, 5],
                                         [1, 0, 3, 0, 2, 1, 5, 1, 3, 2, 4, 2, 5, 2, 4, 3, 5, 4]],
                                 dtype=torch.long)
-    expected_edge_shared_faces = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4],
+    expected_edge_shared_boundaries = torch.tensor([1, 1, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 3, 3, 4, 4],
                                   dtype=torch.long)
     expected_edge_x = torch.tensor([[1], [2], [3], [4], [5], [6]], dtype=torch.float)
     expected_edge_y = torch.tensor([1, 1, 1, 1, 1, 1], dtype=torch.long)
@@ -294,25 +294,25 @@ def validate_house_no_batching(batch):
     expected_triangle_batch = torch.tensor([0], dtype=torch.long)
     
     assert torch.equal(expected_node_upper, batch.nodes.upper_index)
-    assert torch.equal(expected_node_shared_cofaces, batch.nodes.shared_cofaces)
+    assert torch.equal(expected_node_shared_coboundaries, batch.nodes.shared_coboundaries)
     assert batch.nodes.lower_index is None
-    assert batch.nodes.shared_faces is None
+    assert batch.nodes.shared_boundaries is None
     assert torch.equal(expected_node_x, batch.nodes.x)
     assert torch.equal(expected_node_y, batch.nodes.y)
     assert torch.equal(expected_node_batch, batch.nodes.batch)
     
     assert torch.equal(expected_edge_upper, batch.edges.upper_index)
-    assert torch.equal(expected_edge_shared_cofaces, batch.edges.shared_cofaces)
+    assert torch.equal(expected_edge_shared_coboundaries, batch.edges.shared_coboundaries)
     assert torch.equal(expected_edge_lower, batch.edges.lower_index)
-    assert torch.equal(expected_edge_shared_faces, batch.edges.shared_faces)
+    assert torch.equal(expected_edge_shared_boundaries, batch.edges.shared_boundaries)
     assert torch.equal(expected_edge_x, batch.edges.x)
     assert torch.equal(expected_edge_y, batch.edges.y)
     assert torch.equal(expected_edge_batch, batch.edges.batch)
     
     assert batch.triangles.upper_index is None
     assert batch.triangles.lower_index is None
-    assert batch.triangles.shared_cofaces is None
-    assert batch.triangles.shared_faces is None
+    assert batch.triangles.shared_coboundaries is None
+    assert batch.triangles.shared_boundaries is None
     assert torch.equal(expected_triangle_x, batch.triangles.x)
     assert torch.equal(expected_triangle_y, batch.triangles.y)
     assert torch.equal(expected_triangle_batch, batch.triangles.batch)
@@ -886,7 +886,7 @@ def test_batching_returns_the_same_down_attr():
                 
 
 @pytest.mark.data
-def test_batching_of_face_index_on_proteins():
+def test_batching_of_boundary_index_on_proteins():
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113
     split_idx = dataset.get_idx_split()
@@ -896,55 +896,55 @@ def test_batching_of_face_index_on_proteins():
     batch_max_dim = 3
     data_loader = DataLoader(dataset, batch_size=32, max_dim=batch_max_dim)
 
-    batched_x_faces = [[] for _ in range(batch_max_dim+1)]
+    batched_x_boundaries = [[] for _ in range(batch_max_dim+1)]
     batched_x_simplices = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
         params = batch.get_all_chain_params()
         assert len(params) <= batch_max_dim+1
         for dim in range(len(params)):
-            if params[dim].kwargs['face_attr'] is not None:
-                assert params[dim].face_index is not None
-                face_attrs = params[dim].kwargs['face_attr']
-                batched_x_faces[dim].append(
-                    torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+            if params[dim].kwargs['boundary_attr'] is not None:
+                assert params[dim].boundary_index is not None
+                boundary_attrs = params[dim].kwargs['boundary_attr']
+                batched_x_boundaries[dim].append(
+                    torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
                 batched_x_simplices[dim].append(
-                    torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
+                    torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
-    batched_xs_faces = [None for _ in range(batch_max_dim+1)]
+    batched_xs_boundaries = [None for _ in range(batch_max_dim+1)]
     batched_xs_simplices = [None for _ in range(batch_max_dim+1)]
     for i in range(batch_max_dim+1):
-        if len(batched_x_faces[i]) > 0:
-            batched_xs_faces[i] = torch.cat(batched_x_faces[i], dim=0)
+        if len(batched_x_boundaries[i]) > 0:
+            batched_xs_boundaries[i] = torch.cat(batched_x_boundaries[i], dim=0)
         if len(batched_x_simplices[i]) > 0:
             batched_xs_simplices[i] = torch.cat(batched_x_simplices[i], dim=0)
 
     # Un-batched
-    x_faces = [[] for _ in range(batch_max_dim+1)]
+    x_boundaries = [[] for _ in range(batch_max_dim+1)]
     x_simplices = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
         params = complex.get_all_chain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
-            if params[dim].kwargs['face_attr'] is not None:
-                assert params[dim].face_index is not None
-                face_attrs = params[dim].kwargs['face_attr']
-                x_faces[dim].append(
-                    torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+            if params[dim].kwargs['boundary_attr'] is not None:
+                assert params[dim].boundary_index is not None
+                boundary_attrs = params[dim].kwargs['boundary_attr']
+                x_boundaries[dim].append(
+                    torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
                 x_simplices[dim].append(
-                    torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
+                    torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
-    xs_faces = [None for _ in range(batch_max_dim+1)]
+    xs_boundaries = [None for _ in range(batch_max_dim+1)]
     xs_simplices = [None for _ in range(batch_max_dim+1)]
     for i in range(batch_max_dim+1):
-        if len(x_faces[i]) > 0:
-            xs_faces[i] = torch.cat(x_faces[i], dim=0)
+        if len(x_boundaries[i]) > 0:
+            xs_boundaries[i] = torch.cat(x_boundaries[i], dim=0)
             xs_simplices[i] = torch.cat(x_simplices[i], dim=0)
 
     for i in range(batch_max_dim+1):
-        if xs_faces[i] is None or batched_xs_faces[i] is None:
-            assert xs_faces[i] == batched_xs_faces[i]
+        if xs_boundaries[i] is None or batched_xs_boundaries[i] is None:
+            assert xs_boundaries[i] == batched_xs_boundaries[i]
         else:
-            assert len(xs_faces[i]) == len(batched_xs_faces[i])
-            assert torch.equal(xs_faces[i], batched_xs_faces[i])
+            assert len(xs_boundaries[i]) == len(batched_xs_boundaries[i])
+            assert torch.equal(xs_boundaries[i], batched_xs_boundaries[i])
         if xs_simplices[i] is None or batched_xs_simplices[i] is None:
             assert xs_simplices[i] == batched_xs_simplices[i]
         else:
@@ -953,7 +953,7 @@ def test_batching_of_face_index_on_proteins():
                 
 
 
-def test_batching_of_face_index():
+def test_batching_of_boundary_index():
     data_list = get_testing_complex_list()
 
     # Try multiple parameters
@@ -963,55 +963,55 @@ def test_batching_of_face_index():
     for batch_size, batch_max_dim, in params:
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
 
-        batched_x_faces = [[] for _ in range(batch_max_dim+1)]
+        batched_x_boundaries = [[] for _ in range(batch_max_dim+1)]
         batched_x_simplices = [[] for _ in range(batch_max_dim+1)]
         for batch in data_loader:
             params = batch.get_all_chain_params()
             assert len(params) <= batch_max_dim+1
             for dim in range(len(params)):
-                if params[dim].kwargs['face_attr'] is not None:
-                    assert params[dim].face_index is not None
-                    face_attrs = params[dim].kwargs['face_attr']
-                    batched_x_faces[dim].append(
-                        torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+                if params[dim].kwargs['boundary_attr'] is not None:
+                    assert params[dim].boundary_index is not None
+                    boundary_attrs = params[dim].kwargs['boundary_attr']
+                    batched_x_boundaries[dim].append(
+                        torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
                     batched_x_simplices[dim].append(
-                        torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
+                        torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
-        batched_xs_faces = [None for _ in range(batch_max_dim+1)]
+        batched_xs_boundaries = [None for _ in range(batch_max_dim+1)]
         batched_xs_simplices = [None for _ in range(batch_max_dim+1)]
         for i in range(batch_max_dim+1):
-            if len(batched_x_faces[i]) > 0:
-                batched_xs_faces[i] = torch.cat(batched_x_faces[i], dim=0)
+            if len(batched_x_boundaries[i]) > 0:
+                batched_xs_boundaries[i] = torch.cat(batched_x_boundaries[i], dim=0)
             if len(batched_x_simplices[i]) > 0:
                 batched_xs_simplices[i] = torch.cat(batched_x_simplices[i], dim=0)
 
         # Un-batched
-        x_faces = [[] for _ in range(batch_max_dim+1)]
+        x_boundaries = [[] for _ in range(batch_max_dim+1)]
         x_simplices = [[] for _ in range(batch_max_dim+1)]
         for complex in data_list:
             params = complex.get_all_chain_params()
             for dim in range(min(len(params), batch_max_dim+1)):
-                if params[dim].kwargs['face_attr'] is not None:
-                    assert params[dim].face_index is not None
-                    face_attrs = params[dim].kwargs['face_attr']
-                    x_faces[dim].append(
-                        torch.index_select(face_attrs, 0, params[dim].face_index[0]))
+                if params[dim].kwargs['boundary_attr'] is not None:
+                    assert params[dim].boundary_index is not None
+                    boundary_attrs = params[dim].kwargs['boundary_attr']
+                    x_boundaries[dim].append(
+                        torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
                     x_simplices[dim].append(
-                        torch.index_select(params[dim].x, 0, params[dim].face_index[1]))
+                        torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
-        xs_faces = [None for _ in range(batch_max_dim+1)]
+        xs_boundaries = [None for _ in range(batch_max_dim+1)]
         xs_simplices = [None for _ in range(batch_max_dim+1)]
         for i in range(batch_max_dim+1):
-            if len(x_faces[i]) > 0:
-                xs_faces[i] = torch.cat(x_faces[i], dim=0)
+            if len(x_boundaries[i]) > 0:
+                xs_boundaries[i] = torch.cat(x_boundaries[i], dim=0)
                 xs_simplices[i] = torch.cat(x_simplices[i], dim=0)
 
         for i in range(batch_max_dim+1):
-            if xs_faces[i] is None or batched_xs_faces[i] is None:
-                assert xs_faces[i] == batched_xs_faces[i]
+            if xs_boundaries[i] is None or batched_xs_boundaries[i] is None:
+                assert xs_boundaries[i] == batched_xs_boundaries[i]
             else:
-                assert len(xs_faces[i]) == len(batched_xs_faces[i])
-                assert torch.equal(xs_faces[i], batched_xs_faces[i])
+                assert len(xs_boundaries[i]) == len(batched_xs_boundaries[i])
+                assert torch.equal(xs_boundaries[i], batched_xs_boundaries[i])
             if xs_simplices[i] is None or batched_xs_simplices[i] is None:
                 assert xs_simplices[i] == batched_xs_simplices[i]
             else:

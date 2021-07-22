@@ -28,13 +28,13 @@ def test_dummy_simplicial_message_passing_with_down_msg():
     assert torch.equal(t_x, expected_t_x)
 
 
-def test_dummy_simplicial_message_passing_with_face_msg():
+def test_dummy_simplicial_message_passing_with_boundary_msg():
     house_complex = get_house_complex()
     v_params = house_complex.get_chain_params(dim=0)
     e_params = house_complex.get_chain_params(dim=1)
     t_params = house_complex.get_chain_params(dim=2)
 
-    dsmp = DummySimplicialMessagePassing(use_face_msg=True, use_down_msg=False)
+    dsmp = DummySimplicialMessagePassing(use_boundary_msg=True, use_down_msg=False)
     v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
 
     expected_v_x = torch.tensor([[12], [9], [25], [25], [23]], dtype=torch.float)
@@ -53,7 +53,7 @@ def test_dummy_simplicial_message_passing_on_molecular_cell_complex():
     e_params = molecular_complex.get_chain_params(dim=1)
     ring_params = molecular_complex.get_chain_params(dim=2)
 
-    dsmp = DummySimplicialMessagePassing(use_face_msg=True, use_down_msg=True)
+    dsmp = DummySimplicialMessagePassing(use_boundary_msg=True, use_down_msg=True)
     v_x, e_x, ring_x = dsmp.forward(v_params, e_params, ring_params)
 
     expected_v_x = torch.tensor([[12], [24], [24], [15], [25], [31], [47], [24]],
@@ -64,8 +64,8 @@ def test_dummy_simplicial_message_passing_on_molecular_cell_complex():
         dtype=torch.float)
     assert torch.equal(e_x, expected_e_x)
 
-    # The first cell feature is given by 1[x] + 0[up] + (2+2)[down] + (1+2+3+4)[faces] = 15
-    # The 2nd cell is given by 2[x] + 0[up] + (1+2)[down] + (2+5+6+7+8)[faces] = 33
+    # The first cell feature is given by 1[x] + 0[up] + (2+2)[down] + (1+2+3+4)[boundaries] = 15
+    # The 2nd cell is given by 2[x] + 0[up] + (1+2)[down] + (2+5+6+7+8)[boundaries] = 33
     expected_ring_x = torch.tensor([[15], [33]], dtype=torch.float)
     assert torch.equal(ring_x, expected_ring_x)
 
@@ -141,11 +141,11 @@ def test_init_reduce_conv_on_house_complex():
 
     conv = InitReduceConv(reduce='add')
 
-    ex = conv.forward(v_params.x, e_params.face_index)
+    ex = conv.forward(v_params.x, e_params.boundary_index)
     expected_ex = torch.tensor([[3], [5], [7], [5], [9], [8]], dtype=torch.float)
     assert torch.equal(expected_ex, ex)
 
-    tx = conv.forward(e_params.x, t_params.face_index)
+    tx = conv.forward(e_params.x, t_params.boundary_index)
     expected_tx = torch.tensor([[14]], dtype=torch.float)
     assert torch.equal(expected_tx, tx)
 
