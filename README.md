@@ -2,9 +2,11 @@
 
 ![example workflow](https://github.com/twitter-research/scn/actions/workflows/python-package.yml/badge.svg)
 
-This repository contains the code used in the experimental section of
-[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575)
-and [Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212)
+This repository contains the code used for the papers
+[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (Under review)
+and [Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212) (ICML 2021)
+
+![alt text](./figures/glue_disks.jpeg)&nbsp;&nbsp;&nbsp;&nbsp;  ![alt text](./figures/sphere.jpeg)&nbsp;&nbsp;  ![alt text](./figures/empty_tetrahderon.jpeg)
 
 ## Installation
 
@@ -88,6 +90,34 @@ Finally, the following command will run the MLP-sum (strong) baseline described 
 sh exp/sr-base.sh
 ```
 Results will be written under `exp/results/sr-base-<k>/`.
+
+### Credits
+
+For attribution in academic contexts, please cite the following papers
+
+```
+@InProceedings{pmlr-v139-bodnar21a,
+  title = 	 {Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks},
+  author =       {Bodnar, Cristian and Frasca, Fabrizio and Wang, Yuguang and Otter, Nina and Montufar, Guido F and Li{\'o}, Pietro and Bronstein, Michael},
+  booktitle = 	 {Proceedings of the 38th International Conference on Machine Learning},
+  pages = 	 {1026--1037},
+  year = 	 {2021},
+  editor = 	 {Meila, Marina and Zhang, Tong},
+  volume = 	 {139},
+  series = 	 {Proceedings of Machine Learning Research},
+  month = 	 {18--24 Jul},
+  publisher =    {PMLR},
+}
+```
+
+```
+@article{bodnar2021b,
+  title={Weisfeiler and Lehman Go Cellular: CW Networks},
+  author={Bodnar, Cristian and Frasca, Fabrizio and Otter, Nina and Wang, Yu Guang and Li{\`o}, Pietro and Mont{\'u}far, Guido and Bronstein, Michael},
+  journal={arXiv preprint arXiv:2106.12575},
+  year={2021}
+}
+```
 
 ### Known issues
 
