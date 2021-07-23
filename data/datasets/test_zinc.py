@@ -45,7 +45,7 @@ def test_we_find_only_the_induced_cycles_on_zinc():
     dataset = dataset.get_split('valid')
 
     for complex in dataset:
-        nx_rings = get_rings(complex.nodes.num_simplices, complex.nodes.upper_index,
+        nx_rings = get_rings(complex.nodes.num_cells, complex.nodes.upper_index,
                              max_ring=max_ring)
         if 2 not in complex.chains:
             assert len(nx_rings) == 0
@@ -53,7 +53,7 @@ def test_we_find_only_the_induced_cycles_on_zinc():
 
         complex_rings = get_complex_rings(complex.chains[2].boundary_index, complex.edges.boundary_index)
         assert len(complex_rings) > 0
-        assert len(nx_rings) == complex.chains[2].num_simplices
+        assert len(nx_rings) == complex.chains[2].num_cells
         assert nx_rings == complex_rings
 
 

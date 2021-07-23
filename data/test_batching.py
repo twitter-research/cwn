@@ -897,7 +897,7 @@ def test_batching_of_boundary_index_on_proteins():
     data_loader = DataLoader(dataset, batch_size=32, max_dim=batch_max_dim)
 
     batched_x_boundaries = [[] for _ in range(batch_max_dim+1)]
-    batched_x_simplices = [[] for _ in range(batch_max_dim+1)]
+    batched_x_cells = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
         params = batch.get_all_chain_params()
         assert len(params) <= batch_max_dim+1
@@ -907,20 +907,20 @@ def test_batching_of_boundary_index_on_proteins():
                 boundary_attrs = params[dim].kwargs['boundary_attr']
                 batched_x_boundaries[dim].append(
                     torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
-                batched_x_simplices[dim].append(
+                batched_x_cells[dim].append(
                     torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
     batched_xs_boundaries = [None for _ in range(batch_max_dim+1)]
-    batched_xs_simplices = [None for _ in range(batch_max_dim+1)]
+    batched_xs_cells = [None for _ in range(batch_max_dim+1)]
     for i in range(batch_max_dim+1):
         if len(batched_x_boundaries[i]) > 0:
             batched_xs_boundaries[i] = torch.cat(batched_x_boundaries[i], dim=0)
-        if len(batched_x_simplices[i]) > 0:
-            batched_xs_simplices[i] = torch.cat(batched_x_simplices[i], dim=0)
+        if len(batched_x_cells[i]) > 0:
+            batched_xs_cells[i] = torch.cat(batched_x_cells[i], dim=0)
 
     # Un-batched
     x_boundaries = [[] for _ in range(batch_max_dim+1)]
-    x_simplices = [[] for _ in range(batch_max_dim+1)]
+    x_cells = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
         params = complex.get_all_chain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
@@ -929,15 +929,15 @@ def test_batching_of_boundary_index_on_proteins():
                 boundary_attrs = params[dim].kwargs['boundary_attr']
                 x_boundaries[dim].append(
                     torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
-                x_simplices[dim].append(
+                x_cells[dim].append(
                     torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
     xs_boundaries = [None for _ in range(batch_max_dim+1)]
-    xs_simplices = [None for _ in range(batch_max_dim+1)]
+    xs_cells = [None for _ in range(batch_max_dim+1)]
     for i in range(batch_max_dim+1):
         if len(x_boundaries[i]) > 0:
             xs_boundaries[i] = torch.cat(x_boundaries[i], dim=0)
-            xs_simplices[i] = torch.cat(x_simplices[i], dim=0)
+            xs_cells[i] = torch.cat(x_cells[i], dim=0)
 
     for i in range(batch_max_dim+1):
         if xs_boundaries[i] is None or batched_xs_boundaries[i] is None:
@@ -945,11 +945,11 @@ def test_batching_of_boundary_index_on_proteins():
         else:
             assert len(xs_boundaries[i]) == len(batched_xs_boundaries[i])
             assert torch.equal(xs_boundaries[i], batched_xs_boundaries[i])
-        if xs_simplices[i] is None or batched_xs_simplices[i] is None:
-            assert xs_simplices[i] == batched_xs_simplices[i]
+        if xs_cells[i] is None or batched_xs_cells[i] is None:
+            assert xs_cells[i] == batched_xs_cells[i]
         else:
-            assert len(xs_simplices[i]) == len(batched_xs_simplices[i])
-            assert torch.equal(xs_simplices[i], batched_xs_simplices[i])
+            assert len(xs_cells[i]) == len(batched_xs_cells[i])
+            assert torch.equal(xs_cells[i], batched_xs_cells[i])
                 
 
 
@@ -964,7 +964,7 @@ def test_batching_of_boundary_index():
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
 
         batched_x_boundaries = [[] for _ in range(batch_max_dim+1)]
-        batched_x_simplices = [[] for _ in range(batch_max_dim+1)]
+        batched_x_cells = [[] for _ in range(batch_max_dim+1)]
         for batch in data_loader:
             params = batch.get_all_chain_params()
             assert len(params) <= batch_max_dim+1
@@ -974,20 +974,20 @@ def test_batching_of_boundary_index():
                     boundary_attrs = params[dim].kwargs['boundary_attr']
                     batched_x_boundaries[dim].append(
                         torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
-                    batched_x_simplices[dim].append(
+                    batched_x_cells[dim].append(
                         torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
         batched_xs_boundaries = [None for _ in range(batch_max_dim+1)]
-        batched_xs_simplices = [None for _ in range(batch_max_dim+1)]
+        batched_xs_cells = [None for _ in range(batch_max_dim+1)]
         for i in range(batch_max_dim+1):
             if len(batched_x_boundaries[i]) > 0:
                 batched_xs_boundaries[i] = torch.cat(batched_x_boundaries[i], dim=0)
-            if len(batched_x_simplices[i]) > 0:
-                batched_xs_simplices[i] = torch.cat(batched_x_simplices[i], dim=0)
+            if len(batched_x_cells[i]) > 0:
+                batched_xs_cells[i] = torch.cat(batched_x_cells[i], dim=0)
 
         # Un-batched
         x_boundaries = [[] for _ in range(batch_max_dim+1)]
-        x_simplices = [[] for _ in range(batch_max_dim+1)]
+        x_cells = [[] for _ in range(batch_max_dim+1)]
         for complex in data_list:
             params = complex.get_all_chain_params()
             for dim in range(min(len(params), batch_max_dim+1)):
@@ -996,15 +996,15 @@ def test_batching_of_boundary_index():
                     boundary_attrs = params[dim].kwargs['boundary_attr']
                     x_boundaries[dim].append(
                         torch.index_select(boundary_attrs, 0, params[dim].boundary_index[0]))
-                    x_simplices[dim].append(
+                    x_cells[dim].append(
                         torch.index_select(params[dim].x, 0, params[dim].boundary_index[1]))
 
         xs_boundaries = [None for _ in range(batch_max_dim+1)]
-        xs_simplices = [None for _ in range(batch_max_dim+1)]
+        xs_cells = [None for _ in range(batch_max_dim+1)]
         for i in range(batch_max_dim+1):
             if len(x_boundaries[i]) > 0:
                 xs_boundaries[i] = torch.cat(x_boundaries[i], dim=0)
-                xs_simplices[i] = torch.cat(x_simplices[i], dim=0)
+                xs_cells[i] = torch.cat(x_cells[i], dim=0)
 
         for i in range(batch_max_dim+1):
             if xs_boundaries[i] is None or batched_xs_boundaries[i] is None:
@@ -1012,11 +1012,11 @@ def test_batching_of_boundary_index():
             else:
                 assert len(xs_boundaries[i]) == len(batched_xs_boundaries[i])
                 assert torch.equal(xs_boundaries[i], batched_xs_boundaries[i])
-            if xs_simplices[i] is None or batched_xs_simplices[i] is None:
-                assert xs_simplices[i] == batched_xs_simplices[i]
+            if xs_cells[i] is None or batched_xs_cells[i] is None:
+                assert xs_cells[i] == batched_xs_cells[i]
             else:
-                assert len(xs_simplices[i]) == len(batched_xs_simplices[i])
-                assert torch.equal(xs_simplices[i], batched_xs_simplices[i])
+                assert len(xs_cells[i]) == len(batched_xs_cells[i])
+                assert torch.equal(xs_cells[i], batched_xs_cells[i])
                 
 
 @pytest.mark.data

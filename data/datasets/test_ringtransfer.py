@@ -33,9 +33,9 @@ def test_ringtree_dataset_conversion():
 
     for complex in complexes:
         assert 2 in complex.chains
-        assert complex.chains[2].num_simplices == 1
-        assert complex.chains[1].num_simplices == 10
-        assert complex.chains[0].num_simplices == 10
+        assert complex.chains[2].num_cells == 1
+        assert complex.chains[1].num_cells == 10
+        assert complex.chains[0].num_cells == 10
         assert complex.nodes.x.size(0) == 10
         assert complex.nodes.x.size(1) == 5
         assert complex.edges.x.size(0) == 10

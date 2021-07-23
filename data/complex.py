@@ -35,7 +35,7 @@ from typing import List
 __num_warn_msg__ = (
     'The number of {0} in your chain object can only be inferred by its {1}, '
     'and hence may result in unexpected batch-wise behavior, e.g., '
-    'in case there exists isolated simplices. Please consider explicitly setting '
+    'in case there exists isolated cells. Please consider explicitly setting '
     'the number of {0} for this data object by assigning it to '
     'chain.num_{0}.')
 
@@ -44,7 +44,7 @@ __complex_max_dim_lower_bound__ = 2
 
 class Chain(object):
     """
-        Class representing a chain of k-dim simplices.
+        Class representing a chain of k-dim cells.
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_boundaries: Tensor = None, shared_coboundaries: Tensor = None, mapping: Tensor = None,
@@ -52,8 +52,8 @@ class Chain(object):
         """
         Args:
             Constructs a `dim`-chain.
-            dim: dim of the simplices in the chain
-            x: feature matrix, shape [num_simplices, num_features]; may not be available
+            dim: dim of the cells in the chain
+            x: feature matrix, shape [num_cells, num_features]; may not be available
             upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
                 may not be available, e.g. when `dim` is the top level dim of a complex
             lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
@@ -64,7 +64,7 @@ class Chain(object):
                 the shared coboundary for each upper adjacency
             boundary_index: boundary adjacency, matrix, shape [2, num_boundaries_connections];
                 may not be available, e.g. when `dim` is 0
-            y: labels over simplices in the chain, shape [num_simplices,]
+            y: labels over cells in the chain, shape [num_cells,]
         """
         if dim == 0:
             assert lower_index is None
@@ -89,12 +89,12 @@ class Chain(object):
         # TODO: Figure out what to do with mapping.
         self.__mapping = mapping
         for key, item in kwargs.items():
-            if key == 'num_simplices':
-                self.__num_simplices__ = item
-            elif key == 'num_simplices_down':
-                self.num_simplices_down = item
-            elif key == 'num_simplices_up':
-                self.num_simplices_up = item
+            if key == 'num_cells':
+                self.__num_cells__ = item
+            elif key == 'num_cells_down':
+                self.num_cells_down = item
+            elif key == 'num_cells_up':
+                self.num_cells_up = item
             else:
                 self[key] = item
 
@@ -112,7 +112,7 @@ class Chain(object):
         if new_x is None:
             logging.warning("Chain features were set to None. ")
         else:
-            assert self.num_simplices == len(new_x)
+            assert self.num_cells == len(new_x)
         self.__x = new_x
 
     @property
@@ -162,15 +162,15 @@ class Chain(object):
             of the next attribute of :obj:`key` when creating batches.
         """
         if key in ['upper_index', 'lower_index']:
-            inc = self.num_simplices
+            inc = self.num_cells
         elif key in ['shared_boundaries']:
-            inc = self.num_simplices_down
+            inc = self.num_cells_down
         elif key == 'shared_coboundaries':
-            inc = self.num_simplices_up
+            inc = self.num_cells_up
         elif key == 'boundary_index':
-            boundary_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
-            simplex_inc = self.num_simplices if self.num_simplices is not None else 0
-            inc = [[boundary_inc], [simplex_inc]]
+            boundary_inc = self.num_cells_down if self.num_cells_down is not None else 0
+            cell_inc = self.num_cells if self.num_cells is not None else 0
+            inc = [[boundary_inc], [cell_inc]]
         else:
             inc = 0
         if inc is None:
@@ -190,49 +190,49 @@ class Chain(object):
                 yield key, self[key]
 
     @property
-    def num_simplices(self):
+    def num_cells(self):
         """
-            Returns or sets the number of simplices in the chain.
+            Returns or sets the number of cells in the chain.
 
         .. note::
-            The number of simplices in your chain object is typically automatically
+            The number of cells in your chain object is typically automatically
             inferred, *e.g.*, when chain features :obj:`x` are present.
             In some cases however, a chain may only be given by its upper/lower
             indices :obj:`edge_index`.
-            The code then *guesses* the number of simplices
+            The code then *guesses* the number of cells
             according to :obj:`{upper,lower}_index.max().item() + 1`, but in case there
-            exists isolated simplices, this number has not to be correct and can
+            exists isolated cells, this number has not to be correct and can
             therefore result in unexpected batch-wise behavior.
-            Thus, we recommend to set the number of simplices in the chain object
-            explicitly via :obj:`data.num_simplices = ...`.
+            Thus, we recommend to set the number of cells in the chain object
+            explicitly via :obj:`data.num_cells = ...`.
             You will be given a warning that requests you to do so.
         """
-        if hasattr(self, '__num_simplices__'):
-            return self.__num_simplices__
+        if hasattr(self, '__num_cells__'):
+            return self.__num_cells__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
         if self.boundary_index is not None:
             return int(self.boundary_index[1,:].max()) + 1
         if self.upper_index is not None:
-            logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
+            logging.warning(__num_warn_msg__.format('cells', 'upper_index'))
             return int(self.upper_index.max()) + 1
         if self.lower_index is not None:
-            logging.warning(__num_warn_msg__.format('simplices', 'lower_index'))
+            logging.warning(__num_warn_msg__.format('cells', 'lower_index'))
             return int(self.lower_index.max()) + 1
         return None
 
-    @num_simplices.setter
-    def num_simplices(self, num_simplices):
-        self.__num_simplices__ = num_simplices
+    @num_cells.setter
+    def num_cells(self, num_cells):
+        self.__num_cells__ = num_cells
 
     @property
-    def num_simplices_up(self):
+    def num_cells_up(self):
         """
-            Returns or sets the number of simplices in the upper chain.
+            Returns or sets the number of cells in the upper chain.
             In fact, this correspond to the overall number of coboundaries in the current chain.
         """
-        if hasattr(self, '__num_simplices_up__'):
-            return self.__num_simplices_up__
+        if hasattr(self, '__num_cells_up__'):
+            return self.__num_cells_up__
         if self.upper_index is None:
             return 0
         if self.shared_coboundaries is not None:
@@ -241,19 +241,19 @@ class Chain(object):
             return int(self.shared_coboundaries.max()) + 1
         return None
 
-    @num_simplices_up.setter
-    def num_simplices_up(self, num_simplices_up):
-        self.__num_simplices_up__ = num_simplices_up
+    @num_cells_up.setter
+    def num_cells_up(self, num_cells_up):
+        self.__num_cells_up__ = num_cells_up
 
     @property
-    def num_simplices_down(self):
+    def num_cells_down(self):
         """
             Returns or sets the number of overall boundaries in the chain.
         """
         if self.dim == 0:
             return None
-        if hasattr(self, '__num_simplices_down__'):
-            return self.__num_simplices_down__
+        if hasattr(self, '__num_cells_down__'):
+            return self.__num_cells_down__
         if self.lower_index is None:
             return 0
         if self.shared_boundaries is not None:
@@ -264,14 +264,14 @@ class Chain(object):
             return int(self.boundary_index[0,:].max()) + 1
         return None
 
-    @num_simplices_down.setter
-    def num_simplices_down(self, num_simplices_down):
-        self.__num_simplices_down__ = num_simplices_down
+    @num_cells_down.setter
+    def num_cells_down(self, num_cells_down):
+        self.__num_cells_down__ = num_cells_down
         
     @property
     def num_features(self):
         """
-            Returns the number of features per simplex in the chain.
+            Returns the number of features per cell in the chain.
         """
         if self.x is None:
             return 0
@@ -366,7 +366,7 @@ class Chain(object):
 
     def initialize_features(self, strategy='constant'):
         """
-            Routine to initialize simplex-wise features based on the provided `strategy`.
+            Routine to initialize cell-wise features based on the provided `strategy`.
         """
         raise NotImplementedError
         # self.x = ...
@@ -379,8 +379,8 @@ class ChainBatch(Chain):
         super(ChainBatch, self).__init__(dim, **kwargs)
 
         for key, item in kwargs.items():
-            if key == 'num_simplices':
-                self.__num_simplices__ = item
+            if key == 'num_cells':
+                self.__num_cells__ = item
             else:
                 self[key] = item
 
@@ -390,9 +390,9 @@ class ChainBatch(Chain):
         self.__slices__ = None
         self.__cumsum__ = None
         self.__cat_dims__ = None
-        self.__num_simplices_list__ = None
-        self.__num_simplices_down_list__ = None
-        self.__num_simplices_up_list__ = None
+        self.__num_cells_list__ = None
+        self.__num_cells_down_list__ = None
+        self.__num_cells_up_list__ = None
         self.__num_chains__ = None
 
     @classmethod
@@ -422,9 +422,9 @@ class ChainBatch(Chain):
         slices = {key: [0] for key in keys}
         cumsum = {key: [0] for key in keys}
         cat_dims = {}
-        num_simplices_list = []
-        num_simplices_up_list = []
-        num_simplices_down_list = []
+        num_cells_list = []
+        num_cells_up_list = []
+        num_cells_down_list = []
         for i, data in enumerate(data_list):
             for key in keys:
                 item = data[key]
@@ -484,27 +484,27 @@ class ChainBatch(Chain):
                     inc = torch.tensor(inc)
                 cumsum[key].append(inc + cumsum[key][-1])
 
-            if hasattr(data, '__num_simplices__'):
-                num_simplices_list.append(data.__num_simplices__)
+            if hasattr(data, '__num_cells__'):
+                num_cells_list.append(data.__num_cells__)
             else:
-                num_simplices_list.append(None)
+                num_cells_list.append(None)
 
-            if hasattr(data, '__num_simplices_up__'):
-                num_simplices_up_list.append(data.__num_simplices_up__)
+            if hasattr(data, '__num_cells_up__'):
+                num_cells_up_list.append(data.__num_cells_up__)
             else:
-                num_simplices_up_list.append(None)
+                num_cells_up_list.append(None)
 
-            if hasattr(data, '__num_simplices_down__'):
-                num_simplices_down_list.append(data.__num_simplices_down__)
+            if hasattr(data, '__num_cells_down__'):
+                num_cells_down_list.append(data.__num_cells_down__)
             else:
-                num_simplices_down_list.append(None)
+                num_cells_down_list.append(None)
 
-            num_simplices = data.num_simplices
-            if num_simplices is not None:
-                item = torch.full((num_simplices, ), i, dtype=torch.long,
+            num_cells = data.num_cells
+            if num_cells is not None:
+                item = torch.full((num_cells, ), i, dtype=torch.long,
                                   device=device)
                 batch.batch.append(item)
-                batch.ptr.append(batch.ptr[-1] + num_simplices)
+                batch.ptr.append(batch.ptr[-1] + num_cells)
 
         # Fix initial slice values:
         for key in keys:
@@ -515,9 +515,9 @@ class ChainBatch(Chain):
         batch.__slices__ = slices
         batch.__cumsum__ = cumsum
         batch.__cat_dims__ = cat_dims
-        batch.__num_simplices_list__ = num_simplices_list
-        batch.__num_simplices_up_list__ = num_simplices_up_list
-        batch.__num_simplices_down_list__ = num_simplices_down_list
+        batch.__num_cells_list__ = num_cells_list
+        batch.__num_cells_up_list__ = num_cells_up_list
+        batch.__num_cells_down_list__ = num_cells_down_list
 
         ref_data = data_list[0]
         for key in batch.keys:
@@ -596,20 +596,20 @@ class Complex(object):
             assert chain.dim == dim
             if dim < self.dimension:
                 upper_chain = self.chains[dim + 1]
-                num_simplices_up = upper_chain.num_simplices
-                assert num_simplices_up is not None
-                if 'num_simplices_up' in chain:
-                    assert chain.num_simplices_up == num_simplices_up
+                num_cells_up = upper_chain.num_cells
+                assert num_cells_up is not None
+                if 'num_cells_up' in chain:
+                    assert chain.num_cells_up == num_cells_up
                 else:
-                    chain.num_simplices_up = num_simplices_up
+                    chain.num_cells_up = num_cells_up
             if dim > 0:
                 lower_chain = self.chains[dim - 1]
-                num_simplices_down = lower_chain.num_simplices
-                assert num_simplices_down is not None
-                if 'num_simplices_down' in chain:
-                    assert chain.num_simplices_down == num_simplices_down
+                num_cells_down = lower_chain.num_cells
+                assert num_cells_down is not None
+                if 'num_cells_down' in chain:
+                    assert chain.num_cells_down == num_cells_down
                 else:
-                    chain.num_simplices_down = num_simplices_down
+                    chain.num_cells_down = num_cells_down
                     
     def to(self, device, **kwargs):
         """
@@ -640,30 +640,30 @@ class Complex(object):
                 include_boundary_features: Include the features for the boundary
         """
         if dim in self.chains:
-            simplices = self.chains[dim]
-            x = simplices.x
+            cells = self.chains[dim]
+            x = cells.x
             # Add up features
             upper_index, upper_features = None, None
             # We also check that dim+1 does exist in the current complex. This chain might have been
             # extracted from a higher dimensional complex by a batching operation, and dim+1
-            # might not exist anymore even though simplices.upper_index is present.
-            if simplices.upper_index is not None and (dim+1) in self.chains:
-                upper_index = simplices.upper_index
+            # might not exist anymore even though cells.upper_index is present.
+            if cells.upper_index is not None and (dim+1) in self.chains:
+                upper_index = cells.upper_index
                 if self.chains[dim + 1].x is not None and (dim < max_dim or include_top_features):
                     upper_features = torch.index_select(self.chains[dim + 1].x, 0,
                                                         self.chains[dim].shared_coboundaries)
 
             # Add down features
             lower_index, lower_features = None, None
-            if include_down_features and simplices.lower_index is not None:
-                lower_index = simplices.lower_index
+            if include_down_features and cells.lower_index is not None:
+                lower_index = cells.lower_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     lower_features = torch.index_select(self.chains[dim - 1].x, 0,
                                                         self.chains[dim].shared_boundaries)
             # Add boundary features
             boundary_index, boundary_features = None, None
-            if include_boundary_features and simplices.boundary_index is not None:
-                boundary_index = simplices.boundary_index
+            if include_boundary_features and cells.boundary_index is not None:
+                boundary_index = cells.boundary_index
                 if dim > 0 and self.chains[dim - 1].x is not None:
                     boundary_features = self.chains[dim - 1].x
 
@@ -700,7 +700,7 @@ class Complex(object):
         """
             Returns target labels.
             If `dim`==k (integer in [0, self.dimension]) then the labels over
-            k-simplices are returned.
+            k-cells are returned.
             In the case `dim` is None the complex-wise label is returned.
         """
         if dim is None:
@@ -774,7 +774,7 @@ class ComplexBatch(Complex):
                     if dim-1 in comp.chains:
                         # If the chain below exists in the complex, we need to add the number of
                         # boundaries to the newly initialised complex, otherwise batching will not work.
-                        chains[dim][-1].num_simplices_down = comp.chains[dim - 1].num_simplices
+                        chains[dim][-1].num_cells_down = comp.chains[dim - 1].num_cells
                 else:
                     chains[dim].append(comp.chains[dim])
             per_complex_labels &= comp.y is not None

@@ -182,14 +182,14 @@ class InMemoryComplexDataset(ComplexDataset):
         chain_data = self.data[dim]
         chain_slices = self.slices[dim]
         data = Chain(dim)
-        if chain_data.__num_simplices__[idx] is not None:
-            data.num_simplices = chain_data.__num_simplices__[idx]
-        if chain_data.__num_simplices_up__[idx] is not None:
-            data.num_simplices_up = chain_data.__num_simplices_up__[idx]
-        if chain_data.__num_simplices_down__[idx] is not None:
-            data.num_simplices_down = chain_data.__num_simplices_down__[idx]
+        if chain_data.__num_cells__[idx] is not None:
+            data.num_cells = chain_data.__num_cells__[idx]
+        if chain_data.__num_cells_up__[idx] is not None:
+            data.num_cells_up = chain_data.__num_cells_up__[idx]
+        if chain_data.__num_cells_down__[idx] is not None:
+            data.num_cells_down = chain_data.__num_cells_down__[idx]
         elif dim == 0:
-            data.num_simplices_down = None
+            data.num_cells_down = None
 
         for key in chain_data.keys:
             item, slices = chain_data[key], chain_slices[key]
@@ -207,7 +207,7 @@ class InMemoryComplexDataset(ComplexDataset):
                 else:
                     s = slice(start, end)
                 data[key] = item[s]
-        empty = (data.num_simplices is None)
+        empty = (data.num_cells is None)
 
         return data, empty
     
@@ -220,9 +220,9 @@ class InMemoryComplexDataset(ComplexDataset):
             chain = Chain(dim)
             for key in keys[dim]:
                 chain[key] = []
-            chain.__num_simplices__ = []
-            chain.__num_simplices_up__ = []
-            chain.__num_simplices_down__ = []
+            chain.__num_cells__ = []
+            chain.__num_cells_up__ = []
+            chain.__num_cells_down__ = []
             slc = {key: [0] for key in keys[dim]}
             return chain, slc
         
@@ -287,15 +287,15 @@ class InMemoryComplexDataset(ComplexDataset):
                 num_up = None
                 num_down = None
                 if chain is not None:
-                    if hasattr(chain, '__num_simplices__'):
-                        num = chain.__num_simplices__
-                    if hasattr(chain, '__num_simplices_up__'):
-                        num_up = chain.__num_simplices_up__
-                    if hasattr(chain, '__num_simplices_down__'):
-                        num_down = chain.__num_simplices_down__
-                data[dim].__num_simplices__.append(num)
-                data[dim].__num_simplices_up__.append(num_up)
-                data[dim].__num_simplices_down__.append(num_down)
+                    if hasattr(chain, '__num_cells__'):
+                        num = chain.__num_cells__
+                    if hasattr(chain, '__num_cells_up__'):
+                        num_up = chain.__num_cells_up__
+                    if hasattr(chain, '__num_cells_down__'):
+                        num_down = chain.__num_cells_down__
+                data[dim].__num_cells__.append(num)
+                data[dim].__num_cells_up__.append(num_up)
+                data[dim].__num_cells_down__.append(num_down)
                     
             # Collect complex-wise label(s) and dims
             if not hasattr(complex, 'y'):

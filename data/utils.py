@@ -449,15 +449,15 @@ def extract_labels(y, size):
 
 
 def generate_chain(dim, x, all_upper_index, all_lower_index,
-                   all_shared_boundaries, all_shared_coboundaries, simplex_tables, boundaries_tables,
+                   all_shared_boundaries, all_shared_coboundaries, cell_tables, boundaries_tables,
                    complex_dim, y=None):
     """Builds a Chain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
         assert len(all_shared_boundaries[dim]) == 0
 
-    num_simplices_down = len(simplex_tables[dim-1]) if dim > 0 else None
-    num_simplices_up = len(simplex_tables[dim+1]) if dim < complex_dim else 0
+    num_cells_down = len(cell_tables[dim-1]) if dim > 0 else None
+    num_cells_up = len(cell_tables[dim+1]) if dim < complex_dim else 0
 
     up_index = (torch.tensor(all_upper_index[dim], dtype=torch.long).t()
                 if len(all_upper_index[dim]) > 0 else None)
@@ -471,28 +471,28 @@ def generate_chain(dim, x, all_upper_index, all_lower_index,
     boundary_index = None
     if len(boundaries_tables[dim]) > 0:
         boundary_index = [list(), list()]
-        for s, simplex in enumerate(boundaries_tables[dim]):
-            for boundary in simplex:
+        for s, cell in enumerate(boundaries_tables[dim]):
+            for boundary in cell:
                 boundary_index[1].append(s)
                 boundary_index[0].append(boundary)
         boundary_index = torch.LongTensor(boundary_index)
         
-    if num_simplices_down is None:
+    if num_cells_down is None:
         assert shared_boundaries is None
-    if num_simplices_up == 0:
+    if num_cells_up == 0:
         assert shared_coboundaries is None
 
     if up_index is not None:
         assert up_index.size(1) == shared_coboundaries.size(0)
-        assert num_simplices_up == shared_coboundaries.max() + 1
+        assert num_cells_up == shared_coboundaries.max() + 1
     if down_index is not None:
         assert down_index.size(1) == shared_boundaries.size(0)
-        assert num_simplices_down >= shared_boundaries.max() + 1
+        assert num_cells_down >= shared_boundaries.max() + 1
 
     return Chain(dim=dim, x=x, upper_index=up_index,
                  lower_index=down_index, shared_coboundaries=shared_coboundaries,
-                 shared_boundaries=shared_boundaries, y=y, num_simplices_down=num_simplices_down,
-                 num_simplices_up=num_simplices_up, boundary_index=boundary_index)
+                 shared_boundaries=shared_boundaries, y=y, num_cells_down=num_cells_down,
+                 num_cells_up=num_cells_up, boundary_index=boundary_index)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -608,7 +608,7 @@ def build_tables_with_rings(edge_index, simplex_tree, size, max_k):
     
     # Build simplex tables and id_maps up to edges by conveniently
     # invoking the code for simplicial complexes
-    simplex_tables, id_maps = build_tables(simplex_tree, size)
+    cell_tables, id_maps = build_tables(simplex_tree, size)
     
     # Find rings in the graph
     rings = get_rings(edge_index, max_k=max_k)
@@ -616,14 +616,14 @@ def build_tables_with_rings(edge_index, simplex_tree, size, max_k):
     if len(rings) > 0:
         # Extend the tables with rings as 2-cells
         id_maps += [{}]
-        simplex_tables += [[]]
-        assert len(simplex_tables) == 3, simplex_tables
+        cell_tables += [[]]
+        assert len(cell_tables) == 3, cell_tables
         for cell in rings:
-            next_id = len(simplex_tables[2])
+            next_id = len(cell_tables[2])
             id_maps[2][cell] = next_id
-            simplex_tables[2].append(list(cell))
+            cell_tables[2].append(list(cell))
 
-    return simplex_tables, id_maps
+    return cell_tables, id_maps
 
 
 def get_ring_boundaries(ring):
@@ -709,21 +709,21 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
         assert edge_index.size(1) == 0
 
     # Builds tables of the cellular complexes at each level and their IDs
-    simplex_tables, id_maps = build_tables_with_rings(edge_index, simplex_tree, size, max_k)
+    cell_tables, id_maps = build_tables_with_rings(edge_index, simplex_tree, size, max_k)
     assert len(id_maps) <= 3
     complex_dim = len(id_maps)-1
 
-    # Extracts the boundaries and coboundaries of each simplex in the complex
+    # Extracts the boundaries and coboundaries of each cell in the complex
     boundaries_tables, boundaries, co_boundaries = extract_boundaries_and_coboundaries_with_rings(simplex_tree, id_maps)
 
-    # Computes the adjacencies between all the simplexes in the complex;
+    # Computes the adjacencies between all the cells in the complex;
     # here we force complex dimension to be 2
     shared_boundaries, shared_coboundaries, lower_idx, upper_idx = build_adj(boundaries, co_boundaries, id_maps,
                                                                    complex_dim, include_down_adj)
     
     # Construct features for the higher dimensions
     xs = [x, None, None]
-    constructed_features = construct_features(x, simplex_tables, init_method)
+    constructed_features = construct_features(x, cell_tables, init_method)
     if simplex_tree.dimension() == 0:
         assert len(constructed_features) == 1
     if init_rings and len(constructed_features) > 2:
@@ -751,7 +751,7 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
             # Build edge feature matrix
             max_id = max(ex.keys())
             edge_feats = []
-            assert len(simplex_tables[1]) == max_id + 1
+            assert len(cell_tables[1]) == max_id + 1
             for id in range(max_id + 1):
                 edge_feats.append(ex[id])
             xs[1] = torch.stack(edge_feats, dim=0)
@@ -766,7 +766,7 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
     for i in range(complex_dim + 1):
         y = v_y if i == 0 else None
         chain = generate_chain(i, xs[i], upper_idx, lower_idx, shared_boundaries, shared_coboundaries,
-                               simplex_tables, boundaries_tables, complex_dim=complex_dim, y=y)
+                               cell_tables, boundaries_tables, complex_dim=complex_dim, y=y)
         chains.append(chain)
 
     return Complex(*chains, y=complex_y, dimension=complex_dim)

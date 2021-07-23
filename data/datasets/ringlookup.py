@@ -59,14 +59,14 @@ class RingLookupDataset(InMemoryComplexDataset):
 
         for complex in complexes:
             # Add mask for the target node.
-            mask = torch.zeros(complex.nodes.num_simplices, dtype=torch.bool)
+            mask = torch.zeros(complex.nodes.num_cells, dtype=torch.bool)
             mask[0] = 1
             setattr(complex.chains[0], 'mask', mask)
 
             # Make HOF zero
             complex.edges.x = torch.zeros_like(complex.edges.x)
             complex.two_cells.x = torch.zeros_like(complex.two_cells.x)
-            assert complex.two_cells.num_simplices == 1
+            assert complex.two_cells.num_cells == 1
 
         path = self.processed_paths[0]
         print(f'Saving processed dataset in {path}....')

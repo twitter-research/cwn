@@ -433,7 +433,7 @@ class Dummy(torch.nn.Module):
             device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
-            # Otherwise, if we have complexes with no simplices at certain levels, the wrong
+            # Otherwise, if we have complexes with no cells at certain levels, the wrong
             # shape could be inferred automatically from data.chains[i].batch.
             # This makes sure the output tensor will have the right dimensions.
             pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)

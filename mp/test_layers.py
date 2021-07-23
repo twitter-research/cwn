@@ -167,11 +167,11 @@ def test_embed_with_reduce_layer_on_house_complex():
 
     assert len(xs) == 3
     assert xs[0].dim() == 2
-    assert xs[0].size(0) == chains[0].num_simplices
+    assert xs[0].size(0) == chains[0].num_cells
     assert xs[0].size(1) == 10
-    assert xs[1].size(0) == chains[1].num_simplices
+    assert xs[1].size(0) == chains[1].num_cells
     assert xs[1].size(1) == 10
-    assert xs[2].size(0) == chains[2].num_simplices
+    assert xs[2].size(0) == chains[2].num_cells
     assert xs[2].size(1) == 10
 
 

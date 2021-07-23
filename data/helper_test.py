@@ -117,10 +117,10 @@ def compare_complexes(yielded, expected, include_down_adj):
     for dim in range(expected.dimension + 1):
         y_chain = yielded.chains[dim]
         e_chain = expected.chains[dim]
-        assert y_chain.num_simplices == e_chain.num_simplices
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_down == e_chain.num_simplices_down, dim
+        assert y_chain.num_cells == e_chain.num_cells
+        assert y_chain.num_cells_up == e_chain.num_cells_up
+        assert y_chain.num_cells_up == e_chain.num_cells_up
+        assert y_chain.num_cells_down == e_chain.num_cells_down, dim
         assert torch.equal(y_chain.x, e_chain.x)
         if dim > 0:
             assert torch.equal(y_chain.boundary_index, e_chain.boundary_index)
@@ -156,10 +156,10 @@ def compare_complexes_without_2feats(yielded, expected, include_down_adj):
     for dim in range(expected.dimension + 1):
         y_chain = yielded.chains[dim]
         e_chain = expected.chains[dim]
-        assert y_chain.num_simplices == e_chain.num_simplices
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_up == e_chain.num_simplices_up
-        assert y_chain.num_simplices_down == e_chain.num_simplices_down, dim
+        assert y_chain.num_cells == e_chain.num_cells
+        assert y_chain.num_cells_up == e_chain.num_cells_up
+        assert y_chain.num_cells_up == e_chain.num_cells_up
+        assert y_chain.num_cells_down == e_chain.num_cells_down, dim
         if dim > 0:
             assert torch.equal(y_chain.boundary_index, e_chain.boundary_index)
             if include_down_adj:

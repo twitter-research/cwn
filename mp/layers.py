@@ -128,7 +128,7 @@ class CINConv(torch.nn.Module):
 class EdgeCINConv(torch.nn.Module):
     """
     CIN convolutional layer which performs chain message passing only
-    _up to_ 1-dimensional simplices (edges).
+    _up to_ 1-dimensional cells (edges).
     """
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  v_msg_up_nn: Callable, e_msg_down_nn: Callable, e_msg_up_nn: Callable,
@@ -153,7 +153,7 @@ class EdgeCINConv(torch.nn.Module):
 
 
 class SparseCINChainConv(ChainMessagePassing):
-    """This is a CIN Chain layer that operates of boundaries and upper adjacent simplices."""
+    """This is a CIN Chain layer that operates of boundaries and upper adjacent cells."""
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable, update_boundaries_nn,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False):

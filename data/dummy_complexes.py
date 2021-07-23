@@ -7,7 +7,7 @@ from torch_geometric.data import Data
 # TODO: make the features for these dummy complexes disjoint to stress tests even more
 def convert_to_graph(complex):
     assert 0 in complex.chains
-    assert complex.chains[0].num_simplices > 0
+    assert complex.chains[0].num_cells > 0
     chain = complex.chains[0]
     x = chain.x
     y = complex.y

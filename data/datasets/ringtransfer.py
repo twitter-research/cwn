@@ -64,7 +64,7 @@ class RingTransferDataset(InMemoryComplexDataset):
 
         for complex in complexes:
             # Add mask for the target node.
-            mask = torch.zeros(complex.nodes.num_simplices, dtype=torch.bool)
+            mask = torch.zeros(complex.nodes.num_cells, dtype=torch.bool)
             mask[0] = 1
             setattr(complex.chains[0], 'mask', mask)
 

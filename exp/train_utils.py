@@ -37,7 +37,7 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
         if isinstance(batch, ComplexBatch):
             num_samples = batch.chains[0].x.size(0)
             for dim in range(1, batch.dimension+1):
-                num_samples = min(num_samples, batch.chains[dim].num_simplices)
+                num_samples = min(num_samples, batch.chains[dim].num_cells)
         else:
             # This is graph.
             num_samples = batch.x.size(0)
