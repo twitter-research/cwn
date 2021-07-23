@@ -219,9 +219,9 @@ class ChainMessagePassing(torch.nn.Module):
                         # We need to use the boundary attribute matrix (i.e. boundary_attr) for the features
                         # And we need to use the x matrix to extract the number of parent cells
                         data = kwargs.get('boundary_attr', Parameter.empty)
-                        size_data = kwargs.get(arg[5:-2], Parameter.empty)
+                        size_data = kwargs.get(arg[9:-2], Parameter.empty)
                     else:
-                        data = kwargs.get(arg[5:-2], Parameter.empty)
+                        data = kwargs.get(arg[9:-2], Parameter.empty)
                         size_data = data
                 else:
                     continue
