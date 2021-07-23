@@ -3,7 +3,7 @@ import torch
 
 from data.helper_test import check_edge_index_are_the_same, check_edge_attr_are_the_same
 
-from mp.smp import CochainMessagePassing
+from mp.cell_mp import CochainMessagePassing
 from torch_geometric.nn.conv import MessagePassing
 from data.dummy_complexes import (get_square_dot_complex, get_house_complex,
                                   get_colon_complex, get_fullstop_complex, 

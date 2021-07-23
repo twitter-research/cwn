@@ -28,7 +28,7 @@ import copy
 
 from torch import Tensor
 from torch_sparse import SparseTensor
-from mp.smp import CochainMessagePassingParams
+from mp.cell_mp import CochainMessagePassingParams
 from torch_geometric.typing import Adj
 from typing import List
 

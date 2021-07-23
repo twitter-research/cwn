@@ -2,7 +2,7 @@ import torch
 
 from typing import Callable, Optional
 from torch import Tensor
-from mp.smp import CochainMessagePassing, CochainMessagePassingParams
+from mp.cell_mp import CochainMessagePassing, CochainMessagePassingParams
 from torch_geometric.nn.inits import reset
 from torch.nn import Linear, Sequential, BatchNorm1d as BN, Identity
 from data.complex import Cochain
