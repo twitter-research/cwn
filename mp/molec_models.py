@@ -3,13 +3,13 @@ import torch.nn.functional as F
 
 from torch.nn import Linear, Embedding, Sequential, BatchNorm1d as BN
 from torch_geometric.nn import JumpingKnowledge, GINEConv
-from mp.layers import InitReduceConv, EmbedVEWithReduce, OGBEmbedVEWithReduce, SparseSINConv
+from mp.layers import InitReduceConv, EmbedVEWithReduce, OGBEmbedVEWithReduce, SparseCINConv
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 from data.complex import ComplexBatch
 from mp.nn import pool_complex, get_pooling_fn, get_nonlinearity, get_graph_norm
 
 
-class EmbedSparseSIN(torch.nn.Module):
+class EmbedSparseCIN(torch.nn.Module):
     """
     A simplicial version of GIN with some tailoring to nimbly work on molecules from the ZINC database.
 
@@ -23,7 +23,7 @@ class EmbedSparseSIN(torch.nn.Module):
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None, use_coboundaries=False,
                  graph_norm='bn'):
-        super(EmbedSparseSIN, self).__init__()
+        super(EmbedSparseCIN, self).__init__()
 
         self.max_dim = max_dim
         if readout_dims is not None:
@@ -53,7 +53,7 @@ class EmbedSparseSIN(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
-                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                SparseCINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     boundary_msg_size=layer_dim, msg_boundaries_nn=None,
                     msg_up_nn=None, update_up_nn=None,
                     update_boundaries_nn=None, train_eps=train_eps, max_dim=self.max_dim,
@@ -164,7 +164,7 @@ class EmbedSparseSIN(torch.nn.Module):
         return self.__class__.__name__
 
 
-class OGBEmbedSparseSIN(torch.nn.Module):
+class OGBEmbedSparseCIN(torch.nn.Module):
     """
     A simplicial version of GIN with some tailoring to nimbly work on molecules from the ogbg-mol* dataset.
     It uses OGB atom and bond encoders.
@@ -179,7 +179,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None, use_coboundaries=False,
                  graph_norm='bn'):
-        super(OGBEmbedSparseSIN, self).__init__()
+        super(OGBEmbedSparseCIN, self).__init__()
 
         self.max_dim = max_dim
         if readout_dims is not None:
@@ -210,7 +210,7 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
-                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                SparseCINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     boundary_msg_size=layer_dim, msg_boundaries_nn=None,
                     msg_up_nn=None, update_up_nn=None,
                     update_boundaries_nn=None, train_eps=train_eps, max_dim=self.max_dim,
@@ -319,9 +319,9 @@ class OGBEmbedSparseSIN(torch.nn.Module):
         return self.__class__.__name__
 
 
-class EmbedSparseSINNoRings(torch.nn.Module):
+class EmbedSparseCINNoRings(torch.nn.Module):
     """
-    SIN model on cell complexes up to dimension 1 (edges). It does not make use of rings.
+    CIN model on cell complexes up to dimension 1 (edges). It does not make use of rings.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -333,7 +333,7 @@ class EmbedSparseSINNoRings(torch.nn.Module):
                  final_readout='sum', apply_dropout_before='lin2',
                  init_reduce='sum', embed_edge=False, embed_dim=None, use_coboundaries=False,
                  graph_norm='bn'):
-        super(EmbedSparseSINNoRings, self).__init__()
+        super(EmbedSparseCINNoRings, self).__init__()
 
         self.max_dim = 1
         self.readout_dims = [0, 1]
@@ -360,7 +360,7 @@ class EmbedSparseSINNoRings(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
-                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                SparseCINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                               boundary_msg_size=layer_dim, msg_boundaries_nn=None,
                               msg_up_nn=None, update_up_nn=None,
                               update_boundaries_nn=None, train_eps=train_eps, max_dim=self.max_dim,

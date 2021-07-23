@@ -1,13 +1,13 @@
 import torch
 
-from mp.layers import SparseSINConv
+from mp.layers import SparseCINConv
 from mp.nn import get_nonlinearity, get_graph_norm
 from data.complex import ComplexBatch
 from torch.nn import Linear, Sequential, BatchNorm1d as BN
 from torch_geometric.nn import GINConv
 
 
-class RingSparseSIN(torch.nn.Module):
+class RingSparseCIN(torch.nn.Module):
     """
     A simple cellular version of GIN employed for Ring experiments.
 
@@ -18,7 +18,7 @@ class RingSparseSIN(torch.nn.Module):
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
                  max_dim: int = 2, nonlinearity='relu', train_eps=False, use_coboundaries=False,
                  graph_norm='id'):
-        super(RingSparseSIN, self).__init__()
+        super(RingSparseCIN, self).__init__()
 
         self.max_dim = max_dim
         self.convs = torch.nn.ModuleList()
@@ -30,7 +30,7 @@ class RingSparseSIN(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             self.convs.append(
-                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                SparseCINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     boundary_msg_size=layer_dim, msg_boundaries_nn=None, msg_up_nn=None,
                     update_up_nn=None, update_boundaries_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,

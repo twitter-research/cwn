@@ -59,12 +59,12 @@ class DummySimplicialMessagePassing(torch.nn.Module):
         return out
 
 
-class SINChainConv(ChainMessagePassing):
+class CINChainConv(ChainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
                  eps: float = 0., train_eps: bool = False):
-        super(SINChainConv, self).__init__(up_msg_size, down_msg_size, use_boundary_msg=False)
+        super(CINChainConv, self).__init__(up_msg_size, down_msg_size, use_boundary_msg=False)
         self.msg_up_nn = msg_up_nn
         self.msg_down_nn = msg_down_nn
         self.update_nn = update_nn
@@ -104,15 +104,15 @@ class SINChainConv(ChainMessagePassing):
         return self.msg_down_nn(x)
 
 
-class SINConv(torch.nn.Module):
+class CINConv(torch.nn.Module):
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
                  eps: float = 0., train_eps: bool = False, max_dim: int = 2):
-        super(SINConv, self).__init__()
+        super(CINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = SINChainConv(up_msg_size, down_msg_size,
+            mp = CINChainConv(up_msg_size, down_msg_size,
                               msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
             self.mp_levels.append(mp)
 
@@ -125,21 +125,21 @@ class SINConv(torch.nn.Module):
         return out
 
 
-class EdgeSINConv(torch.nn.Module):
+class EdgeCINConv(torch.nn.Module):
     """
-    SIN convolutional layer which performs chain message passing only
+    CIN convolutional layer which performs chain message passing only
     _up to_ 1-dimensional simplices (edges).
     """
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  v_msg_up_nn: Callable, e_msg_down_nn: Callable, e_msg_up_nn: Callable,
                  v_update_nn: Callable, e_update_nn: Callable, eps: float = 0., train_eps=False):
-        super(EdgeSINConv, self).__init__()
+        super(EdgeCINConv, self).__init__()
         self.max_dim = 1
         self.mp_levels = torch.nn.ModuleList()
 
-        v_mp = SINChainConv(up_msg_size, down_msg_size,
+        v_mp = CINChainConv(up_msg_size, down_msg_size,
                             v_msg_up_nn, lambda *args: None, v_update_nn, eps, train_eps)
-        e_mp = SINChainConv(up_msg_size, down_msg_size,
+        e_mp = CINChainConv(up_msg_size, down_msg_size,
                             e_msg_up_nn, e_msg_down_nn, e_update_nn, eps, train_eps)
         self.mp_levels.extend([v_mp, e_mp])
 
@@ -152,12 +152,12 @@ class EdgeSINConv(torch.nn.Module):
         return out
 
 
-class SparseSINChainConv(ChainMessagePassing):
-    """This is a SIN Chain layer that operates of boundaries and upper adjacent simplices."""
+class SparseCINChainConv(ChainMessagePassing):
+    """This is a CIN Chain layer that operates of boundaries and upper adjacent simplices."""
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable, update_boundaries_nn,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False):
-        super(SparseSINChainConv, self).__init__(up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
+        super(SparseCINChainConv, self).__init__(up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
                                                  use_down_msg=False)
         self.dim = dim
         self.msg_up_nn = msg_up_nn
@@ -215,7 +215,7 @@ class Catter(torch.nn.Module):
         return torch.cat(x, dim=-1)
     
     
-class SparseSINConv(torch.nn.Module):
+class SparseCINConv(torch.nn.Module):
     """A simplicial version of GIN which performs message passing from  simplicial upper
     neighbors and boundaries, but not from lower neighbors (hence why "Sparse")
     """
@@ -224,7 +224,7 @@ class SparseSINConv(torch.nn.Module):
                  msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable,
                  update_boundaries_nn: Callable, eps: float = 0., train_eps: bool = False,
                  max_dim: int = 2, graph_norm=BN, use_coboundaries=False, **kwargs):
-        super(SparseSINConv, self).__init__()
+        super(SparseCINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
@@ -261,7 +261,7 @@ class SparseSINConv(torch.nn.Module):
                 graph_norm(kwargs['hidden']),
                 kwargs['act_module']())
 
-            mp = SparseSINChainConv(dim, up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
+            mp = SparseCINChainConv(dim, up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
                 msg_up_nn=msg_up_nn, msg_boundaries_nn=msg_boundaries_nn, update_up_nn=update_up_nn,
                 update_boundaries_nn=update_boundaries_nn, combine_nn=combine_nn, eps=eps,
                 train_eps=train_eps)

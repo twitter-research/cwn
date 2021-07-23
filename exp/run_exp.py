@@ -11,9 +11,9 @@ from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
-from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
-from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
-from mp.ring_exp_models import RingSparseSIN, RingGIN
+from mp.models import CIN0, Dummy, SparseCIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
+from mp.molec_models import EmbedSparseCIN, OGBEmbedSparseCIN, EmbedSparseCINNoRings, EmbedGIN
+from mp.ring_exp_models import RingSparseCIN, RingGIN
 
 
 def main(args):
@@ -101,7 +101,7 @@ def main(args):
     # instantiate model
     # NB: here we assume to have the same number of features per dim
     if args.model == 'sin':
-        model = SIN0(dataset.num_features_in_dim(0),          # num_input_features
+        model = CIN0(dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -112,7 +112,7 @@ def main(args):
                      readout=args.readout,                    # readout
                     ).to(device)
     elif args.model == 'sparse_sin':
-        model = SparseSIN(dataset.num_features_in_dim(0),     # num_input_features
+        model = SparseCIN(dataset.num_features_in_dim(0),     # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -127,7 +127,7 @@ def main(args):
                      graph_norm=args.graph_norm,              # normalization layer
         ).to(device)
     elif args.model == 'ring_sparse_sin':
-        model = RingSparseSIN(
+        model = RingSparseCIN(
                      dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
@@ -201,7 +201,7 @@ def main(args):
                       fully_invar=args.fully_orient_invar,
         ).to(device)
     elif args.model == 'embed_sparse_sin':
-        model = EmbedSparseSIN(dataset.num_node_type,  # The number of atomic types
+        model = EmbedSparseCIN(dataset.num_node_type,  # The number of atomic types
                                dataset.num_edge_type,  # The number of bond types
                                dataset.num_classes,  # num_classes
                                args.num_layers,  # num_layers
@@ -218,7 +218,7 @@ def main(args):
                                graph_norm=args.graph_norm,  # normalization layer
         ).to(device)
     elif args.model == 'embed_sparse_sin_no_rings':
-        model = EmbedSparseSINNoRings(dataset.num_node_type,  # The number of atomic types
+        model = EmbedSparseCINNoRings(dataset.num_node_type,  # The number of atomic types
                                       dataset.num_edge_type,  # The number of bond types
                                       dataset.num_classes,  # num_classes
                                       args.num_layers,  # num_layers
@@ -246,7 +246,7 @@ def main(args):
         ).to(device)
     # TODO: handle this as above
     elif args.model == 'ogb_embed_sparse_sin':
-        model = OGBEmbedSparseSIN(dataset.num_tasks,                       # out_size
+        model = OGBEmbedSparseCIN(dataset.num_tasks,                       # out_size
                                   args.num_layers,                         # num_layers
                                   args.emb_dim,                            # hidden
                                   dropout_rate=args.drop_rate,             # dropout_rate

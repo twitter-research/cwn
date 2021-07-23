@@ -4,7 +4,7 @@ import itertools
 
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
-from mp.models import SIN0, EdgeSIN0, SparseSIN
+from mp.models import CIN0, EdgeCIN0, SparseCIN
 from data.data_loading import DataLoader, load_dataset
 
 
@@ -21,7 +21,7 @@ def test_sin_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, jump_mode='cat',
+        model = CIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, jump_mode='cat',
                      max_dim=model_max_dim)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
@@ -49,7 +49,7 @@ def test_edge_sin0_model_with_batching():
 
     for top_features in [True, False]:
         data_loader = DataLoader(data_list, batch_size=4)
-        model = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+        model = EdgeCIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
                          jump_mode='cat', include_top_features=top_features)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
@@ -75,7 +75,7 @@ def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_
 
     data_loader = DataLoader(data_list, batch_size=4)
 
-    model1 = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+    model1 = EdgeCIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
                       jump_mode='cat', include_top_features=True)
     # We use the model in eval mode to avoid problems with batch norm.
     model1.eval()
@@ -86,7 +86,7 @@ def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_
         batched_preds.append(batched_pred)
     batched_preds1 = torch.cat(batched_preds, dim=0)
 
-    model2 = EdgeSIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+    model2 = EdgeCIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
                       jump_mode='cat', include_top_features=False)
     # We use the model in eval mode to avoid problems with batch norm.
     model2.eval()
@@ -108,7 +108,7 @@ def test_sin_model_with_batching_over_complexes_missing_two_cells():
     data_loader = DataLoader(data_list, batch_size=2)
 
     # Run using a model that works up to two_cells.
-    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=2,
+    model = CIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=2,
                  jump_mode='max')
     # We use the model in eval mode to avoid problems with batch norm.
     model.eval()
@@ -120,7 +120,7 @@ def test_sin_model_with_batching_over_complexes_missing_two_cells():
     preds1 = torch.cat(preds1, dim=0)
 
     # Run using a model that works up to edges.
-    model = SIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=1,
+    model = CIN0(num_input_features=1, num_classes=3, num_layers=3, hidden=5, max_dim=1,
                  jump_mode='max')
     model.eval()
 
@@ -150,7 +150,7 @@ def test_sparse_sin0_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = SparseSIN(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
+        model = SparseCIN(num_input_features=1, num_classes=3, num_layers=3, hidden=5,
                           jump_mode='cat', max_dim=model_max_dim)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
@@ -197,7 +197,7 @@ def test_sparse_sin0_model_with_batching_on_proteins():
     max_dim = 3
     torch.manual_seed(0)
     data_loader = DataLoader(dataset, batch_size=32, max_dim=max_dim)
-    model = SparseSIN(num_input_features=dataset.num_features_in_dim(0),
+    model = SparseCIN(num_input_features=dataset.num_features_in_dim(0),
         num_classes=2, num_layers=3, hidden=5, jump_mode=None, max_dim=max_dim)
     model.eval()
 

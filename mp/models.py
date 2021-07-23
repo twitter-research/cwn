@@ -4,12 +4,12 @@ import torch.nn.functional as F
 from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
 from torch_geometric.nn import JumpingKnowledge
 from mp.layers import (
-    SINConv, EdgeSINConv, SparseSINConv, DummySimplicialMessagePassing, OrientedConv)
+    CINConv, EdgeCINConv, SparseCINConv, DummySimplicialMessagePassing, OrientedConv)
 from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex, get_graph_norm
 from data.complex import Complex, ComplexBatch, ChainBatch
 
 
-class SIN0(torch.nn.Module):
+class CIN0(torch.nn.Module):
     """
     A simplicial version of GIN.
 
@@ -20,7 +20,7 @@ class SIN0(torch.nn.Module):
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
                  dropout_rate: float = 0.5,
                  max_dim: int = 2, jump_mode=None, nonlinearity='relu', readout='sum'):
-        super(SIN0, self).__init__()
+        super(CIN0, self).__init__()
 
         self.max_dim = max_dim
         self.dropout_rate = dropout_rate
@@ -46,7 +46,7 @@ class SIN0(torch.nn.Module):
                 conv_nonlinearity(),
                 BN(layer_dim))
             self.convs.append(
-                SINConv(layer_dim, layer_dim,
+                CINConv(layer_dim, layer_dim,
                     conv_up, conv_down, conv_update, train_eps=False, max_dim=self.max_dim))
         self.jump = JumpingKnowledge(jump_mode) if jump_mode is not None else None
         if jump_mode == 'cat':
@@ -109,7 +109,7 @@ class SIN0(torch.nn.Module):
         return self.__class__.__name__
 
 
-class SparseSIN(torch.nn.Module):
+class SparseCIN(torch.nn.Module):
     """
     A simplicial version of GIN.
 
@@ -123,7 +123,7 @@ class SparseSIN(torch.nn.Module):
                  train_eps=False, final_hidden_multiplier: int = 2, use_coboundaries=False,
                  readout_dims=(0, 1, 2), final_readout='sum', apply_dropout_before='lin2',
                  graph_norm='bn'):
-        super(SparseSIN, self).__init__()
+        super(SparseCIN, self).__init__()
 
         self.max_dim = max_dim
         if readout_dims is not None:
@@ -142,7 +142,7 @@ class SparseSIN(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             self.convs.append(
-                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                SparseCINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
                     boundary_msg_size=layer_dim, msg_boundaries_nn=None, msg_up_nn=None,
                     update_up_nn=None, update_boundaries_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
@@ -257,9 +257,9 @@ class SparseSIN(torch.nn.Module):
         return self.__class__.__name__
 
     
-class EdgeSIN0(torch.nn.Module):
+class EdgeCIN0(torch.nn.Module):
     """
-    A variant of SIN0 operating up to edge level. It may optionally ignore two_cell features.
+    A variant of CIN0 operating up to edge level. It may optionally ignore two_cell features.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -270,7 +270,7 @@ class EdgeSIN0(torch.nn.Module):
                  jump_mode=None, nonlinearity='relu', include_top_features=True,
                  update_top_features=True,
                  readout='sum'):
-        super(EdgeSIN0, self).__init__()
+        super(EdgeCIN0, self).__init__()
 
         self.max_dim = 1
         self.include_top_features = include_top_features
@@ -311,7 +311,7 @@ class EdgeSIN0(torch.nn.Module):
                 conv_nonlinearity(),
                 BN(layer_dim))
             self.convs.append(
-                EdgeSINConv(layer_dim, layer_dim, v_conv_up, e_conv_down, e_conv_up,
+                EdgeCINConv(layer_dim, layer_dim, v_conv_up, e_conv_down, e_conv_up,
                     v_conv_update, e_conv_update, train_eps=False))
             if self.update_top_features and i < num_layers - 1:
                 self.update_top_nns.append(Sequential(
@@ -629,7 +629,7 @@ class MessagePassingAgnostic(torch.nn.Module):
         # TODO: eventually remove the following comment
         # NB: as an alternative, we can instead defer the application of lin1
         # to here, after final readout. As default option we instead apply lin1
-        # before that, as it is more similiar to SparseSIN as an approach.
+        # before that, as it is more similiar to SparseCIN as an approach.
         # That was the original implementation used in rebuttal. However,
         # according to May experiments there were no differences in results
         # over the SR benchmark.

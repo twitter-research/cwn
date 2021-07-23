@@ -2,7 +2,7 @@ import torch
 import torch.optim as optim
 
 from mp.layers import (
-    DummySimplicialMessagePassing, SINConv, SINChainConv, OrientedConv, InitReduceConv,
+    DummySimplicialMessagePassing, CINConv, CINChainConv, OrientedConv, InitReduceConv,
     EmbedVEWithReduce)
 from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
@@ -74,7 +74,7 @@ def test_sin_conv_training():
     msg_net = nn.Sequential(nn.Linear(2, 1))
     update_net = nn.Sequential(nn.Linear(1, 3))
 
-    sin_conv = SINConv(1, 1, msg_net, msg_net, update_net, 0.05)
+    sin_conv = CINConv(1, 1, msg_net, msg_net, update_net, 0.05)
 
     all_params_before = []
     for p in sin_conv.parameters():
