@@ -4,14 +4,14 @@ import torch.nn.functional as F
 from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
 from torch_geometric.nn import JumpingKnowledge
 from mp.layers import (
-    CINConv, EdgeCINConv, SparseCINConv, DummySimplicialMessagePassing, OrientedConv)
+    CINConv, EdgeCINConv, SparseCINConv, DummyCellularMessagePassing, OrientedConv)
 from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex, get_graph_norm
 from data.complex import Complex, ComplexBatch, ChainBatch
 
 
 class CIN0(torch.nn.Module):
     """
-    A simplicial version of GIN.
+    A cellular version of GIN.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -111,7 +111,7 @@ class CIN0(torch.nn.Module):
 
 class SparseCIN(torch.nn.Module):
     """
-    A simplicial version of GIN.
+    A cellular version of GIN.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -395,7 +395,7 @@ class EdgeCIN0(torch.nn.Module):
 
 class Dummy(torch.nn.Module):
     """
-    A dummy simplicial network model.
+    A dummy cellular network model.
     No parameters in the convolutional layers.
     Readout at each layer is by summation.
     Outputs are computed by one single linear layer.
@@ -409,7 +409,7 @@ class Dummy(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.pooling_fn = get_pooling_fn(readout)
         for i in range(num_layers):
-            self.convs.append(DummySimplicialMessagePassing(max_dim=self.max_dim))
+            self.convs.append(DummyCellularMessagePassing(max_dim=self.max_dim))
         self.lin = Linear(num_input_features, num_classes)
 
     def reset_parameters(self):

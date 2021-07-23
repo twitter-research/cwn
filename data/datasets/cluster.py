@@ -52,7 +52,7 @@ class ClusterDataset(InMemoryComplexDataset):
 
     def process(self):
         # At this stage, the graph dataset is already downloaded and processed
-        print(f"Processing simplicial complex dataset for {self.name}")
+        print(f"Processing cellular complex dataset for {self.name}")
         train_data = GNNBenchmarkDataset('./datasets/', 'CLUSTER', split='train')
         val_data = GNNBenchmarkDataset('./datasets/', 'CLUSTER', split='val')
         test_data = GNNBenchmarkDataset('./datasets/', 'CLUSTER', split='test')

@@ -67,7 +67,7 @@ def get_parser():
     parser.add_argument('--minimize', action='store_true',
                         help='whether to minimize evaluation metric or not')
     parser.add_argument('--max_dim', type=int, default="2",
-                        help='maximum simplicial dimension (default: 2, i.e. two_cells)')
+                        help='maximum cellular dimension (default: 2, i.e. two_cells)')
     parser.add_argument('--max_ring_size', type=int, default=None,
                         help='maximum ring size to look for (default: None, i.e. do not look for rings)')
     parser.add_argument('--result_folder', type=str, default=os.path.join(ROOT_DIR, 'exp', 'results'),

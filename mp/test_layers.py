@@ -2,20 +2,20 @@ import torch
 import torch.optim as optim
 
 from mp.layers import (
-    DummySimplicialMessagePassing, CINConv, CINChainConv, OrientedConv, InitReduceConv,
+    DummyCellularMessagePassing, CINConv, CINChainConv, OrientedConv, InitReduceConv,
     EmbedVEWithReduce)
 from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
 from data.datasets.flow import load_flow_dataset
 
 
-def test_dummy_simplicial_message_passing_with_down_msg():
+def test_dummy_cellular_message_passing_with_down_msg():
     house_complex = get_house_complex()
     v_params = house_complex.get_chain_params(dim=0)
     e_params = house_complex.get_chain_params(dim=1)
     t_params = house_complex.get_chain_params(dim=2)
 
-    dsmp = DummySimplicialMessagePassing()
+    dsmp = DummyCellularMessagePassing()
     v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
 
     expected_v_x = torch.tensor([[12], [9], [25], [25], [23]], dtype=torch.float)
@@ -28,13 +28,13 @@ def test_dummy_simplicial_message_passing_with_down_msg():
     assert torch.equal(t_x, expected_t_x)
 
 
-def test_dummy_simplicial_message_passing_with_boundary_msg():
+def test_dummy_cellular_message_passing_with_boundary_msg():
     house_complex = get_house_complex()
     v_params = house_complex.get_chain_params(dim=0)
     e_params = house_complex.get_chain_params(dim=1)
     t_params = house_complex.get_chain_params(dim=2)
 
-    dsmp = DummySimplicialMessagePassing(use_boundary_msg=True, use_down_msg=False)
+    dsmp = DummyCellularMessagePassing(use_boundary_msg=True, use_down_msg=False)
     v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
 
     expected_v_x = torch.tensor([[12], [9], [25], [25], [23]], dtype=torch.float)
@@ -47,13 +47,13 @@ def test_dummy_simplicial_message_passing_with_boundary_msg():
     assert torch.equal(t_x, expected_t_x)
 
 
-def test_dummy_simplicial_message_passing_on_molecular_cell_complex():
+def test_dummy_cellular_message_passing_on_molecular_cell_complex():
     molecular_complex = get_molecular_complex()
     v_params = molecular_complex.get_chain_params(dim=0)
     e_params = molecular_complex.get_chain_params(dim=1)
     ring_params = molecular_complex.get_chain_params(dim=2)
 
-    dsmp = DummySimplicialMessagePassing(use_boundary_msg=True, use_down_msg=True)
+    dsmp = DummyCellularMessagePassing(use_boundary_msg=True, use_down_msg=True)
     v_x, e_x, ring_x = dsmp.forward(v_params, e_params, ring_params)
 
     expected_v_x = torch.tensor([[12], [24], [24], [15], [25], [31], [47], [24]],

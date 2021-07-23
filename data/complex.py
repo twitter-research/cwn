@@ -565,7 +565,7 @@ class ChainBatch(Chain):
 
 class Complex(object):
     """
-        Class representing an attributed simplicial complex.
+        Class representing an attributed cellular complex.
     """
 
     def __init__(self, *chains: Chain, y: torch.Tensor = None, dimension: int = None):

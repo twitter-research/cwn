@@ -11,7 +11,7 @@ from mp.nn import pool_complex, get_pooling_fn, get_nonlinearity, get_graph_norm
 
 class EmbedSparseCIN(torch.nn.Module):
     """
-    A simplicial version of GIN with some tailoring to nimbly work on molecules from the ZINC database.
+    A cellular version of GIN with some tailoring to nimbly work on molecules from the ZINC database.
 
     This model is based on
     https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
@@ -166,7 +166,7 @@ class EmbedSparseCIN(torch.nn.Module):
 
 class OGBEmbedSparseCIN(torch.nn.Module):
     """
-    A simplicial version of GIN with some tailoring to nimbly work on molecules from the ogbg-mol* dataset.
+    A cellular version of GIN with some tailoring to nimbly work on molecules from the ogbg-mol* dataset.
     It uses OGB atom and bond encoders.
 
     This model is based on

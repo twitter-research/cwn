@@ -31,7 +31,7 @@ from torch_sparse import SparseTensor
 from torch_scatter import gather_csr, scatter, segment_csr
 
 from torch_geometric.nn.conv.utils.helpers import expand_left
-from mp.smp_inspector import SimplicialInspector
+from mp.smp_inspector import CellularInspector
 
 
 class ChainMessagePassing(torch.nn.Module):
@@ -100,7 +100,7 @@ class ChainMessagePassing(torch.nn.Module):
         # i.e. if x has shape [N, in_channels], then node_dim = 0 or -2
         self.node_dim = node_dim
 
-        self.inspector = SimplicialInspector(self)
+        self.inspector = CellularInspector(self)
         # This stores the parameters of these functions. If pop first is true
         # the first parameter is not stored (I presume this is for self.)
         # I presume this doesn't pop first to avoid including the self parameter multiple times.
@@ -230,7 +230,7 @@ class ChainMessagePassing(torch.nn.Module):
                 # as (x_i, x_j) as opposed to a matrix X [N, in_channels]
                 # (the 2nd case is handled by the next if)
                 if isinstance(data, (tuple, list)):
-                    raise ValueError('This format is not supported for simplicial message passing')
+                    raise ValueError('This format is not supported for cellular message passing')
 
                 # This is the usual case when we get a feature matrix of shape [N, in_channels]
                 if isinstance(data, Tensor):

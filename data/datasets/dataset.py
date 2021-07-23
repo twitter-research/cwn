@@ -42,7 +42,7 @@ def __repr__(obj):
 
 class ComplexDataset(Dataset, ABC):
     """
-        Base class for simplicial complex datasets.
+        Base class for cellular complex datasets.
     """
 
     def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None,
@@ -74,7 +74,7 @@ class ComplexDataset(Dataset, ABC):
 
     @property
     def processed_dir(self):
-        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        """This is overwritten, so the cellular complex data is placed in another folder"""
         prefix = "cell_" if self._cellular else ""
         return osp.join(self.root, f'{prefix}complex_dim{self.max_dim}_{self._init_method}')
 

@@ -40,9 +40,9 @@ class DummyChainMessagePassing(ChainMessagePassing):
         return chain.x + up_out + down_out + boundary_out
 
 
-class DummySimplicialMessagePassing(torch.nn.Module):
+class DummyCellularMessagePassing(torch.nn.Module):
     def __init__(self, input_dim=1, max_dim: int = 2, use_boundary_msg=False, use_down_msg=True):
-        super(DummySimplicialMessagePassing, self).__init__()
+        super(DummyCellularMessagePassing, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
@@ -216,7 +216,7 @@ class Catter(torch.nn.Module):
     
     
 class SparseCINConv(torch.nn.Module):
-    """A simplicial version of GIN which performs message passing from  simplicial upper
+    """A cellular version of GIN which performs message passing from  cellular upper
     neighbors and boundaries, but not from lower neighbors (hence why "Sparse")
     """
 

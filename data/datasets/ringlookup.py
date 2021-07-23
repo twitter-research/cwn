@@ -24,7 +24,7 @@ class RingLookupDataset(InMemoryComplexDataset):
 
     @property
     def processed_dir(self):
-        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        """This is overwritten, so the cellular complex data is placed in another folder"""
         return osp.join(self.root, 'complex')
 
     @property

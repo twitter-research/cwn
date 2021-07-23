@@ -57,7 +57,7 @@ class SRDataset(InMemoryComplexDataset):
         
     @property
     def processed_dir(self):
-        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        """This is overwritten, so the cellular complex data is placed in another folder"""
         directory = super(SRDataset, self).processed_dir
         suffix = f"_{self._max_ring_size}rings" if self._cellular else ""
         suffix += f"_down_adj" if self.include_down_adj else ""
