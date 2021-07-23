@@ -8,7 +8,7 @@ from mp.models import CIN0, EdgeCIN0, SparseCIN
 from data.data_loading import DataLoader, load_dataset
 
 
-def test_sin_model_with_batching():
+def test_cin_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -43,7 +43,7 @@ def test_sin_model_with_batching():
         assert torch.allclose(preds, batched_preds, atol=1e-5)
 
 
-def test_edge_sin0_model_with_batching():
+def test_edge_cin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -69,7 +69,7 @@ def test_edge_sin0_model_with_batching():
         assert torch.allclose(preds, batched_preds, atol=1e-6)
 
 
-def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_one():
+def test_edge_cin0_model_with_batching_while_including_top_features_and_max_dim_one():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -102,7 +102,7 @@ def test_edge_sin0_model_with_batching_while_including_top_features_and_max_dim_
     assert not torch.equal(batched_preds1, batched_preds2)
 
 
-def test_sin_model_with_batching_over_complexes_missing_two_cells():
+def test_cin_model_with_batching_over_complexes_missing_two_cells():
     """Check this runs without errors"""
     data_list = get_testing_complex_list()
     data_loader = DataLoader(data_list, batch_size=2)
@@ -136,7 +136,7 @@ def test_sin_model_with_batching_over_complexes_missing_two_cells():
     assert not torch.equal(preds1, preds2)
 
 
-def test_sparse_sin0_model_with_batching():
+def test_sparse_cin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -186,7 +186,7 @@ def test_sparse_sin0_model_with_batching():
 
 
 @pytest.mark.data
-def test_sparse_sin0_model_with_batching_on_proteins():
+def test_sparse_cin0_model_with_batching_on_proteins():
     """Check this runs without errors and that batching and no batching produce the same output."""
     dataset = load_dataset('PROTEINS', max_dim=3, fold=0, init_method='mean')
     assert len(dataset) == 1113

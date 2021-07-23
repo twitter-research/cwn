@@ -15,10 +15,10 @@ def get_parser():
                         help='The final seed when evaluating on multiple seeds.')
     parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
-    parser.add_argument('--model', type=str, default='sparse_sin',
-                        help='model, possible choices: sin, dummy, ... (default: sin)')
+    parser.add_argument('--model', type=str, default='sparse_cin',
+                        help='model, possible choices: cin, dummy, ... (default: cin)')
     parser.add_argument('--use_coboundaries', type=str, default='False',
-                        help='whether to use coboundary features for up-messages in sparse_sin (default: False)')
+                        help='whether to use coboundary features for up-messages in sparse_cin (default: False)')
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
     parser.add_argument('--indrop_rate', type=float, default=0.0,
                         help='inputs dropout rate for molec models(default: 0.0)')
@@ -113,7 +113,7 @@ def get_parser():
 
 def validate_args(args):
     if args.dataset == 'CSL':
-        assert args.model == 'embed_sparse_sin'
+        assert args.model == 'embed_sparse_cin'
         assert args.task_type == 'classification'
         assert not args.minimize
         assert args.lr_scheduler == 'ReduceLROnPlateau'
@@ -122,7 +122,7 @@ def validate_args(args):
         assert not args.simple_features
         assert args.graph_norm == 'ln'
     elif args.dataset == 'RING-TRANSFER' or args.dataset == 'RING-LOOKUP':
-        assert args.model == 'ring_sparse_sin' or args.model == 'gin_ring'
+        assert args.model == 'ring_sparse_cin' or args.model == 'gin_ring'
         assert args.task_type == 'classification'
         assert not args.minimize
         assert args.lr_scheduler == 'None'
@@ -130,7 +130,7 @@ def validate_args(args):
         assert args.fold is None
         assert not args.simple_features
         assert args.max_ring_size is not None and args.max_ring_size > 3
-        if args.model == 'ring_sparse_sin':
+        if args.model == 'ring_sparse_cin':
             assert args.graph_norm == 'id'
         if args.model == 'gin_ring':
             assert args.graph_norm == 'bn'
@@ -144,7 +144,7 @@ def validate_args(args):
     elif args.dataset in ['MOLHIV', 'MOLPCBA', 'MOLTOX21', 'MOLTOXCAST', 'MOLMUV',
                           'MOLBACE', 'MOLBBBP', 'MOLCLINTOX', 'MOLSIDER', 'MOLESOL',
                           'MOLFREESOLV', 'MOLLIPO']:
-        assert args.model == 'ogb_embed_sparse_sin'
+        assert args.model == 'ogb_embed_sparse_cin'
         assert args.eval_metric == 'ogbg-'+args.dataset.lower()
         assert args.jump_mode is None
         if args.dataset in ['MOLESOL', 'MOLFREESOLV', 'MOLLIPO']:

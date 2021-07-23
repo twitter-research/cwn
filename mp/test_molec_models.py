@@ -8,7 +8,7 @@ from mp.molec_models import EmbedSparseCIN, OGBEmbedSparseCIN, EmbedSparseCINNoR
 from data.data_loading import DataLoader, load_dataset
 
 
-def test_zinc_sparse_sin0_model_with_batching():
+def test_zinc_sparse_cin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -68,7 +68,7 @@ def test_zinc_sparse_sin0_model_with_batching():
                     print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
-def test_embed_sparse_sin_no_rings_model_with_batching():
+def test_embed_sparse_cin_no_rings_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -165,7 +165,7 @@ def test_embed_gin_model_with_batching():
 
 
 @pytest.mark.data
-def test_zinc_sparse_sin0_model_with_batching_on_proteins():
+def test_zinc_sparse_cin0_model_with_batching_on_proteins():
     """Check this runs without errors and that batching and no batching produce the same output."""
     dataset = load_dataset('PROTEINS', max_dim=2, fold=0, init_method='mean')
     assert len(dataset) == 1113
@@ -186,7 +186,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
         batch.chains[1].x = None
         if len(batch.chains) == 3:
             batch.chains[2].x = None
-        # ZincSparseSin assumes features are unidimensional like in ZINC
+        # ZincSparseCIN assumes features are unidimensional like in ZINC
         batch.chains[0].x = batch.chains[0].x[:, :1]
 
         batched_pred, res = model.forward(batch, include_partial=True)
@@ -205,7 +205,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
         batch.chains[1].x = None
         if len(batch.chains) == 3:
             batch.chains[2].x = None
-        # ZincSparseSin assumes features are unidimensional like in ZINC
+        # ZincSparseCIN assumes features are unidimensional like in ZINC
         batch.chains[0].x = batch.chains[0].x[:, :1]
 
         pred, res = model.forward(batch, include_partial=True)
@@ -222,7 +222,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
                 print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
-def test_ogb_sparse_sin0_model_with_batching():
+def test_ogb_sparse_cin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 

@@ -41,7 +41,7 @@ max_dim:
 max_ring_size:
     - 6
 model:
-    - sparse_sin
+    - sparse_cin
 use_coboundaries:
     - True
     - False

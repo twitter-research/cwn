@@ -100,7 +100,7 @@ def main(args):
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
-    if args.model == 'sin':
+    if args.model == 'cin':
         model = CIN0(dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
@@ -111,7 +111,7 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
-    elif args.model == 'sparse_sin':
+    elif args.model == 'sparse_cin':
         model = SparseCIN(dataset.num_features_in_dim(0),     # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
@@ -126,7 +126,7 @@ def main(args):
                      use_coboundaries=use_coboundaries,                 # whether to use coboundaries in up-msg
                      graph_norm=args.graph_norm,              # normalization layer
         ).to(device)
-    elif args.model == 'ring_sparse_sin':
+    elif args.model == 'ring_sparse_cin':
         model = RingSparseCIN(
                      dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
@@ -200,7 +200,7 @@ def main(args):
                       dropout_rate=args.drop_rate,  # dropout rate
                       fully_invar=args.fully_orient_invar,
         ).to(device)
-    elif args.model == 'embed_sparse_sin':
+    elif args.model == 'embed_sparse_cin':
         model = EmbedSparseCIN(dataset.num_node_type,  # The number of atomic types
                                dataset.num_edge_type,  # The number of bond types
                                dataset.num_classes,  # num_classes
@@ -217,7 +217,7 @@ def main(args):
                                embed_edge=args.use_edge_features,
                                graph_norm=args.graph_norm,  # normalization layer
         ).to(device)
-    elif args.model == 'embed_sparse_sin_no_rings':
+    elif args.model == 'embed_sparse_cin_no_rings':
         model = EmbedSparseCINNoRings(dataset.num_node_type,  # The number of atomic types
                                       dataset.num_edge_type,  # The number of bond types
                                       dataset.num_classes,  # num_classes
@@ -245,7 +245,7 @@ def main(args):
                          embed_edge=args.use_edge_features,
         ).to(device)
     # TODO: handle this as above
-    elif args.model == 'ogb_embed_sparse_sin':
+    elif args.model == 'ogb_embed_sparse_cin':
         model = OGBEmbedSparseCIN(dataset.num_tasks,                       # out_size
                                   args.num_layers,                         # num_layers
                                   args.emb_dim,                            # hidden

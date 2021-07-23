@@ -38,7 +38,7 @@ max_dim:
     - 2
     # - 3
 model:
-    - sparse_sin
+    - sparse_cin
 nonlinearity:
     - relu
 num_layers:

@@ -70,14 +70,14 @@ def test_dummy_cellular_message_passing_on_molecular_cell_complex():
     assert torch.equal(ring_x, expected_ring_x)
 
 
-def test_sin_conv_training():
+def test_cin_conv_training():
     msg_net = nn.Sequential(nn.Linear(2, 1))
     update_net = nn.Sequential(nn.Linear(1, 3))
 
-    sin_conv = CINConv(1, 1, msg_net, msg_net, update_net, 0.05)
+    cin_conv = CINConv(1, 1, msg_net, msg_net, update_net, 0.05)
 
     all_params_before = []
-    for p in sin_conv.parameters():
+    for p in cin_conv.parameters():
         all_params_before.append(p.clone().data)
     assert len(all_params_before) > 0
 
@@ -92,10 +92,10 @@ def test_sin_conv_training():
     yt = house_complex.get_labels(dim=2)
     y = torch.cat([yv, ye, yt])
 
-    optimizer = optim.SGD(sin_conv.parameters(), lr=0.001)
+    optimizer = optim.SGD(cin_conv.parameters(), lr=0.001)
     optimizer.zero_grad()
 
-    out_v, out_e, out_t = sin_conv.forward(v_params, e_params, t_params)
+    out_v, out_e, out_t = cin_conv.forward(v_params, e_params, t_params)
     out = torch.cat([out_v, out_e, out_t], dim=0)
 
     criterion = nn.CrossEntropyLoss()
@@ -104,7 +104,7 @@ def test_sin_conv_training():
     optimizer.step()
 
     all_params_after = []
-    for p in sin_conv.parameters():
+    for p in cin_conv.parameters():
         all_params_after.append(p.clone().data)
     assert len(all_params_after) == len(all_params_before)
 
