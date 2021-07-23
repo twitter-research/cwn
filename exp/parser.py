@@ -6,7 +6,7 @@ from definitions import ROOT_DIR
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description='SCN experiment.')
+    parser = argparse.ArgumentParser(description='CWN experiment.')
     parser.add_argument('--seed', type=int, default=43,
                         help='random seed to set (default: 43, i.e. the non-meaning of life))')
     parser.add_argument('--start_seed', type=int, default=0,

@@ -11,7 +11,7 @@ __max_devices__ = 8
 
 if __name__ == "__main__":
     
-    parser = argparse.ArgumentParser(description='SCN tuning.')
+    parser = argparse.ArgumentParser(description='CWN tuning.')
     parser.add_argument('--conf', type=str, help='path to yaml configuration')
     parser.add_argument('--code', type=str, help='tuning name')
     parser.add_argument('--idx', type=int, help='selection index')

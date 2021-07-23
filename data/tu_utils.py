@@ -4,7 +4,7 @@ Based on code from https://github.com/weihua916/powerful-gnns/blob/master/util.p
 MIT License
 
 Copyright (c) 2021 Weihua Hu
-Copyright (c) 2021 The SCN Project Authors
+Copyright (c) 2021 The CWN Project Authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
