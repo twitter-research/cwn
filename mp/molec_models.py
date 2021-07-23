@@ -93,12 +93,12 @@ class EmbedSparseCIN(torch.nn.Module):
         res = {}
 
         # Check input node/edge features are scalars.
-        assert data.chains[0].x.size(-1) == 1
-        if 1 in data.chains and data.chains[1].x is not None:
-            assert data.chains[1].x.size(-1) == 1
+        assert data.cochains[0].x.size(-1) == 1
+        if 1 in data.cochains and data.cochains[1].x is not None:
+            assert data.cochains[1].x.size(-1) == 1
 
         # Embed and populate higher-levels
-        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+        params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
         xs = list(self.init_conv(*params))
 
         # Apply dropout on the input features like all models do on ZINC.
@@ -108,7 +108,7 @@ class EmbedSparseCIN(torch.nn.Module):
         data.set_xs(xs)
 
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+            params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
             data.set_xs(xs)
@@ -250,7 +250,7 @@ class OGBEmbedSparseCIN(torch.nn.Module):
         res = {}
 
         # Embed and populate higher-levels
-        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+        params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
         xs = list(self.init_conv(*params))
 
         # Apply dropout on the input features
@@ -260,7 +260,7 @@ class OGBEmbedSparseCIN(torch.nn.Module):
         data.set_xs(xs)
 
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+            params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             xs = conv(*params, start_to_process=start_to_process)
             # Apply dropout on the output of the conv layer
@@ -382,12 +382,12 @@ class EmbedSparseCINNoRings(torch.nn.Module):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
 
         # Check input node/edge features are scalars.
-        assert data.chains[0].x.size(-1) == 1
-        if 1 in data.chains and data.chains[1].x is not None:
-            assert data.chains[1].x.size(-1) == 1
+        assert data.cochains[0].x.size(-1) == 1
+        if 1 in data.cochains and data.cochains[1].x is not None:
+            assert data.cochains[1].x.size(-1) == 1
 
         # Extract node and edge params
-        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+        params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
         # Make the upper index of the edges None to ignore the rings. Even though max_dim = 1
         # our current code does extract upper adjacencies for edges if rings are present.
         if len(params) > 1:
@@ -402,7 +402,7 @@ class EmbedSparseCINNoRings(torch.nn.Module):
         data.set_xs(xs)
 
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+            params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
             if len(params) > 1:
                 params[1].up_index = None
 
@@ -498,12 +498,12 @@ class EmbedGIN(torch.nn.Module):
         act = get_nonlinearity(self.nonlinearity, return_module=False)
 
         # Check input node/edge features are scalars.
-        assert data.chains[0].x.size(-1) == 1
-        if 1 in data.chains and data.chains[1].x is not None:
-            assert data.chains[1].x.size(-1) == 1
+        assert data.cochains[0].x.size(-1) == 1
+        if 1 in data.cochains and data.cochains[1].x is not None:
+            assert data.cochains[1].x.size(-1) == 1
 
         # Extract node and edge params
-        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+        params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
         # Embed the node and edge features
         xs = list(self.init_conv(*params))
         # Apply dropout on the input node features
@@ -511,7 +511,7 @@ class EmbedGIN(torch.nn.Module):
         data.set_xs(xs)
 
         # We fetch input parameters only at dimension 0 (nodes)
-        params = data.get_all_chain_params(max_dim=0, include_down_features=False)[0]
+        params = data.get_all_cochain_params(max_dim=0, include_down_features=False)[0]
         x = params.x
         edge_index = params.up_index
         edge_attr = params.kwargs['up_attr']
@@ -525,7 +525,7 @@ class EmbedGIN(torch.nn.Module):
             x = conv(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
         # Pool only over nodes
-        batch_size = data.chains[0].batch.max() + 1
+        batch_size = data.cochains[0].batch.max() + 1
         x = self.pooling_fn(x, data.nodes.batch, size=batch_size)
 
         if self.apply_dropout_before == 'lin1':

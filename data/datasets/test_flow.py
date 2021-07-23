@@ -36,28 +36,28 @@ def test_flow_util_dataset_loading():
 
     label_count = {0: 0, 1: 0}
 
-    for chain in train + test:
+    for cochain in train + test:
         # checks x values (flow direction) are either +1 or -1
-        assert (torch.sum(chain.x == 1) + torch.sum(chain.x == -1)
-                == torch.count_nonzero(chain.x))
+        assert (torch.sum(cochain.x == 1) + torch.sum(cochain.x == -1)
+                == torch.count_nonzero(cochain.x))
 
         # checks the upper/lower orientation features are consistent
         # in shape with the upper/lower indices
-        assert len(chain.upper_orient) == chain.upper_index.size(1)
-        assert len(chain.lower_orient) == chain.lower_index.size(1)
+        assert len(cochain.upper_orient) == cochain.upper_index.size(1)
+        assert len(cochain.lower_orient) == cochain.lower_index.size(1)
         # checks the upper and lower indices are consistent with the number of edges
-        assert chain.upper_index.max() < chain.x.size(0), print(chain.upper_index.max(),
-            chain.x.size(0))
-        assert chain.lower_index.max() < chain.x.size(0), print(chain.lower_index.max(),
-            chain.x.size(0))
+        assert cochain.upper_index.max() < cochain.x.size(0), print(cochain.upper_index.max(),
+            cochain.x.size(0))
+        assert cochain.lower_index.max() < cochain.x.size(0), print(cochain.lower_index.max(),
+            cochain.x.size(0))
 
         # checks the values for orientations are either +1 (coherent) or -1 (not coherent)
-        assert (torch.sum(chain.upper_orient == 1)
-                + torch.sum(chain.upper_orient == -1) == chain.upper_orient.numel())
-        assert (torch.sum(chain.lower_orient == 1)
-                + torch.sum(chain.lower_orient == -1) == chain.lower_orient.numel())
+        assert (torch.sum(cochain.upper_orient == 1)
+                + torch.sum(cochain.upper_orient == -1) == cochain.upper_orient.numel())
+        assert (torch.sum(cochain.lower_orient == 1)
+                + torch.sum(cochain.lower_orient == -1) == cochain.lower_orient.numel())
 
-        label_count[chain.y.item()] += 1
+        label_count[cochain.y.item()] += 1
 
     # checks distribution of labels
     assert label_count[0] == 20 // 2 + 10 // 2

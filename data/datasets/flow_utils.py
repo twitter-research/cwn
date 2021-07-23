@@ -6,7 +6,7 @@ import itertools
 
 from scipy.spatial import Delaunay
 from scipy import sparse
-from data.complex import Chain
+from data.complex import Cochain
 from data.parallel import ProgressParallel
 from joblib import delayed
 
@@ -230,7 +230,7 @@ def extract_adj_from_boundary(B, G=None):
     return index, orient
 
 
-def build_chain(B1, B2, T2, x, class_id, G=None):
+def build_cochain(B1, B2, T2, x, class_id, G=None):
     # Change the orientation of the boundary matrices
     B1 = sparse.csr_matrix(B1).dot(sparse.csr_matrix(T2)).toarray()
     B2 = sparse.csr_matrix(T2).dot(sparse.csr_matrix(B2)).toarray()
@@ -249,10 +249,10 @@ def build_chain(B1, B2, T2, x, class_id, G=None):
     x = sparse.csr_matrix(T2).dot(sparse.csr_matrix(x)).toarray()
     x = torch.tensor(x, dtype=torch.float32)
 
-    return Chain(dim=1, x=x, **index_dict, y=torch.tensor([class_id]))
+    return Cochain(dim=1, x=x, **index_dict, y=torch.tensor([class_id]))
 
 
-def generate_flow_chain(class_id, G, B1, B2, T2):
+def generate_flow_cochain(class_id, G, B1, B2, T2):
     assert 0 <= class_id <= 1
 
     # Define the start, midpoint and and stop regions for the trajectories.
@@ -265,7 +265,7 @@ def generate_flow_chain(class_id, G, B1, B2, T2):
     # Generate flow
     x, _ = generate_trajectory(start_rect, end_rect, ckpts[class_id], G)
 
-    return build_chain(B1, B2, T2, x, class_id, G)
+    return build_cochain(B1, B2, T2, x, class_id, G)
 
 
 def get_orient_matrix(size, orientation):
@@ -318,13 +318,13 @@ def load_flow_dataset(num_points=1000, num_train=1000, num_test=200,
     # Process these in parallel because it's slow
     samples_per_class = num_train // classes
     parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=num_train)
-    train_samples = parallel(delayed(generate_flow_chain)(
+    train_samples = parallel(delayed(generate_flow_cochain)(
         class_id=min(i // samples_per_class, 1), G=G, B1=B1, B2=B2,
         T2=get_orient_matrix(num_edges, train_orientation)) for i in range(num_train))
 
     samples_per_class = num_test // classes
     parallel = ProgressParallel(n_jobs=n_jobs, use_tqdm=True, total=num_test)
-    test_samples = parallel(delayed(generate_flow_chain)(
+    test_samples = parallel(delayed(generate_flow_cochain)(
         class_id=min(i // samples_per_class, 1), G=G, B1=B1, B2=B2,
         T2=get_orient_matrix(num_edges, test_orientation)) for i in range(num_test))
 

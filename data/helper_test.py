@@ -115,38 +115,38 @@ def compare_complexes(yielded, expected, include_down_adj):
     assert yielded.dimension == expected.dimension
     assert torch.equal(yielded.y, expected.y)
     for dim in range(expected.dimension + 1):
-        y_chain = yielded.chains[dim]
-        e_chain = expected.chains[dim]
-        assert y_chain.num_cells == e_chain.num_cells
-        assert y_chain.num_cells_up == e_chain.num_cells_up
-        assert y_chain.num_cells_up == e_chain.num_cells_up
-        assert y_chain.num_cells_down == e_chain.num_cells_down, dim
-        assert torch.equal(y_chain.x, e_chain.x)
+        y_cochain = yielded.cochains[dim]
+        e_cochain = expected.cochains[dim]
+        assert y_cochain.num_cells == e_cochain.num_cells
+        assert y_cochain.num_cells_up == e_cochain.num_cells_up
+        assert y_cochain.num_cells_up == e_cochain.num_cells_up
+        assert y_cochain.num_cells_down == e_cochain.num_cells_down, dim
+        assert torch.equal(y_cochain.x, e_cochain.x)
         if dim > 0:
-            assert torch.equal(y_chain.boundary_index, e_chain.boundary_index)
+            assert torch.equal(y_cochain.boundary_index, e_cochain.boundary_index)
             if include_down_adj:
-                if y_chain.lower_index is None:
-                    assert e_chain.lower_index is None
-                    assert y_chain.shared_boundaries is None
-                    assert e_chain.shared_boundaries is None
+                if y_cochain.lower_index is None:
+                    assert e_cochain.lower_index is None
+                    assert y_cochain.shared_boundaries is None
+                    assert e_cochain.shared_boundaries is None
                 else:
-                    assert torch.equal(y_chain.lower_index, e_chain.lower_index)
-                    assert torch.equal(y_chain.shared_boundaries, e_chain.shared_boundaries)
+                    assert torch.equal(y_cochain.lower_index, e_cochain.lower_index)
+                    assert torch.equal(y_cochain.shared_boundaries, e_cochain.shared_boundaries)
         else:
-            assert y_chain.boundary_index is None and e_chain.boundary_index is None
-            assert y_chain.lower_index is None and e_chain.lower_index is None
-            assert y_chain.shared_boundaries is None and e_chain.shared_boundaries is None
+            assert y_cochain.boundary_index is None and e_cochain.boundary_index is None
+            assert y_cochain.lower_index is None and e_cochain.lower_index is None
+            assert y_cochain.shared_boundaries is None and e_cochain.shared_boundaries is None
         if dim < expected.dimension:
-            if y_chain.upper_index is None:
-                assert e_chain.upper_index is None
-                assert y_chain.shared_coboundaries is None
-                assert e_chain.shared_coboundaries is None
+            if y_cochain.upper_index is None:
+                assert e_cochain.upper_index is None
+                assert y_cochain.shared_coboundaries is None
+                assert e_cochain.shared_coboundaries is None
             else:
-                assert torch.equal(y_chain.upper_index, e_chain.upper_index)
-                assert torch.equal(y_chain.shared_coboundaries, e_chain.shared_coboundaries)
+                assert torch.equal(y_cochain.upper_index, e_cochain.upper_index)
+                assert torch.equal(y_cochain.shared_coboundaries, e_cochain.shared_coboundaries)
         else:
-            assert y_chain.upper_index is None and e_chain.upper_index is None
-            assert y_chain.shared_coboundaries is None and e_chain.shared_coboundaries is None
+            assert y_cochain.upper_index is None and e_cochain.upper_index is None
+            assert y_cochain.shared_coboundaries is None and e_cochain.shared_coboundaries is None
     
 
 def compare_complexes_without_2feats(yielded, expected, include_down_adj):
@@ -154,38 +154,38 @@ def compare_complexes_without_2feats(yielded, expected, include_down_adj):
     assert yielded.dimension == expected.dimension
     assert torch.equal(yielded.y, expected.y)
     for dim in range(expected.dimension + 1):
-        y_chain = yielded.chains[dim]
-        e_chain = expected.chains[dim]
-        assert y_chain.num_cells == e_chain.num_cells
-        assert y_chain.num_cells_up == e_chain.num_cells_up
-        assert y_chain.num_cells_up == e_chain.num_cells_up
-        assert y_chain.num_cells_down == e_chain.num_cells_down, dim
+        y_cochain = yielded.cochains[dim]
+        e_cochain = expected.cochains[dim]
+        assert y_cochain.num_cells == e_cochain.num_cells
+        assert y_cochain.num_cells_up == e_cochain.num_cells_up
+        assert y_cochain.num_cells_up == e_cochain.num_cells_up
+        assert y_cochain.num_cells_down == e_cochain.num_cells_down, dim
         if dim > 0:
-            assert torch.equal(y_chain.boundary_index, e_chain.boundary_index)
+            assert torch.equal(y_cochain.boundary_index, e_cochain.boundary_index)
             if include_down_adj:
-                if y_chain.lower_index is None:
-                    assert e_chain.lower_index is None
-                    assert y_chain.shared_boundaries is None
-                    assert e_chain.shared_boundaries is None
+                if y_cochain.lower_index is None:
+                    assert e_cochain.lower_index is None
+                    assert y_cochain.shared_boundaries is None
+                    assert e_cochain.shared_boundaries is None
                 else:
-                    assert torch.equal(y_chain.lower_index, e_chain.lower_index)
-                    assert torch.equal(y_chain.shared_boundaries, e_chain.shared_boundaries)
+                    assert torch.equal(y_cochain.lower_index, e_cochain.lower_index)
+                    assert torch.equal(y_cochain.shared_boundaries, e_cochain.shared_boundaries)
         else:
-            assert y_chain.boundary_index is None and e_chain.boundary_index is None
-            assert y_chain.lower_index is None and e_chain.lower_index is None
-            assert y_chain.shared_boundaries is None and e_chain.shared_boundaries is None
+            assert y_cochain.boundary_index is None and e_cochain.boundary_index is None
+            assert y_cochain.lower_index is None and e_cochain.lower_index is None
+            assert y_cochain.shared_boundaries is None and e_cochain.shared_boundaries is None
         if dim < expected.dimension:
-            if y_chain.upper_index is None:
-                assert e_chain.upper_index is None
-                assert y_chain.shared_coboundaries is None
-                assert e_chain.shared_coboundaries is None
+            if y_cochain.upper_index is None:
+                assert e_cochain.upper_index is None
+                assert y_cochain.shared_coboundaries is None
+                assert e_cochain.shared_coboundaries is None
             else:
-                assert torch.equal(y_chain.upper_index, e_chain.upper_index)
-                assert torch.equal(y_chain.shared_coboundaries, e_chain.shared_coboundaries)
+                assert torch.equal(y_cochain.upper_index, e_cochain.upper_index)
+                assert torch.equal(y_cochain.shared_coboundaries, e_cochain.shared_coboundaries)
         else:
-            assert y_chain.upper_index is None and e_chain.upper_index is None
-            assert y_chain.shared_coboundaries is None and e_chain.shared_coboundaries is None
+            assert y_cochain.upper_index is None and e_cochain.upper_index is None
+            assert y_cochain.shared_coboundaries is None and e_cochain.shared_coboundaries is None
         if dim != 2:
-            assert torch.equal(y_chain.x, e_chain.x)
+            assert torch.equal(y_cochain.x, e_cochain.x)
         else:
-            assert y_chain.x is None and e_chain.x is None
+            assert y_cochain.x is None and e_cochain.x is None

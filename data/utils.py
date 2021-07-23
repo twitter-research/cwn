@@ -10,7 +10,7 @@ import graph_tool.topology as top
 import networkx as nx
 
 from tqdm import tqdm
-from data.complex import Chain, Complex
+from data.complex import Cochain, Complex
 from typing import List, Dict, Optional, Union
 from torch import Tensor
 from torch_geometric.typing import Adj
@@ -274,20 +274,20 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             shared.append(shared_coboundary)
         shared_coboundaries[order] = torch.LongTensor(shared)
 
-    chains = list()
+    cochains = list()
     for k in range(min_order, max_order+1):
         try:
             y = labels[k]
         except TypeError:
             y = None
-        chains.append(Chain(k, x=attributes[k], y=y, upper_index=upper_indices[k], lower_index=lower_indices[k], mapping=mappings[k], shared_boundaries=shared_boundaries[k], shared_coboundaries=shared_coboundaries[k]))
+        cochains.append(Cochain(k, x=attributes[k], y=y, upper_index=upper_indices[k], lower_index=lower_indices[k], mapping=mappings[k], shared_boundaries=shared_boundaries[k], shared_coboundaries=shared_coboundaries[k]))
 
     try:
         _ = labels.keys()
         y = labels
     except AttributeError:
         y = None
-    return Complex(*chains, y=y)
+    return Complex(*cochains, y=y)
 
 
 def pyg_to_simplex_tree(edge_index: Tensor, size: int):
@@ -448,10 +448,10 @@ def extract_labels(y, size):
     return v_y, complex_y
 
 
-def generate_chain(dim, x, all_upper_index, all_lower_index,
+def generate_cochain(dim, x, all_upper_index, all_lower_index,
                    all_shared_boundaries, all_shared_coboundaries, cell_tables, boundaries_tables,
                    complex_dim, y=None):
-    """Builds a Chain given all the adjacency data extracted from the complex."""
+    """Builds a Cochain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
         assert len(all_shared_boundaries[dim]) == 0
@@ -489,7 +489,7 @@ def generate_chain(dim, x, all_upper_index, all_lower_index,
         assert down_index.size(1) == shared_boundaries.size(0)
         assert num_cells_down >= shared_boundaries.max() + 1
 
-    return Chain(dim=dim, x=x, upper_index=up_index,
+    return Cochain(dim=dim, x=x, upper_index=up_index,
                  lower_index=down_index, shared_coboundaries=shared_coboundaries,
                  shared_boundaries=shared_boundaries, y=y, num_cells_down=num_cells_down,
                  num_cells_up=num_cells_up, boundary_index=boundary_index)
@@ -536,14 +536,14 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
 
-    chains = []
+    cochains = []
     for i in range(complex_dim+1):
         y = v_y if i == 0 else None
-        chain = generate_chain(i, xs[i], upper_idx, lower_idx, shared_boundaries, shared_coboundaries,
+        cochain = generate_cochain(i, xs[i], upper_idx, lower_idx, shared_boundaries, shared_coboundaries,
                                simplex_tables, boundaries_tables, complex_dim=complex_dim, y=y)
-        chains.append(chain)
+        cochains.append(cochain)
 
-    return Complex(*chains, y=complex_y, dimension=complex_dim)
+    return Complex(*cochains, y=complex_y, dimension=complex_dim)
 
 
 def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True,
@@ -561,9 +561,9 @@ def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_a
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
             if num_features[dim] is None:
-                num_features[dim] = complex.chains[dim].num_features
+                num_features[dim] = complex.cochains[dim].num_features
             else:
-                assert num_features[dim] == complex.chains[dim].num_features
+                assert num_features[dim] == complex.cochains[dim].num_features
         complexes.append(complex)
 
     return complexes, dimension, num_features[:dimension+1]
@@ -762,14 +762,14 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
 
-    chains = []
+    cochains = []
     for i in range(complex_dim + 1):
         y = v_y if i == 0 else None
-        chain = generate_chain(i, xs[i], upper_idx, lower_idx, shared_boundaries, shared_coboundaries,
+        cochain = generate_cochain(i, xs[i], upper_idx, lower_idx, shared_boundaries, shared_coboundaries,
                                cell_tables, boundaries_tables, complex_dim=complex_dim, y=y)
-        chains.append(chain)
+        cochains.append(cochain)
 
-    return Complex(*chains, y=complex_y, dimension=complex_dim)
+    return Complex(*cochains, y=complex_y, dimension=complex_dim)
 
 
 def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=False,
@@ -802,15 +802,15 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
             if num_features[dim] is None:
-                num_features[dim] = complex.chains[dim].num_features
+                num_features[dim] = complex.cochains[dim].num_features
             else:
-                assert num_features[dim] == complex.chains[dim].num_features
+                assert num_features[dim] == complex.cochains[dim].num_features
 
         # Validate against graph
         graph = dataset[c]
         assert torch.equal(complex.y, graph.y)
-        assert torch.equal(complex.chains[0].x, graph.x)
+        assert torch.equal(complex.cochains[0].x, graph.x)
         if complex.dimension >= 1:
-            assert complex.chains[1].x.size(0) == (graph.edge_index.size(1) // 2)
+            assert complex.cochains[1].x.size(0) == (graph.edge_index.size(1) // 2)
 
     return complexes, dimension, num_features[:dimension+1]

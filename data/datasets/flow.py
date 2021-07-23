@@ -5,7 +5,7 @@ from data.datasets import InMemoryComplexDataset
 from data.datasets.flow_utils import load_flow_dataset
 
 
-# TODO: Set up a chain dataset structure or make complex dataset better support chain-only data.
+# TODO: Set up a cochain dataset structure or make complex dataset better support cochain-only data.
 # TODO: Make this dataset use the new storage system.
 class FlowDataset(InMemoryComplexDataset):
 
@@ -51,11 +51,11 @@ class FlowDataset(InMemoryComplexDataset):
             train_orientation=self._train_orient, test_orientation=self._test_orient,
             n_jobs=self._n_jobs)
 
-        chains = train + val
+        cochains = train + val
         path = self.processed_paths[0]
         print(f"Saving dataset in {path}...")
         with open(path, 'wb') as handle:
-            pickle.dump(chains, handle)
+            pickle.dump(cochains, handle)
 
         graph_path = self.processed_paths[1]
         with open(graph_path, 'wb') as handle:

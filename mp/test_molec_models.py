@@ -30,10 +30,10 @@ def test_zinc_sparse_cin0_model_with_batching():
         batched_res = {}
         for batch in data_loader:
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred, res = model.forward(batch, include_partial=True)
             for key in res:
@@ -49,10 +49,10 @@ def test_zinc_sparse_cin0_model_with_batching():
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred, res = model.forward(batch, include_partial=True)
             for key in res:
@@ -89,10 +89,10 @@ def test_embed_sparse_cin_no_rings_model_with_batching():
         batched_res = []
         for batch in data_loader:
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred = model.forward(batch)
             batched_res.append(batched_pred)
@@ -104,10 +104,10 @@ def test_embed_sparse_cin_no_rings_model_with_batching():
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred = model.forward(batch)
             unbatched_res.append(pred)
@@ -137,10 +137,10 @@ def test_embed_gin_model_with_batching():
         batched_res = []
         for batch in data_loader:
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred = model.forward(batch)
             batched_res.append(batched_pred)
@@ -152,10 +152,10 @@ def test_embed_gin_model_with_batching():
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred = model.forward(batch)
             unbatched_res.append(pred)
@@ -183,11 +183,11 @@ def test_zinc_sparse_cin0_model_with_batching_on_proteins():
     batched_res = {}
     for batch in data_loader:
         # Simulate no edge and two_cell features to test init layer
-        batch.chains[1].x = None
-        if len(batch.chains) == 3:
-            batch.chains[2].x = None
+        batch.cochains[1].x = None
+        if len(batch.cochains) == 3:
+            batch.cochains[2].x = None
         # ZincSparseCIN assumes features are unidimensional like in ZINC
-        batch.chains[0].x = batch.chains[0].x[:, :1]
+        batch.cochains[0].x = batch.cochains[0].x[:, :1]
 
         batched_pred, res = model.forward(batch, include_partial=True)
         for key in res:
@@ -202,11 +202,11 @@ def test_zinc_sparse_cin0_model_with_batching_on_proteins():
     for complex in dataset:
         batch = ComplexBatch.from_complex_list([complex], max_dim=max_dim)
         # Simulate no edge and two_cell features to test init layer
-        batch.chains[1].x = None
-        if len(batch.chains) == 3:
-            batch.chains[2].x = None
+        batch.cochains[1].x = None
+        if len(batch.cochains) == 3:
+            batch.cochains[2].x = None
         # ZincSparseCIN assumes features are unidimensional like in ZINC
-        batch.chains[0].x = batch.chains[0].x[:, :1]
+        batch.cochains[0].x = batch.cochains[0].x[:, :1]
 
         pred, res = model.forward(batch, include_partial=True)
         for key in res:
@@ -244,10 +244,10 @@ def test_ogb_sparse_cin0_model_with_batching():
         batched_res = {}
         for batch in data_loader:
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred, res = model.forward(batch, include_partial=True)
             for key in res:
@@ -264,10 +264,10 @@ def test_ogb_sparse_cin0_model_with_batching():
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
             # Simulate no edge and two_cell features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred, res = model.forward(batch, include_partial=True)
 

@@ -5,7 +5,7 @@ from data.datasets import InMemoryComplexDataset
 from data.datasets.ocean_utils import load_ocean_dataset
 
 
-# TODO: Set up a chain dataset structure or make complex dataset better support chain-only data.
+# TODO: Set up a cochain dataset structure or make complex dataset better support cochain-only data.
 # TODO: Refactor the dataset to use the latest storage formatting.
 class OceanDataset(InMemoryComplexDataset):
 

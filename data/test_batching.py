@@ -541,9 +541,9 @@ def test_set_for_features_in_batch():
     batch = ComplexBatch.from_complex_list(complex_list)
     batch.set_xs(xs)
 
-    assert torch.equal(batch.chains[0].x, vx)
-    assert torch.equal(batch.chains[1].x, ex)
-    assert torch.equal(batch.chains[2].x, tx)
+    assert torch.equal(batch.cochains[0].x, vx)
+    assert torch.equal(batch.cochains[1].x, ex)
+    assert torch.equal(batch.cochains[2].x, tx)
 
 
 def test_set_xs_does_not_mutate_dataset():
@@ -556,7 +556,7 @@ def test_set_xs_does_not_mutate_dataset():
     xs = [[] for _ in range(4)]  # we consider up to dim 3 due to the presence of pyramids
     for batch in data_loader:
         for i in range(batch.dimension + 1):
-            xs[i].append(batch.chains[i].x)
+            xs[i].append(batch.cochains[i].x)
     txs = []
     for i in range(4):
         txs.append(torch.cat(xs[i], dim=0) if len(xs[i]) > 0 else None)
@@ -565,14 +565,14 @@ def test_set_xs_does_not_mutate_dataset():
     for batch in data_loader:
         new_xs = []
         for i in range(batch.dimension + 1):
-            new_xs.append(torch.zeros_like(batch.chains[i].x))
+            new_xs.append(torch.zeros_like(batch.cochains[i].x))
         batch.set_xs(new_xs)
 
     # Save batch contents after set_xs
     xs_after = [[] for _ in range(4)]
     for batch in data_loader:
         for i in range(batch.dimension + 1):
-            xs_after[i].append(batch.chains[i].x)
+            xs_after[i].append(batch.cochains[i].x)
     txs_after = []
     for i in range(4):
         txs_after.append(torch.cat(xs_after[i], dim=0) if len(xs_after[i]) > 0 else None)
@@ -597,7 +597,7 @@ def test_batching_returns_the_same_features():
 
         batched_x = [[] for _ in range(batch_max_dim+1)]
         for batch in data_loader:
-            params = batch.get_all_chain_params()
+            params = batch.get_all_cochain_params()
             assert len(params) <= batch_max_dim+1
             for dim in range(len(params)):
                 batched_x[dim].append(params[dim].x)
@@ -608,7 +608,7 @@ def test_batching_returns_the_same_features():
 
         x = [[] for _ in range(batch_max_dim+1)]
         for complex in data_list:
-            params = complex.get_all_chain_params()
+            params = complex.get_all_cochain_params()
             for dim in range(min(len(params), batch_max_dim+1)):
                 x[dim].append(params[dim].x)
         xs = [None for _ in range(batch_max_dim+1)]
@@ -636,7 +636,7 @@ def test_batching_returns_the_same_features_on_proteins():
 
     batched_x = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
-        params = batch.get_all_chain_params()
+        params = batch.get_all_cochain_params()
         assert len(params) <= batch_max_dim+1
         for dim in range(len(params)):
             batched_x[dim].append(params[dim].x)
@@ -647,7 +647,7 @@ def test_batching_returns_the_same_features_on_proteins():
 
     x = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
-        params = complex.get_all_chain_params()
+        params = complex.get_all_cochain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
             x[dim].append(params[dim].x)
     xs = [None for _ in range(batch_max_dim+1)]
@@ -677,7 +677,7 @@ def test_batching_returns_the_same_features_on_ring_proteins():
 
     batched_x = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
-        params = batch.get_all_chain_params()
+        params = batch.get_all_cochain_params()
         assert len(params) <= batch_max_dim+1
         for dim in range(len(params)):
             batched_x[dim].append(params[dim].x)
@@ -688,7 +688,7 @@ def test_batching_returns_the_same_features_on_ring_proteins():
 
     x = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
-        params = complex.get_all_chain_params()
+        params = complex.get_all_cochain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
             x[dim].append(params[dim].x)
     xs = [None for _ in range(batch_max_dim+1)]
@@ -717,7 +717,7 @@ def test_batching_returns_the_same_up_attr_on_proteins():
     # Batched
     batched_x = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
-        params = batch.get_all_chain_params()
+        params = batch.get_all_cochain_params()
         assert len(params) <= batch_max_dim+1
         for dim in range(len(params)):
             if params[dim].kwargs['up_attr'] is not None:
@@ -731,7 +731,7 @@ def test_batching_returns_the_same_up_attr_on_proteins():
     # Un-batched
     x = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
-        params = complex.get_all_chain_params()
+        params = complex.get_all_cochain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
             # TODO: Modify test after merging the top_feature branch
             # Right now, the last level cannot have top features
@@ -763,7 +763,7 @@ def test_batching_returns_the_same_up_attr():
         # Batched
         batched_x = [[] for _ in range(batch_max_dim+1)]
         for batch in data_loader:
-            params = batch.get_all_chain_params()
+            params = batch.get_all_cochain_params()
             assert len(params) <= batch_max_dim+1
             for dim in range(len(params)):
                 if params[dim].kwargs['up_attr'] is not None:
@@ -777,7 +777,7 @@ def test_batching_returns_the_same_up_attr():
         # Un-batched
         x = [[] for _ in range(batch_max_dim+1)]
         for complex in data_list:
-            params = complex.get_all_chain_params()
+            params = complex.get_all_cochain_params()
             for dim in range(min(len(params), batch_max_dim+1)):
                 # TODO: Modify test after merging the top_feature branch
                 # Right now, the last level cannot have top features
@@ -809,7 +809,7 @@ def test_batching_returns_the_same_down_attr_on_proteins():
 
     batched_x = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
-        params = batch.get_all_chain_params()
+        params = batch.get_all_cochain_params()
         assert len(params) <= batch_max_dim+1
         for dim in range(len(params)):
             if params[dim].kwargs['down_attr'] is not None:
@@ -823,7 +823,7 @@ def test_batching_returns_the_same_down_attr_on_proteins():
     # Un-batched
     x = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
-        params = complex.get_all_chain_params()
+        params = complex.get_all_cochain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
             if params[dim].kwargs['down_attr'] is not None:
                 x[dim].append(params[dim].kwargs['down_attr'])
@@ -853,7 +853,7 @@ def test_batching_returns_the_same_down_attr():
 
         batched_x = [[] for _ in range(batch_max_dim+1)]
         for batch in data_loader:
-            params = batch.get_all_chain_params()
+            params = batch.get_all_cochain_params()
             assert len(params) <= batch_max_dim+1
             for dim in range(len(params)):
                 if params[dim].kwargs['down_attr'] is not None:
@@ -867,7 +867,7 @@ def test_batching_returns_the_same_down_attr():
         # Un-batched
         x = [[] for _ in range(batch_max_dim+1)]
         for complex in data_list:
-            params = complex.get_all_chain_params()
+            params = complex.get_all_cochain_params()
             for dim in range(min(len(params), batch_max_dim+1)):
                 if params[dim].kwargs['down_attr'] is not None:
                     x[dim].append(params[dim].kwargs['down_attr'])
@@ -899,7 +899,7 @@ def test_batching_of_boundary_index_on_proteins():
     batched_x_boundaries = [[] for _ in range(batch_max_dim+1)]
     batched_x_cells = [[] for _ in range(batch_max_dim+1)]
     for batch in data_loader:
-        params = batch.get_all_chain_params()
+        params = batch.get_all_cochain_params()
         assert len(params) <= batch_max_dim+1
         for dim in range(len(params)):
             if params[dim].kwargs['boundary_attr'] is not None:
@@ -922,7 +922,7 @@ def test_batching_of_boundary_index_on_proteins():
     x_boundaries = [[] for _ in range(batch_max_dim+1)]
     x_cells = [[] for _ in range(batch_max_dim+1)]
     for complex in dataset:
-        params = complex.get_all_chain_params()
+        params = complex.get_all_cochain_params()
         for dim in range(min(len(params), batch_max_dim+1)):
             if params[dim].kwargs['boundary_attr'] is not None:
                 assert params[dim].boundary_index is not None
@@ -966,7 +966,7 @@ def test_batching_of_boundary_index():
         batched_x_boundaries = [[] for _ in range(batch_max_dim+1)]
         batched_x_cells = [[] for _ in range(batch_max_dim+1)]
         for batch in data_loader:
-            params = batch.get_all_chain_params()
+            params = batch.get_all_cochain_params()
             assert len(params) <= batch_max_dim+1
             for dim in range(len(params)):
                 if params[dim].kwargs['boundary_attr'] is not None:
@@ -989,7 +989,7 @@ def test_batching_of_boundary_index():
         x_boundaries = [[] for _ in range(batch_max_dim+1)]
         x_cells = [[] for _ in range(batch_max_dim+1)]
         for complex in data_list:
-            params = complex.get_all_chain_params()
+            params = complex.get_all_cochain_params()
             for dim in range(min(len(params), batch_max_dim+1)):
                 if params[dim].kwargs['boundary_attr'] is not None:
                     assert params[dim].boundary_index is not None

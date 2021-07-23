@@ -50,7 +50,7 @@ class RingSparseCIN(torch.nn.Module):
 
         data.nodes.x = self.init_layer(data.nodes.x)
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+            params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
             xs = conv(*params)
             data.set_xs(xs)
 

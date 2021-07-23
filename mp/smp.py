@@ -34,7 +34,7 @@ from torch_geometric.nn.conv.utils.helpers import expand_left
 from mp.smp_inspector import CellularInspector
 
 
-class ChainMessagePassing(torch.nn.Module):
+class CochainMessagePassing(torch.nn.Module):
     r"""Base class for creating message passing layers of the form
 
     .. math::
@@ -79,7 +79,7 @@ class ChainMessagePassing(torch.nn.Module):
                  flow: str = "source_to_target", node_dim: int = -2,
                  boundary_msg_size=None, use_down_msg=True, use_boundary_msg=True):
 
-        super(ChainMessagePassing, self).__init__()
+        super(CochainMessagePassing, self).__init__()
 
         self.up_msg_size = up_msg_size
         self.down_msg_size = down_msg_size
@@ -527,7 +527,7 @@ class ChainMessagePassing(torch.nn.Module):
         return up_inputs, down_inputs, boundary_inputs
 
 
-class ChainMessagePassingParams:
+class CochainMessagePassingParams:
     def __init__(self, x: Tensor, up_index: Adj = None, down_index: Adj = None, **kwargs):
         self.x = x
         self.up_index = up_index

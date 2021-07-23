@@ -2,7 +2,7 @@ import torch
 import torch.optim as optim
 
 from mp.layers import (
-    DummyCellularMessagePassing, CINConv, CINChainConv, OrientedConv, InitReduceConv,
+    DummyCellularMessagePassing, CINConv, CINCochainConv, OrientedConv, InitReduceConv,
     EmbedVEWithReduce)
 from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
@@ -11,9 +11,9 @@ from data.datasets.flow import load_flow_dataset
 
 def test_dummy_cellular_message_passing_with_down_msg():
     house_complex = get_house_complex()
-    v_params = house_complex.get_chain_params(dim=0)
-    e_params = house_complex.get_chain_params(dim=1)
-    t_params = house_complex.get_chain_params(dim=2)
+    v_params = house_complex.get_cochain_params(dim=0)
+    e_params = house_complex.get_cochain_params(dim=1)
+    t_params = house_complex.get_cochain_params(dim=2)
 
     dsmp = DummyCellularMessagePassing()
     v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
@@ -30,9 +30,9 @@ def test_dummy_cellular_message_passing_with_down_msg():
 
 def test_dummy_cellular_message_passing_with_boundary_msg():
     house_complex = get_house_complex()
-    v_params = house_complex.get_chain_params(dim=0)
-    e_params = house_complex.get_chain_params(dim=1)
-    t_params = house_complex.get_chain_params(dim=2)
+    v_params = house_complex.get_cochain_params(dim=0)
+    e_params = house_complex.get_cochain_params(dim=1)
+    t_params = house_complex.get_cochain_params(dim=2)
 
     dsmp = DummyCellularMessagePassing(use_boundary_msg=True, use_down_msg=False)
     v_x, e_x, t_x = dsmp.forward(v_params, e_params, t_params)
@@ -49,9 +49,9 @@ def test_dummy_cellular_message_passing_with_boundary_msg():
 
 def test_dummy_cellular_message_passing_on_molecular_cell_complex():
     molecular_complex = get_molecular_complex()
-    v_params = molecular_complex.get_chain_params(dim=0)
-    e_params = molecular_complex.get_chain_params(dim=1)
-    ring_params = molecular_complex.get_chain_params(dim=2)
+    v_params = molecular_complex.get_cochain_params(dim=0)
+    e_params = molecular_complex.get_cochain_params(dim=1)
+    ring_params = molecular_complex.get_cochain_params(dim=2)
 
     dsmp = DummyCellularMessagePassing(use_boundary_msg=True, use_down_msg=True)
     v_x, e_x, ring_x = dsmp.forward(v_params, e_params, ring_params)
@@ -83,9 +83,9 @@ def test_cin_conv_training():
 
     house_complex = get_house_complex()
 
-    v_params = house_complex.get_chain_params(dim=0)
-    e_params = house_complex.get_chain_params(dim=1)
-    t_params = house_complex.get_chain_params(dim=2)
+    v_params = house_complex.get_cochain_params(dim=0)
+    e_params = house_complex.get_cochain_params(dim=1)
+    t_params = house_complex.get_cochain_params(dim=2)
 
     yv = house_complex.get_labels(dim=0)
     ye = house_complex.get_labels(dim=1)
@@ -135,9 +135,9 @@ def test_orient_conv_on_flow_dataset():
 
 def test_init_reduce_conv_on_house_complex():
     house_complex = get_house_complex()
-    v_params = house_complex.get_chain_params(dim=0)
-    e_params = house_complex.get_chain_params(dim=1)
-    t_params = house_complex.get_chain_params(dim=2)
+    v_params = house_complex.get_cochain_params(dim=0)
+    e_params = house_complex.get_cochain_params(dim=1)
+    t_params = house_complex.get_cochain_params(dim=2)
 
     conv = InitReduceConv(reduce='add')
 
@@ -152,8 +152,8 @@ def test_init_reduce_conv_on_house_complex():
 
 def test_embed_with_reduce_layer_on_house_complex():
     house_complex = get_house_complex()
-    chains = house_complex.chains
-    params = house_complex.get_all_chain_params()
+    cochains = house_complex.cochains
+    params = house_complex.get_all_cochain_params()
 
     embed_layer = nn.Embedding(num_embeddings=32, embedding_dim=10)
     init_reduce = InitReduceConv()
@@ -167,11 +167,11 @@ def test_embed_with_reduce_layer_on_house_complex():
 
     assert len(xs) == 3
     assert xs[0].dim() == 2
-    assert xs[0].size(0) == chains[0].num_cells
+    assert xs[0].size(0) == cochains[0].num_cells
     assert xs[0].size(1) == 10
-    assert xs[1].size(0) == chains[1].num_cells
+    assert xs[1].size(0) == cochains[1].num_cells
     assert xs[1].size(1) == 10
-    assert xs[2].size(0) == chains[2].num_cells
+    assert xs[2].size(0) == cochains[2].num_cells
     assert xs[2].size(1) == 10
 
 

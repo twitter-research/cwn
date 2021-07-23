@@ -51,7 +51,7 @@ def faces_from_B2(B2, E):
 
 
 def path_to_flow(path, edge_to_idx, m):
-    '''Instantiates a 1-chain from a path, accounting for the edge orientation.
+    '''Instantiates a 1-cochain from a path, accounting for the edge orientation.
     path: list of nodes
     E_lookup: dictionary mapping edge tuples to indices
     m: number of edges
@@ -250,15 +250,15 @@ def load_ocean_dataset(train_orient='default', test_orient='default'):
     assert B1.shape[1] == B2.shape[0]
     num_edges = B1.shape[1]
 
-    train_chains, test_chains = [], []
+    train_cochains, test_cochains = [], []
     for i in tqdm(range(len(flows)), desc='Processing dataset'):
         if train_mask[i] == 1:
             T2 = fu.get_orient_matrix(num_edges, train_orient)
-            chain = fu.build_chain(B1, B2, T2, flows[i], labels[i], G_undir)
-            train_chains.append(chain)
+            cochain = fu.build_cochain(B1, B2, T2, flows[i], labels[i], G_undir)
+            train_cochains.append(cochain)
         else:
             T2 = fu.get_orient_matrix(num_edges, test_orient)
-            chain = fu.build_chain(B1, B2, T2, flows[i], labels[i], G_undir)
-            test_chains.append(chain)
+            cochain = fu.build_cochain(B1, B2, T2, flows[i], labels[i], G_undir)
+            test_cochains.append(cochain)
 
-    return train_chains, test_chains, G_undir
+    return train_cochains, test_cochains, G_undir

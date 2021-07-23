@@ -6,7 +6,7 @@ from torch_geometric.nn import JumpingKnowledge
 from mp.layers import (
     CINConv, EdgeCINConv, SparseCINConv, DummyCellularMessagePassing, OrientedConv)
 from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex, get_graph_norm
-from data.complex import Complex, ComplexBatch, ChainBatch
+from data.complex import Complex, ComplexBatch, CochainBatch
 
 
 class CIN0(torch.nn.Module):
@@ -64,14 +64,14 @@ class CIN0(torch.nn.Module):
         self.lin2.reset_parameters()
 
     def pool_complex(self, xs, data):
-        # All complexes have nodes so we can extract the batch size from chains[0]
-        batch_size = data.chains[0].batch.max() + 1
+        # All complexes have nodes so we can extract the batch size from cochains[0]
+        batch_size = data.cochains[0].batch.max() + 1
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
         pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
             device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
-            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.cochains[i].batch, size=batch_size)
         return pooled_xs
 
     def jump_complex(self, jump_xs):
@@ -85,7 +85,7 @@ class CIN0(torch.nn.Module):
         model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
         xs, jump_xs = None, None
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim)
+            params = data.get_all_cochain_params(max_dim=self.max_dim)
             xs = conv(*params)
             data.set_xs(xs)
 
@@ -169,15 +169,15 @@ class SparseCIN(torch.nn.Module):
         self.lin2.reset_parameters()
 
     def pool_complex(self, xs, data):
-        # All complexes have nodes so we can extract the batch size from chains[0]
-        batch_size = data.chains[0].batch.max() + 1
+        # All complexes have nodes so we can extract the batch size from cochains[0]
+        batch_size = data.cochains[0].batch.max() + 1
         # print(batch_size)
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
         pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
             device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
-            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.cochains[i].batch, size=batch_size)
 
         new_xs = []
         for i in range(self.max_dim + 1):
@@ -197,7 +197,7 @@ class SparseCIN(torch.nn.Module):
         xs, jump_xs = None, None
         res = {}
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+            params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
             start_to_process = 0
             # if i == len(self.convs) - 2:
             #     start_to_process = 1
@@ -340,14 +340,14 @@ class EdgeCIN0(torch.nn.Module):
             net.reset_parameters()
 
     def pool_complex(self, xs, data):
-        # All complexes have nodes so we can extract the batch size from chains[0]
-        batch_size = data.chains[0].batch.max() + 1
+        # All complexes have nodes so we can extract the batch size from cochains[0]
+        batch_size = data.cochains[0].batch.max() + 1
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
         pooled_xs = torch.zeros(self.max_dim + 1, batch_size, xs[0].size(-1),
             device=batch_size.device)
         for i in range(len(xs)):
             # It's very important that size is supplied.
-            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.cochains[i].batch, size=batch_size)
         return pooled_xs
 
     def jump_complex(self, jump_xs):
@@ -361,13 +361,13 @@ class EdgeCIN0(torch.nn.Module):
         model_nonlinearity = get_nonlinearity(self.nonlinearity, return_module=False)
         xs, jump_xs = None, None
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim,
+            params = data.get_all_cochain_params(max_dim=self.max_dim,
                 include_top_features=self.include_top_features)
             xs = conv(*params)
             # If we are at the last convolutional layer, we do not need to update after
             # We also check two_cell features do indeed exist in this batch before doing this.
-            if self.update_top_features and c < len(self.convs) - 1 and 2 in data.chains:
-                top_x = self.update_top_nns[c](data.chains[2].x)
+            if self.update_top_features and c < len(self.convs) - 1 and 2 in data.cochains:
+                top_x = self.update_top_nns[c](data.cochains[2].x)
                 data.set_xs(xs + [top_x])
             else:
                 data.set_xs(xs)
@@ -418,12 +418,12 @@ class Dummy(torch.nn.Module):
     def forward(self, data: ComplexBatch):
         xs = None
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params()
+            params = data.get_all_cochain_params()
             xs = conv(*params)
             data.set_xs(xs)
 
-        # All complexes have nodes so we can extract the batch size from chains[0]
-        batch_size = data.chains[0].batch.max() + 1
+        # All complexes have nodes so we can extract the batch size from cochains[0]
+        batch_size = data.cochains[0].batch.max() + 1
         # The MP output is of shape [message_passing_dim, batch_size, feature_dim]
         # We assume that all layers have the same feature size.
         # Note that levels where we do MP at but where there was no data are set to 0.
@@ -434,9 +434,9 @@ class Dummy(torch.nn.Module):
         for i in range(len(xs)):
             # It's very important that size is supplied.
             # Otherwise, if we have complexes with no cells at certain levels, the wrong
-            # shape could be inferred automatically from data.chains[i].batch.
+            # shape could be inferred automatically from data.cochains[i].batch.
             # This makes sure the output tensor will have the right dimensions.
-            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.chains[i].batch, size=batch_size)
+            pooled_xs[i, :, :] = self.pooling_fn(xs[i], data.cochains[i].batch, size=batch_size)
         # Reduce across the levels of the complexes
         x = pooled_xs.sum(dim=0)
 
@@ -488,7 +488,7 @@ class EdgeOrient(torch.nn.Module):
         self.lin1.reset_parameters()
         self.lin2.reset_parameters()
 
-    def forward(self, data: ChainBatch, include_partial=False):
+    def forward(self, data: CochainBatch, include_partial=False):
         if self.fully_invar:
             data.x = torch.abs(data.x)
         for c, conv in enumerate(self.convs):
@@ -560,7 +560,7 @@ class EdgeMPNN(torch.nn.Module):
         self.lin1.reset_parameters()
         self.lin2.reset_parameters()
 
-    def forward(self, data: ChainBatch, include_partial=False):
+    def forward(self, data: CochainBatch, include_partial=False):
         if self.fully_invar:
             data.x = torch.abs(data.x)
         for c, conv in enumerate(self.convs):
@@ -617,7 +617,7 @@ class MessagePassingAgnostic(torch.nn.Module):
 
     def forward(self, data: ComplexBatch):
         
-        params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+        params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
         xs = list()
         for dim in range(len(params)):
             x_dim = params[dim].x

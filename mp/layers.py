@@ -2,20 +2,20 @@ import torch
 
 from typing import Callable, Optional
 from torch import Tensor
-from mp.smp import ChainMessagePassing, ChainMessagePassingParams
+from mp.smp import CochainMessagePassing, CochainMessagePassingParams
 from torch_geometric.nn.inits import reset
 from torch.nn import Linear, Sequential, BatchNorm1d as BN, Identity
-from data.complex import Chain
+from data.complex import Cochain
 from torch_scatter import scatter
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 from abc import ABC, abstractmethod
 
 
-class DummyChainMessagePassing(ChainMessagePassing):
+class DummyCochainMessagePassing(CochainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
     def __init__(self, up_msg_size, down_msg_size, boundary_msg_size=None,
                  use_boundary_msg=False, use_down_msg=True):
-        super(DummyChainMessagePassing, self).__init__(up_msg_size, down_msg_size,
+        super(DummyCochainMessagePassing, self).__init__(up_msg_size, down_msg_size,
                                                        boundary_msg_size=boundary_msg_size,
                                                        use_boundary_msg=use_boundary_msg,
                                                        use_down_msg=use_down_msg)
@@ -30,14 +30,14 @@ class DummyChainMessagePassing(ChainMessagePassing):
         # We assume the feature dim is the same across al levels
         return down_x_j + down_attr
 
-    def forward(self, chain: ChainMessagePassingParams):
-        up_out, down_out, boundary_out = self.propagate(chain.up_index, chain.down_index,
-                                                    chain.boundary_index, x=chain.x,
-                                                    up_attr=chain.kwargs['up_attr'],
-                                                    down_attr=chain.kwargs['down_attr'],
-                                                    boundary_attr=chain.kwargs['boundary_attr'])
+    def forward(self, cochain: CochainMessagePassingParams):
+        up_out, down_out, boundary_out = self.propagate(cochain.up_index, cochain.down_index,
+                                                    cochain.boundary_index, x=cochain.x,
+                                                    up_attr=cochain.kwargs['up_attr'],
+                                                    down_attr=cochain.kwargs['down_attr'],
+                                                    boundary_attr=cochain.kwargs['boundary_attr'])
         # down or boundary will be zero if one of them is not used.
-        return chain.x + up_out + down_out + boundary_out
+        return cochain.x + up_out + down_out + boundary_out
 
 
 class DummyCellularMessagePassing(torch.nn.Module):
@@ -46,25 +46,25 @@ class DummyCellularMessagePassing(torch.nn.Module):
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = DummyChainMessagePassing(input_dim, input_dim, boundary_msg_size=input_dim,
+            mp = DummyCochainMessagePassing(input_dim, input_dim, boundary_msg_size=input_dim,
                                           use_boundary_msg=use_boundary_msg, use_down_msg=use_down_msg)
             self.mp_levels.append(mp)
     
-    def forward(self, *chain_params: ChainMessagePassingParams):
-        assert len(chain_params) <= self.max_dim+1
+    def forward(self, *cochain_params: CochainMessagePassingParams):
+        assert len(cochain_params) <= self.max_dim+1
 
         out = []
-        for dim in range(len(chain_params)):
-            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+        for dim in range(len(cochain_params)):
+            out.append(self.mp_levels[dim].forward(cochain_params[dim]))
         return out
 
 
-class CINChainConv(ChainMessagePassing):
+class CINCochainConv(CochainMessagePassing):
     """This is a dummy parameter-free message passing model used for testing."""
     def __init__(self, up_msg_size: int, down_msg_size: int,
                  msg_up_nn: Callable, msg_down_nn: Callable, update_nn: Callable,
                  eps: float = 0., train_eps: bool = False):
-        super(CINChainConv, self).__init__(up_msg_size, down_msg_size, use_boundary_msg=False)
+        super(CINCochainConv, self).__init__(up_msg_size, down_msg_size, use_boundary_msg=False)
         self.msg_up_nn = msg_up_nn
         self.msg_down_nn = msg_down_nn
         self.update_nn = update_nn
@@ -75,15 +75,15 @@ class CINChainConv(ChainMessagePassing):
             self.register_buffer('eps', torch.Tensor([eps]))
         self.reset_parameters()
 
-    def forward(self, chain: ChainMessagePassingParams):
-        out_up, out_down, _ = self.propagate(chain.up_index, chain.down_index, 
-                                             None, x=chain.x,
-                                             up_attr=chain.kwargs['up_attr'],
-                                             down_attr=chain.kwargs['down_attr'])
+    def forward(self, cochain: CochainMessagePassingParams):
+        out_up, out_down, _ = self.propagate(cochain.up_index, cochain.down_index,
+                                             None, x=cochain.x,
+                                             up_attr=cochain.kwargs['up_attr'],
+                                             down_attr=cochain.kwargs['down_attr'])
 
         # TODO: This is probably not injective, so we should do something else.
-        out_up += (1 + self.eps) * chain.x
-        out_down += (1 + self.eps) * chain.x
+        out_up += (1 + self.eps) * cochain.x
+        out_down += (1 + self.eps) * cochain.x
         return self.update_nn(out_up + out_down)
 
     def reset_parameters(self):
@@ -112,22 +112,22 @@ class CINConv(torch.nn.Module):
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
-            mp = CINChainConv(up_msg_size, down_msg_size,
+            mp = CINCochainConv(up_msg_size, down_msg_size,
                               msg_up_nn, msg_down_nn, update_nn, eps, train_eps)
             self.mp_levels.append(mp)
 
-    def forward(self, *chain_params: ChainMessagePassingParams):
-        assert len(chain_params) <= self.max_dim+1
+    def forward(self, *cochain_params: CochainMessagePassingParams):
+        assert len(cochain_params) <= self.max_dim+1
 
         out = []
-        for dim in range(len(chain_params)):
-            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+        for dim in range(len(cochain_params)):
+            out.append(self.mp_levels[dim].forward(cochain_params[dim]))
         return out
 
 
 class EdgeCINConv(torch.nn.Module):
     """
-    CIN convolutional layer which performs chain message passing only
+    CIN convolutional layer which performs cochain message passing only
     _up to_ 1-dimensional cells (edges).
     """
     def __init__(self, up_msg_size: int, down_msg_size: int,
@@ -137,27 +137,27 @@ class EdgeCINConv(torch.nn.Module):
         self.max_dim = 1
         self.mp_levels = torch.nn.ModuleList()
 
-        v_mp = CINChainConv(up_msg_size, down_msg_size,
+        v_mp = CINCochainConv(up_msg_size, down_msg_size,
                             v_msg_up_nn, lambda *args: None, v_update_nn, eps, train_eps)
-        e_mp = CINChainConv(up_msg_size, down_msg_size,
+        e_mp = CINCochainConv(up_msg_size, down_msg_size,
                             e_msg_up_nn, e_msg_down_nn, e_update_nn, eps, train_eps)
         self.mp_levels.extend([v_mp, e_mp])
 
-    def forward(self, *chain_params: ChainMessagePassingParams):
-        assert len(chain_params) <= self.max_dim+1
+    def forward(self, *cochain_params: CochainMessagePassingParams):
+        assert len(cochain_params) <= self.max_dim+1
 
         out = []
-        for dim in range(len(chain_params)):
-            out.append(self.mp_levels[dim].forward(chain_params[dim]))
+        for dim in range(len(cochain_params)):
+            out.append(self.mp_levels[dim].forward(cochain_params[dim]))
         return out
 
 
-class SparseCINChainConv(ChainMessagePassing):
-    """This is a CIN Chain layer that operates of boundaries and upper adjacent cells."""
+class SparseCINCochainConv(CochainMessagePassing):
+    """This is a CIN Cochain layer that operates of boundaries and upper adjacent cells."""
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
                  msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable, update_boundaries_nn,
                  combine_nn: Callable, eps: float = 0., train_eps: bool = False):
-        super(SparseCINChainConv, self).__init__(up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
+        super(SparseCINCochainConv, self).__init__(up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
                                                  use_down_msg=False)
         self.dim = dim
         self.msg_up_nn = msg_up_nn
@@ -174,15 +174,15 @@ class SparseCINChainConv(ChainMessagePassing):
             self.register_buffer('eps2', torch.Tensor([eps]))
         self.reset_parameters()
 
-    def forward(self, chain: ChainMessagePassingParams):
-        out_up, _, out_boundaries = self.propagate(chain.up_index, chain.down_index,
-                                              chain.boundary_index, x=chain.x,
-                                              up_attr=chain.kwargs['up_attr'],
-                                              boundary_attr=chain.kwargs['boundary_attr'])
+    def forward(self, cochain: CochainMessagePassingParams):
+        out_up, _, out_boundaries = self.propagate(cochain.up_index, cochain.down_index,
+                                              cochain.boundary_index, x=cochain.x,
+                                              up_attr=cochain.kwargs['up_attr'],
+                                              boundary_attr=cochain.kwargs['boundary_attr'])
 
         # As in GIN, we can learn an injective update function for each multi-set
-        out_up += (1 + self.eps1) * chain.x
-        out_boundaries += (1 + self.eps2) * chain.x
+        out_up += (1 + self.eps1) * cochain.x
+        out_boundaries += (1 + self.eps2) * cochain.x
         out_up = self.update_up_nn(out_up)
         out_boundaries = self.update_boundaries_nn(out_boundaries)
 
@@ -261,25 +261,25 @@ class SparseCINConv(torch.nn.Module):
                 graph_norm(kwargs['hidden']),
                 kwargs['act_module']())
 
-            mp = SparseCINChainConv(dim, up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
+            mp = SparseCINCochainConv(dim, up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
                 msg_up_nn=msg_up_nn, msg_boundaries_nn=msg_boundaries_nn, update_up_nn=update_up_nn,
                 update_boundaries_nn=update_boundaries_nn, combine_nn=combine_nn, eps=eps,
                 train_eps=train_eps)
             self.mp_levels.append(mp)
 
-    def forward(self, *chain_params: ChainMessagePassingParams, start_to_process=0):
-        assert len(chain_params) <= self.max_dim+1
+    def forward(self, *cochain_params: CochainMessagePassingParams, start_to_process=0):
+        assert len(cochain_params) <= self.max_dim+1
 
         out = []
-        for dim in range(len(chain_params)):
+        for dim in range(len(cochain_params)):
             if dim < start_to_process:
-                out.append(chain_params[dim].x)
+                out.append(cochain_params[dim].x)
             else:
-                out.append(self.mp_levels[dim].forward(chain_params[dim]))
+                out.append(self.mp_levels[dim].forward(cochain_params[dim]))
         return out
 
 
-class OrientedConv(ChainMessagePassing):
+class OrientedConv(CochainMessagePassing):
     def __init__(self, dim: int, up_msg_size: int, down_msg_size: int,
                  update_up_nn: Optional[Callable], update_down_nn: Optional[Callable],
                  update_nn: Optional[Callable], act_fn, orient=True):
@@ -291,18 +291,18 @@ class OrientedConv(ChainMessagePassing):
         self.act_fn = act_fn
         self.orient = orient
 
-    def forward(self, chain: Chain):
-        assert len(chain.upper_orient) == chain.upper_index.size(1)
-        assert len(chain.lower_orient) == chain.lower_index.size(1)
-        assert chain.upper_index.max() < len(chain.x)
-        assert chain.lower_index.max() < len(chain.x)
+    def forward(self, cochain: Cochain):
+        assert len(cochain.upper_orient) == cochain.upper_index.size(1)
+        assert len(cochain.lower_orient) == cochain.lower_index.size(1)
+        assert cochain.upper_index.max() < len(cochain.x)
+        assert cochain.lower_index.max() < len(cochain.x)
 
-        out_up, out_down, _ = self.propagate(chain.upper_index, chain.lower_index, None, x=chain.x,
-            up_attr=chain.upper_orient.view(-1, 1), down_attr=chain.lower_orient.view(-1, 1))
+        out_up, out_down, _ = self.propagate(cochain.upper_index, cochain.lower_index, None, x=cochain.x,
+            up_attr=cochain.upper_orient.view(-1, 1), down_attr=cochain.lower_orient.view(-1, 1))
 
         out_up = self.update_up_nn(out_up)
         out_down = self.update_down_nn(out_down)
-        x = self.update_nn(chain.x)
+        x = self.update_nn(cochain.x)
         return self.act_fn(x + out_up + out_down)
 
     def reset_parameters(self):
@@ -365,11 +365,11 @@ class AbstractEmbedVEWithReduce(torch.nn.Module, ABC):
     def _prepare_e_inputs(self, e_params):
         pass
     
-    def forward(self, *chain_params: ChainMessagePassingParams):
-        assert 1 <= len(chain_params) <= 3
-        v_params = chain_params[0]
-        e_params = chain_params[1] if len(chain_params) >= 2 else None
-        c_params = chain_params[2] if len(chain_params) == 3 else None
+    def forward(self, *cochain_params: CochainMessagePassingParams):
+        assert 1 <= len(cochain_params) <= 3
+        v_params = cochain_params[0]
+        e_params = cochain_params[1] if len(cochain_params) >= 2 else None
+        c_params = cochain_params[2] if len(cochain_params) == 3 else None
 
         vx = self.v_embed_layer(self._prepare_v_inputs(v_params))
         out = [vx]

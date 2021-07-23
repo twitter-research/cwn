@@ -30,7 +30,7 @@ from torch_geometric.nn.conv.utils.inspector import Inspector
 class CellularInspector(Inspector):
 
     def __implements__(self, cls, func_name: str) -> bool:
-        if cls.__name__ == 'ChainMessagePassing':
+        if cls.__name__ == 'CochainMessagePassing':
             return False
         if func_name in cls.__dict__.keys():
             return True
