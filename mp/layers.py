@@ -160,7 +160,7 @@ class SparseCINCochainConv(CochainMessagePassing):
                  msg_up_nn: Callable,
                  msg_boundaries_nn: Callable,
                  update_up_nn: Callable,
-                 update_boundaries_nn,
+                 update_boundaries_nn: Callable,
                  combine_nn: Callable,
                  eps: float = 0.,
                  train_eps: bool = False):
