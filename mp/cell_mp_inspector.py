@@ -1,4 +1,8 @@
 """
+Based on https://github.com/rusty1s/pytorch_geometric/blob/76d61eaa9fc8702aa25f29dfaa5134a169d0f1f6/torch_geometric/nn/conv/utils/inspector.py
+
+MIT License
+
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
 Copyright (c) 2021 The CWN Project Authors
 

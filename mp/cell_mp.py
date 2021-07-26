@@ -1,4 +1,8 @@
 """
+Based on https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/nn/conv/message_passing.py
+
+MIT License
+
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
 Copyright (c) 2021 The CWN Project Authors
 
@@ -31,7 +35,7 @@ from torch_sparse import SparseTensor
 from torch_scatter import gather_csr, scatter, segment_csr
 
 from torch_geometric.nn.conv.utils.helpers import expand_left
-from mp.smp_inspector import CellularInspector
+from mp.cell_mp_inspector import CellularInspector
 
 
 class CochainMessagePassing(torch.nn.Module):

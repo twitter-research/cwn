@@ -1,4 +1,8 @@
 """
+Based on
+- https://github.com/nglaze00/SCoNe_GCN/blob/master/ocean_drifters_data/buoy_data.py
+- https://github.com/nglaze00/SCoNe_GCN/blob/master/trajectory_analysis/synthetic_data_gen.py
+
 MIT License
 
 Copyright (c) 2021 Nicholas Glaze
