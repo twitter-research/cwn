@@ -49,7 +49,7 @@ class CochainMessagePassing(torch.nn.Module):
         up_msg_size (int): The dimensionality of the messages coming from the upper adjacent cells.
         down_msg_size (int): The dimensionality of the messages coming from the
             lower adjacent cells.
-        aggr_up (string, optional): The aggregation scheme to use for upper-adjanceis
+        aggr_up (string, optional): The aggregation scheme to use for upper-adjacencies
             (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"` or :obj:`None`).
             (default: :obj:`"add"`)
         aggr_down (string, optional): The aggregation scheme to use for lower-adjacencies
