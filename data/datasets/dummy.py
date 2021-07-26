@@ -5,7 +5,7 @@ from data.dummy_complexes import get_testing_complex_list, get_mol_testing_compl
 
 
 class DummyDataset(InMemoryComplexDataset):
-    """A dymmy dataset using a list of hand-crafted cell complexes with many edge cases."""
+    """A dummy dataset using a list of hand-crafted cell complexes with many edge cases."""
 
     def __init__(self, root):
         self.name = 'DUMMY'
