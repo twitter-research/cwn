@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.data import Data
-from data.utils import compute_connectivity, get_adj_index, compute_clique_complex_with_gudhi
-from data.utils import convert_graph_dataset_with_gudhi, compute_ring_2complex, convert_graph_dataset_with_rings
+from data.utils import compute_clique_complex_with_gudhi, compute_ring_2complex
+from data.utils import convert_graph_dataset_with_gudhi, convert_graph_dataset_with_rings
 from torch_sparse import coalesce
 from data.complex import ComplexBatch
 from data.dummy_complexes import convert_to_graph, get_testing_complex_list
@@ -29,7 +29,7 @@ import pytest
 #   /0\
 #  .---.
 #  |   |
-#  .---. 
+#  .---.
 
 
 def test_gudhi_clique_complex(house_edge_index):
