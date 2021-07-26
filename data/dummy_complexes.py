@@ -35,7 +35,7 @@ def get_testing_complex_list():
 
 
 def get_mol_testing_complex_list():
-    """Returns a list of cell complexes used for testing. The lisr contain many edge cases."""
+    """Returns a list of cell complexes used for testing. The list contains many edge cases."""
     return [get_house_complex(), get_kite_complex(), get_square_complex(), get_fullstop_complex(), get_bridged_complex(),
             get_square_dot_complex(), get_square_complex(), get_filled_square_complex(), get_colon_complex(), get_bridged_complex(),
             get_kite_complex(), get_square_dot_complex(), get_colon_complex(), get_molecular_complex(), get_bridged_complex(),
