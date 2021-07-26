@@ -1,4 +1,3 @@
-import pytest
 import torch
 
 from data.dummy_complexes import get_house_complex

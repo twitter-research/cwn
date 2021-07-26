@@ -8,13 +8,6 @@ from torch_geometric.utils import degree
 from definitions import ROOT_DIR
 
 
-# @pytest.fixture
-# def redditbinary_graphs():
-#     data, num_classes = load_data(os.path.join(ROOT_DIR, 'datasets', 'REDDITBINARY', 'raw'), 'REDDITBINARY', True)
-#     graph_list = [S2V_to_PyG(datum) for datum in data]
-#     return graph_list
-
-
 @pytest.fixture
 def imdbbinary_graphs():
     data, num_classes = load_data(os.path.join(ROOT_DIR, 'datasets', 'IMDBBINARY', 'raw'), 'IMDBBINARY', True)
@@ -95,9 +88,6 @@ def validate_constant_scalar_features(graphs):
         expected = torch.ones(feats.shape[0], 1)
         assert torch.equal(feats, expected)
         
-        
-# def test_degree_as_tag_on_redditbinary(redditbinary_graphs):
-#     validate_degree_as_tag(redditbinary_graphs)
 
 @pytest.mark.data
 def test_get_fold_indices_on_imdbbinary(imdbbinary_graphs):

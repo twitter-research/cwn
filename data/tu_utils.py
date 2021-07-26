@@ -35,14 +35,14 @@ from sklearn.model_selection import StratifiedKFold
 
 class S2VGraph(object):
     def __init__(self, g, label, node_tags=None, node_features=None):
-        '''
+        """
             g: a networkx graph
             label: an integer graph label
             node_tags: a list of integer node tags
             node_features: a torch float tensor, one-hot representation of the tag that is used as input to neural nets
             edge_mat: a torch long tensor, contain edge list, will be used to create torch sparse tensor
             neighbors: list of neighbors (without self-loop)
-        '''
+        """
         self.label = label
         self.g = g
         self.node_tags = node_tags
@@ -54,11 +54,11 @@ class S2VGraph(object):
 
 
 def load_data(path, dataset, degree_as_tag):
-    '''
+    """
         dataset: name of dataset
         test_proportion: ratio of test train split
         seed: random seed for random splitting of dataset
-    '''
+    """
 
     print('loading data')
     g_list = []

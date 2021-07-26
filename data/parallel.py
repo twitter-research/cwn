@@ -3,6 +3,7 @@ from joblib import Parallel
 
 
 class ProgressParallel(Parallel):
+    """A helper class for adding tqdm progressbar to the joblib library."""
     def __init__(self, use_tqdm=True, total=None, *args, **kwargs):
         self._use_tqdm = use_tqdm
         self._total = total
