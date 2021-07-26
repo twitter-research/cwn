@@ -26,7 +26,7 @@ def convert_to_graph(complex):
 
 
 def get_testing_complex_list():
-    """Returns a list of cell complexes used for testing. The list contain many edge cases."""
+    """Returns a list of cell complexes used for testing. The list contains many edge cases."""
     return [get_fullstop_complex(), get_pyramid_complex(), get_house_complex(), get_kite_complex(), get_square_complex(),
             get_square_dot_complex(), get_square_complex(), get_fullstop_complex(), get_house_complex(),
             get_kite_complex(), get_pyramid_complex(), get_bridged_complex(), get_square_dot_complex(), get_colon_complex(),
