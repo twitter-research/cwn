@@ -45,30 +45,29 @@ __complex_max_dim_lower_bound__ = 2
 class Cochain(object):
     """
     Class representing a cochain on k-dim cells (i.e. vector-valued signals on k-dim cells).
+
+    Args:
+        dim: dim of the cells in the cochain
+        x: feature matrix, shape [num_cells, num_features]; may not be available
+        upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
+            may not be available, e.g. when `dim` is the top level dim of a complex
+        lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
+            may not be available, e.g. when `dim` is 0
+        shared_boundaries: a tensor of shape (num_lower_adjacencies,) specifying the indices of
+            the shared boundary for each lower adjacency
+        shared_coboundaries: a tensor of shape (num_upper_adjacencies,) specifying the indices of
+            the shared coboundary for each upper adjacency
+        boundary_index: boundary adjacency, matrix, shape [2, num_boundaries_connections];
+            may not be available, e.g. when `dim` is 0
+        upper_orient: a tensor of shape (num_upper_adjacencies,) specifying the relative
+            orientation (+-1) with respect to the cells from upper_index
+        lower_orient: a tensor of shape (num_lower_adjacencies,) specifying the relative
+            orientation (+-1) with respect to the cells from lower_index
+        y: labels over cells in the cochain, shape [num_cells,]
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
                  shared_boundaries: Tensor = None, shared_coboundaries: Tensor = None, mapping: Tensor = None,
                  boundary_index: Adj = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
-        """
-        Args:
-            dim: dim of the cells in the cochain
-            x: feature matrix, shape [num_cells, num_features]; may not be available
-            upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
-                may not be available, e.g. when `dim` is the top level dim of a complex
-            lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
-                may not be available, e.g. when `dim` is 0
-            shared_boundaries: a tensor of shape (num_lower_adjacencies,) specifying the indices of
-                the shared boundary for each lower adjacency
-            shared_coboundaries: a tensor of shape (num_upper_adjacencies,) specifying the indices of
-                the shared coboundary for each upper adjacency
-            boundary_index: boundary adjacency, matrix, shape [2, num_boundaries_connections];
-                may not be available, e.g. when `dim` is 0
-            upper_orient: a tensor of shape (num_upper_adjacencies,) specifying the relative
-                orientation (+-1) with respect to the cells from upper_index
-            lower_orient: a tensor of shape (num_lower_adjacencies,) specifying the relative
-                orientation (+-1) with respect to the cells from lower_index
-            y: labels over cells in the cochain, shape [num_cells,]
-        """
         if dim == 0:
             assert lower_index is None
             assert shared_boundaries is None
@@ -498,15 +497,14 @@ class CochainBatch(Cochain):
 
 
 class Complex(object):
-    """Class representing a cochain complex or an attributed cellular complex."""
+    """Class representing a cochain complex or an attributed cellular complex.
 
+    Args:
+        cochains: A list of cochains forming the cochain complex
+        y: A tensor of shape (1,) containing a label for the complex for complex-level tasks.
+        dimension: The dimension of the complex.
+    """
     def __init__(self, *cochains: Cochain, y: torch.Tensor = None, dimension: int = None):
-        """
-        Args:
-            cochains: A list of cochains forming the cochain complex
-            y: A tensor of shape (1,) containing a label for the complex for complex-level tasks.
-            dimension: The dimension of the complex.
-        """
         if len(cochains) == 0:
             raise ValueError('At least one cochain is required.')
         if dimension is None:
@@ -682,20 +680,18 @@ class ComplexBatch(Complex):
     """Class representing a batch of cochain complexes.
 
     This is stored as a single cochain complex formed of multiple independent subcomplexes.
-    """
 
+    Args:
+        cochains: A list of cochain batches that will be put together in a complex batch
+        dimension: The dimension of the resulting complex.
+        y: A tensor of labels for the complexes in the batch.
+        num_complexes: The number of complexes in the batch.
+    """
     def __init__(self,
                  *cochains: CochainBatch,
                  dimension: int,
                  y: torch.Tensor = None,
                  num_complexes: int = None):
-        """
-        Args:
-            cochains: A list of cochain batches that will be put together in a complex batch
-            dimension: The dimension of the resulting complex.
-            y: A tensor of labels for the complexes in the batch.
-            num_complexes: The number of complexes in the batch.
-        """
         super(ComplexBatch, self).__init__(*cochains, y=y)
         self.num_complexes = num_complexes
         self.dimension = dimension
