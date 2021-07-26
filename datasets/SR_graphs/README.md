@@ -7,5 +7,5 @@ SR graphs in the same family share the same parameters `n`, `d`, `l`, `u`, with 
 Two non-isomorphic SR graphs in the same family cannot be distinguished by the standard WL test, and not even the more
 powerful 3-WL.
 
-In `./raw`, each family is stored in `g6` format and is named as `sr<n><d><l><u>.g6` (two digits for <n>). These data
+In `./raw`, each family is stored in `g6` format and is named as `sr<n><d><l><u>.g6` (two digits for `<n>`). These data
 were originally obtained from `http://users.cecs.anu.edu.au/~bdm/data/graphs.html`.
