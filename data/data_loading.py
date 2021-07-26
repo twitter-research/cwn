@@ -52,7 +52,7 @@ class Collater(object):
         self.max_dim = max_dim
 
     def collate(self, batch):
-        """Converts a data list in the right storage format.s"""
+        """Converts a data list in the right storage format."""
         elem = batch[0]
         if isinstance(elem, Cochain):
             return CochainBatch.from_cochain_list(batch, self.follow_batch)
