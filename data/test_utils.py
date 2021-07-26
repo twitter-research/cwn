@@ -31,6 +31,10 @@ import pytest
 #  |   |
 #  .---.
 
+@pytest.fixture
+def house_edge_index():
+    return torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4],
+                         [1, 3, 0, 2, 1, 3, 4, 0, 2, 4, 2, 3]], dtype=torch.long)
 
 def test_gudhi_clique_complex(house_edge_index):
     '''
