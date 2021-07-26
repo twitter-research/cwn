@@ -489,7 +489,7 @@ class CochainMessagePassing(torch.nn.Module):
         raise NotImplementedError
 
     def message_and_aggregate_down(self, down_adj_t: SparseTensor) -> Tensor:
-        r"""Fuses computations of :func:`message_up` and :func:`aggregate_up` into a
+        r"""Fuses computations of :func:`message_down` and :func:`aggregate_down` into a
         single function.
         If applicable, this saves both time and memory since messages do not
         explicitly need to be materialized.
