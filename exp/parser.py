@@ -112,6 +112,7 @@ def get_parser():
 
 
 def validate_args(args):
+    """Performs dataset-dependent sanity checks on the supplied args."""
     if args.dataset == 'CSL':
         assert args.model == 'embed_sparse_cin'
         assert args.task_type == 'classification'
