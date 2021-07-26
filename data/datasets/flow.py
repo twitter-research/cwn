@@ -8,6 +8,7 @@ from data.datasets.flow_utils import load_flow_dataset
 # TODO: Set up a cochain dataset structure or make complex dataset better support cochain-only data.
 # TODO: Make this dataset use the new storage system.
 class FlowDataset(InMemoryComplexDataset):
+    """A synthetic dataset for edge-flow classification."""
 
     def __init__(self, root, name, num_points, train_samples, val_samples,
                  load_graph=False, train_orient='default', test_orient='default', n_jobs=2):

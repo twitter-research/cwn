@@ -7,6 +7,9 @@ from data.utils import convert_graph_dataset_with_rings
 
 
 class RingTransferDataset(InMemoryComplexDataset):
+    """A dataset where the task is to transfer features from a source node to a target node
+    placed on the other side of a ring.
+    """
 
     def __init__(self, root, nodes=10, train=5000, test=500):
         self.name = 'RING-TRANSFER'

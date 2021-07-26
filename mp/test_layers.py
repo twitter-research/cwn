@@ -2,8 +2,7 @@ import torch
 import torch.optim as optim
 
 from mp.layers import (
-    DummyCellularMessagePassing, CINConv, CINCochainConv, OrientedConv, InitReduceConv,
-    EmbedVEWithReduce)
+    DummyCellularMessagePassing, CINConv, OrientedConv, InitReduceConv, EmbedVEWithReduce)
 from data.dummy_complexes import get_house_complex, get_molecular_complex
 from torch import nn
 from data.datasets.flow import load_flow_dataset

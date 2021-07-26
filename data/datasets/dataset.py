@@ -41,8 +41,10 @@ def __repr__(obj):
 
 
 class ComplexDataset(Dataset, ABC):
-    """
-        Base class for cellular complex datasets.
+    """Base class for cochain complex datasets.
+
+    This class mirrors
+    https://github.com/rusty1s/pytorch_geometric/blob/76d61eaa9fc8702aa25f29dfaa5134a169d0f1f6/torch_geometric/data/dataset.py#L19
     """
 
     def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None,
@@ -102,6 +104,11 @@ class ComplexDataset(Dataset, ABC):
 
 
 class InMemoryComplexDataset(ComplexDataset):
+    """Wrapper around ComplexDataset with functionality such as batching and storing the dataset.
+
+    This class mirrors
+    https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/data/in_memory_dataset.py
+    """
 
     @property
     def raw_file_names(self):

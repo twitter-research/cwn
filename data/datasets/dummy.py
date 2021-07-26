@@ -3,7 +3,9 @@ import torch
 from data.datasets import InMemoryComplexDataset
 from data.dummy_complexes import get_testing_complex_list, get_mol_testing_complex_list
 
+
 class DummyDataset(InMemoryComplexDataset):
+    """A dymmy dataset using a list of hand-crafted cell complexes with many edge cases."""
 
     def __init__(self, root):
         self.name = 'DUMMY'
@@ -39,6 +41,7 @@ class DummyDataset(InMemoryComplexDataset):
 
 
 class DummyMolecularDataset(InMemoryComplexDataset):
+    """A dymmy dataset using a list of hand-crafted cell complexes with many edge cases."""
 
     def __init__(self, root, remove_2feats=False):
         self.name = 'DUMMYM'

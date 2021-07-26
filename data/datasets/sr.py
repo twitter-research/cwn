@@ -12,12 +12,14 @@ from torch_geometric.data import Data
 import os.path as osp
 import errno
 
+
 def makedirs(path):
     try:
         os.makedirs(osp.expanduser(osp.normpath(path)))
     except OSError as e:
         if e.errno != errno.EEXIST and osp.isdir(path):
             raise e
+
 
 def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
     raw_dir = os.path.join(root, 'SR_graphs', 'raw')
@@ -33,8 +35,10 @@ def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
     val_ids = list(range(len(graphs)))
     test_ids = list(range(len(graphs)))
     return graphs, train_ids, val_ids, test_ids
-            
+
+
 class SRDataset(InMemoryComplexDataset):
+    """A dataset of strongly regular graph pairs."""
 
     def __init__(self, root, name, max_dim=2, num_classes=16,
                  train_ids=None, val_ids=None, test_ids=None, include_down_adj=False, max_ring_size=None, n_jobs=2):
