@@ -8,7 +8,7 @@ from data.utils import convert_graph_dataset_with_rings
 
 class RingLookupDataset(InMemoryComplexDataset):
     """A dataset where the task is to perform dictionary lookup on the features
-       of a set of nodes forming a ring. The feature of each nodee is composed of a key and a value
+       of a set of nodes forming a ring. The feature of each node is composed of a key and a value
        and one must assign to a target node the value of the key its feature encodes.
     """
 
