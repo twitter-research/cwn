@@ -305,7 +305,7 @@ class Cochain(object):
 class CochainBatch(Cochain):
     """A datastructure for storing a batch of cochains.
 
-    Similarly to PyTorch Geometric, the batched is handled as a big cochain formed of multiple
+    Similarly to PyTorch Geometric, the batched cochain consists of a big cochain formed of multiple
     independent cochains on sets of disconnected cells.
     """
 
