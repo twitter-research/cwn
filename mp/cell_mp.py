@@ -42,7 +42,7 @@ class CochainMessagePassing(torch.nn.Module):
     """The base class for building message passing models on cocahin complexes.
 
     # TODO: Add support for co-boundary adjacencies
-    The class considers four types of adjacencies:
+    The class considers three types of adjacencies:
     boundary, upper and lower adjacencies.
 
     Args:
