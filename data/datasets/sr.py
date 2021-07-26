@@ -38,7 +38,7 @@ def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
 
 
 class SRDataset(InMemoryComplexDataset):
-    """A dataset of strongly regular graph pairs."""
+    """A dataset of complexes obtained by lifting Strongly Regular graphs."""
 
     def __init__(self, root, name, max_dim=2, num_classes=16,
                  train_ids=None, val_ids=None, test_ids=None, include_down_adj=False, max_ring_size=None, n_jobs=2):
