@@ -407,7 +407,7 @@ class CochainMessagePassing(torch.nn.Module):
         passed to :meth:`propagate`. Furthermore, tensors passed to :meth:`propagate` can be mapped
         to the respective cells :math:`i` and :math:`j` by appending :obj:`_i` or
         :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`. The parameter
-        :obj:`up_attr` includes the features of the shared boundary cell.
+        :obj:`down_attr` includes the features of the shared boundary cell.
         """
         return down_x_j
 
