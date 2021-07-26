@@ -1,13 +1,13 @@
 import torch
 
-from mp.layers import SparseSINConv
+from mp.layers import SparseCINConv
 from mp.nn import get_nonlinearity, get_graph_norm
 from data.complex import ComplexBatch
 from torch.nn import Linear, Sequential, BatchNorm1d as BN
 from torch_geometric.nn import GINConv
 
 
-class RingSparseSIN(torch.nn.Module):
+class RingSparseCIN(torch.nn.Module):
     """
     A simple cellular version of GIN employed for Ring experiments.
 
@@ -16,9 +16,9 @@ class RingSparseSIN(torch.nn.Module):
     """
 
     def __init__(self, num_input_features, num_classes, num_layers, hidden,
-                 max_dim: int = 2, nonlinearity='relu', train_eps=False, use_cofaces=False,
+                 max_dim: int = 2, nonlinearity='relu', train_eps=False, use_coboundaries=False,
                  graph_norm='id'):
-        super(RingSparseSIN, self).__init__()
+        super(RingSparseCIN, self).__init__()
 
         self.max_dim = max_dim
         self.convs = torch.nn.ModuleList()
@@ -30,12 +30,12 @@ class RingSparseSIN(torch.nn.Module):
         for i in range(num_layers):
             layer_dim = num_input_features if i == 0 else hidden
             self.convs.append(
-                SparseSINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    face_msg_size=layer_dim, msg_faces_nn=None, msg_up_nn=None,
-                    update_up_nn=None, update_faces_nn=None,
+                SparseCINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                    boundary_msg_size=layer_dim, msg_boundaries_nn=None, msg_up_nn=None,
+                    update_up_nn=None, update_boundaries_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
-                    graph_norm=self.graph_norm, use_cofaces=use_cofaces))
+                    graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
         self.lin1 = Linear(hidden, num_classes)
 
     def reset_parameters(self):
@@ -50,7 +50,7 @@ class RingSparseSIN(torch.nn.Module):
 
         data.nodes.x = self.init_layer(data.nodes.x)
         for c, conv in enumerate(self.convs):
-            params = data.get_all_chain_params(max_dim=self.max_dim, include_down_features=False)
+            params = data.get_all_cochain_params(max_dim=self.max_dim, include_down_features=False)
             xs = conv(*params)
             data.set_xs(xs)
 

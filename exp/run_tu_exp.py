@@ -6,7 +6,7 @@ import numpy as np
 from exp.parser import get_parser
 from exp.run_exp import main
 
-# python3 -m exp.run_tu_exp --dataset IMDBBINARY --model sin --drop_rate 0.0 --lr 0.0001 --max_dim 2 --emb_dim 32 --dump_curves --epochs 30 --num_layers 1 --lr_scheduler StepLR --lr_scheduler_decay_steps 5
+# python3 -m exp.run_tu_exp --dataset IMDBBINARY --model cin --drop_rate 0.0 --lr 0.0001 --max_dim 2 --emb_dim 32 --dump_curves --epochs 30 --num_layers 1 --lr_scheduler StepLR --lr_scheduler_decay_steps 5
 
 __num_folds__ = 10
 

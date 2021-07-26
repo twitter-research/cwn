@@ -26,7 +26,7 @@ def exp_main(passed_args):
         # This is just a hack to save the results properly using our usual infrastructure.
         for fold in range(len(RING_SIZES)):
             max_ring_size = RING_SIZES[fold]
-            num_layers = 3 if args.model == 'ring_sparse_sin' else max_ring_size // 2
+            num_layers = 3 if args.model == 'ring_sparse_cin' else max_ring_size // 2
             current_args = (copy.copy(passed_args) + ['--fold', str(fold)] +
                             ['--max_ring_size', str(max_ring_size)] +
                             ['--num_layers', str(num_layers)] +

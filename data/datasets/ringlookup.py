@@ -24,7 +24,7 @@ class RingLookupDataset(InMemoryComplexDataset):
 
     @property
     def processed_dir(self):
-        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        """This is overwritten, so the cellular complex data is placed in another folder"""
         return osp.join(self.root, 'complex')
 
     @property
@@ -59,14 +59,14 @@ class RingLookupDataset(InMemoryComplexDataset):
 
         for complex in complexes:
             # Add mask for the target node.
-            mask = torch.zeros(complex.nodes.num_simplices, dtype=torch.bool)
+            mask = torch.zeros(complex.nodes.num_cells, dtype=torch.bool)
             mask[0] = 1
-            setattr(complex.chains[0], 'mask', mask)
+            setattr(complex.cochains[0], 'mask', mask)
 
             # Make HOF zero
             complex.edges.x = torch.zeros_like(complex.edges.x)
-            complex.triangles.x = torch.zeros_like(complex.triangles.x)
-            assert complex.triangles.num_simplices == 1
+            complex.two_cells.x = torch.zeros_like(complex.two_cells.x)
+            assert complex.two_cells.num_cells == 1
 
         path = self.processed_paths[0]
         print(f'Saving processed dataset in {path}....')

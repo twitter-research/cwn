@@ -10,7 +10,7 @@ import graph_tool.topology as top
 import networkx as nx
 
 from tqdm import tqdm
-from data.complex import Chain, Complex
+from data.complex import Cochain, Complex
 from typing import List, Dict, Optional, Union
 from torch import Tensor
 from torch_geometric.typing import Adj
@@ -48,14 +48,14 @@ def draw_legend(colors):
     return
 
 
-def get_faces(simplex):
+def get_boundaries(simplex):
     '''
-        Given a k-simplex as an iterable of nodes, returns all its faces (contained (k-1)-simplices).
-        Faces are returned as a set of ordered tuples.
+        Given a k-simplex as an iterable of nodes, returns all its boundaries (contained (k-1)-simplices).
+        boundaries are returned as a set of ordered tuples.
     '''
     k = len(simplex)
     if k == 1:
-        raise ValueError("0-simplices do not have faces.")
+        raise ValueError("0-simplices do not have boundaries.")
     return set([tuple(sorted(comb)) for comb in it.combinations(simplex, k-1)])
 
 
@@ -65,9 +65,9 @@ def lower_adj(a, b, min_k=1, all_simplices=None):
         Simplices a, b are lower-adjacent when:
             - their size (k) is larger than 1;
             - they have the same dimension;
-            - the share one (k-1)-face.
+            - the share one (k-1)-boundary.
         Optionally, it is possible to also enforce the shared
-        co-face to be present in a set of know simplices (`all_simplices`).
+        co-boundary to be present in a set of know simplices (`all_simplices`).
     '''
     assert len(a) == len(b)
     k = len(a)
@@ -80,7 +80,7 @@ def lower_adj(a, b, min_k=1, all_simplices=None):
 
 def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled):
     '''
-        Recursive function to compute upper adjacencies between the faces of a given simplex.
+        Recursive function to compute upper adjacencies between the boundaries of a given simplex.
         Parameters:
             - `simplex`: input simplex as an iterable of nodes
             - `all_facets`: a set of facets for the complex the simplex belongs to
@@ -100,21 +100,21 @@ def get_simplex_upper_adjs(simplex, all_facets, all_simplices, non_facets, upper
     if k == 1:
         return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
 
-    # get faces of the input simplex: all of them are
+    # get boundaries of the input simplex: all of them are
     # considered to be upper adjacent w.r.t present simplex
-    faces = get_faces(nodes)
-    for face in faces:
+    boundaries = get_boundaries(nodes)
+    for boundary in boundaries:
 
-        # add adjacencies to all other faces in the simplex
-        if face not in upper_adjacencies[k-1]:
-            upper_adjacencies[k-1][face] = set()
-            upper_adjacencies_labeled[k-1][face] = dict()
-        upper_adjacencies[k-1][face] |= faces - {face}
-        for neighbor in faces - {face}:
-            upper_adjacencies_labeled[k-1][face][neighbor] = nodes
+        # add adjacencies to all other boundaries in the simplex
+        if boundary not in upper_adjacencies[k-1]:
+            upper_adjacencies[k-1][boundary] = set()
+            upper_adjacencies_labeled[k-1][boundary] = dict()
+        upper_adjacencies[k-1][boundary] |= boundaries - {boundary}
+        for neighbor in boundaries - {boundary}:
+            upper_adjacencies_labeled[k-1][boundary][neighbor] = nodes
 
         # recur down w.r.t. present face
-        all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(face, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
+        all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled = get_simplex_upper_adjs(boundary, all_facets, all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled)
 
     return all_simplices, non_facets, upper_adjacencies, upper_adjacencies_labeled
 
@@ -248,10 +248,10 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             current_rev_map[tuple(current_map[key].numpy())] = key
         rev_mappings[order] = current_rev_map
 
-    shared_faces = dict()
-    shared_cofaces = dict()
-    shared_faces[min_order] = None
-    shared_cofaces[max_order] = None
+    shared_boundaries = dict()
+    shared_coboundaries = dict()
+    shared_boundaries[min_order] = None
+    shared_coboundaries[max_order] = None
     for order in range(min_order, max_order):
 
         shared = list()
@@ -260,9 +260,9 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             a, b = link
             nodes_a = set(mappings[order+1][a].numpy().tolist())
             nodes_b = set(mappings[order+1][b].numpy().tolist())
-            shared_face = rev_mappings[order][tuple(sorted(nodes_a & nodes_b))]
-            shared.append(shared_face)
-        shared_faces[order+1] = torch.LongTensor(shared)
+            shared_boundary = rev_mappings[order][tuple(sorted(nodes_a & nodes_b))]
+            shared.append(shared_boundary)
+        shared_boundaries[order+1] = torch.LongTensor(shared)
 
         shared = list()
         upper = upper_indices[order].numpy().T
@@ -270,24 +270,24 @@ def generate_complex(attributes, labels, upper_indices, lower_indices, mappings,
             a, b = link
             nodes_a = tuple(mappings[order][a].numpy().tolist())
             nodes_b = tuple(mappings[order][b].numpy().tolist())
-            shared_coface = rev_mappings[order+1][upper_adjs[order+1][nodes_a][nodes_b]]
-            shared.append(shared_coface)
-        shared_cofaces[order] = torch.LongTensor(shared)
+            shared_coboundary = rev_mappings[order+1][upper_adjs[order+1][nodes_a][nodes_b]]
+            shared.append(shared_coboundary)
+        shared_coboundaries[order] = torch.LongTensor(shared)
 
-    chains = list()
+    cochains = list()
     for k in range(min_order, max_order+1):
         try:
             y = labels[k]
         except TypeError:
             y = None
-        chains.append(Chain(k, x=attributes[k], y=y, upper_index=upper_indices[k], lower_index=lower_indices[k], mapping=mappings[k], shared_faces=shared_faces[k], shared_cofaces=shared_cofaces[k]))
+        cochains.append(Cochain(k, x=attributes[k], y=y, upper_index=upper_indices[k], lower_index=lower_indices[k], mapping=mappings[k], shared_boundaries=shared_boundaries[k], shared_coboundaries=shared_coboundaries[k]))
 
     try:
         _ = labels.keys()
         y = labels
     except AttributeError:
         y = None
-    return Complex(*chains, y=y)
+    return Complex(*cochains, y=y)
 
 
 def pyg_to_simplex_tree(edge_index: Tensor, size: int):
@@ -311,9 +311,9 @@ def pyg_to_simplex_tree(edge_index: Tensor, size: int):
     return st
 
 
-def get_simplex_faces(simplex):
-    faces = itertools.combinations(simplex, len(simplex) - 1)
-    return [tuple(face) for face in faces]
+def get_simplex_boundaries(simplex):
+    boundaries = itertools.combinations(simplex, len(simplex) - 1)
+    return [tuple(boundary) for boundary in boundaries]
 
 
 def build_tables(simplex_tree, size):
@@ -321,7 +321,7 @@ def build_tables(simplex_tree, size):
     # Each of these data structures has a separate entry per dimension.
     id_maps = [{} for _ in range(complex_dim+1)] # simplex -> id
     simplex_tables = [[] for _ in range(complex_dim+1)] # matrix of simplices
-    faces_tables = [[] for _ in range(complex_dim+1)]
+    boundaries_tables = [[] for _ in range(complex_dim+1)]
 
     simplex_tables[0] = [[v] for v in range(size)]
     id_maps[0] = {tuple([v]): v for v in range(size)}
@@ -339,57 +339,57 @@ def build_tables(simplex_tree, size):
     return simplex_tables, id_maps
 
 
-def extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_dim: int):
-    """Build two maps simplex -> its cofaces and simplex -> its faces"""
+def extract_boundaries_and_coboundaries_from_simplex_tree(simplex_tree, id_maps, complex_dim: int):
+    """Build two maps simplex -> its coboundaries and simplex -> its boundaries"""
     # The extra dimension is added just for convenience to avoid treating it as a special case.
-    faces = [{} for _ in range(complex_dim+2)]  # simplex -> faces
-    cofaces = [{} for _ in range(complex_dim+2)]  # simplex -> cofaces
-    faces_tables = [[] for _ in range(complex_dim+1)]
+    boundaries = [{} for _ in range(complex_dim+2)]  # simplex -> boundaries
+    coboundaries = [{} for _ in range(complex_dim+2)]  # simplex -> coboundaries
+    boundaries_tables = [[] for _ in range(complex_dim+1)]
 
     for simplex, _ in simplex_tree.get_simplices():
-        # Extract the relevant face and coface maps
+        # Extract the relevant boundary and coboundary maps
         simplex_dim = len(simplex) - 1
-        level_cofaces = cofaces[simplex_dim]
-        level_faces = faces[simplex_dim + 1]
+        level_coboundaries = coboundaries[simplex_dim]
+        level_boundaries = boundaries[simplex_dim + 1]
 
-        # Add the faces of the simplex to the faces table
+        # Add the boundaries of the simplex to the boundaries table
         if simplex_dim > 0:
-            faces_ids = [id_maps[simplex_dim-1][face] for face in get_simplex_faces(simplex)]
-            faces_tables[simplex_dim].append(faces_ids)
+            boundaries_ids = [id_maps[simplex_dim-1][boundary] for boundary in get_simplex_boundaries(simplex)]
+            boundaries_tables[simplex_dim].append(boundaries_ids)
 
         # This operation should be roughly be O(dim_complex), so that is very efficient for us.
         # For details see pages 6-7 https://hal.inria.fr/hal-00707901v1/document
-        simplex_cofaces = simplex_tree.get_cofaces(simplex, codimension=1)
-        for coface, _ in simplex_cofaces:
-            assert len(coface) == len(simplex) + 1
+        simplex_coboundaries = simplex_tree.get_cofaces(simplex, codimension=1)
+        for coboundary, _ in simplex_coboundaries:
+            assert len(coboundary) == len(simplex) + 1
 
-            if tuple(simplex) not in level_cofaces:
-                level_cofaces[tuple(simplex)] = list()
-            level_cofaces[tuple(simplex)].append(tuple(coface))
+            if tuple(simplex) not in level_coboundaries:
+                level_coboundaries[tuple(simplex)] = list()
+            level_coboundaries[tuple(simplex)].append(tuple(coboundary))
 
-            if tuple(coface) not in level_faces:
-                level_faces[tuple(coface)] = list()
-            level_faces[tuple(coface)].append(tuple(simplex))
+            if tuple(coboundary) not in level_boundaries:
+                level_boundaries[tuple(coboundary)] = list()
+            level_boundaries[tuple(coboundary)].append(tuple(simplex))
 
-    return faces_tables, faces, cofaces
+    return boundaries_tables, boundaries, coboundaries
 
 
-def build_adj(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], complex_dim: int,
+def build_adj(boundaries: List[Dict], coboundaries: List[Dict], id_maps: List[Dict], complex_dim: int,
               include_down_adj: bool):
     """Builds the upper and lower adjacency data structures of the complex
 
     Args:
-        faces: A list of dictionaries of the form
-            faces[dim][simplex] -> List[simplex] (the faces)
-        cofaces: A list of dictionaries of the form
-            cofaces[dim][simplex] -> List[simplex] (the cofaces)
+        boundaries: A list of dictionaries of the form
+            boundaries[dim][simplex] -> List[simplex] (the boundaries)
+        coboundaries: A list of dictionaries of the form
+            coboundaries[dim][simplex] -> List[simplex] (the coboundaries)
         id_maps: A dictionary from simplex -> simplex_id
     """
     def initialise_structure():
         return [[] for _ in range(complex_dim+1)]
 
     upper_indexes, lower_indexes = initialise_structure(), initialise_structure()
-    all_shared_faces, all_shared_cofaces = initialise_structure(), initialise_structure()
+    all_shared_boundaries, all_shared_coboundaries = initialise_structure(), initialise_structure()
 
     # Go through all dimensions of the complex
     for dim in range(complex_dim+1):
@@ -397,19 +397,19 @@ def build_adj(faces: List[Dict], cofaces: List[Dict], id_maps: List[Dict], compl
         for simplex, id in id_maps[dim].items():
             # Add the upper adjacent neighbours from the level below
             if dim > 0:
-                for face1, face2 in itertools.combinations(faces[dim][simplex], 2):
-                    id1, id2 = id_maps[dim - 1][face1], id_maps[dim - 1][face2]
+                for boundary1, boundary2 in itertools.combinations(boundaries[dim][simplex], 2):
+                    id1, id2 = id_maps[dim - 1][boundary1], id_maps[dim - 1][boundary2]
                     upper_indexes[dim - 1].extend([[id1, id2], [id2, id1]])
-                    all_shared_cofaces[dim - 1].extend([id, id])
+                    all_shared_coboundaries[dim - 1].extend([id, id])
 
             # Add the lower adjacent neighbours from the level above
-            if include_down_adj and dim < complex_dim and simplex in cofaces[dim]:
-                for coface1, coface2 in itertools.combinations(cofaces[dim][simplex], 2):
-                    id1, id2 = id_maps[dim + 1][coface1], id_maps[dim + 1][coface2]
+            if include_down_adj and dim < complex_dim and simplex in coboundaries[dim]:
+                for coboundary1, coboundary2 in itertools.combinations(coboundaries[dim][simplex], 2):
+                    id1, id2 = id_maps[dim + 1][coboundary1], id_maps[dim + 1][coboundary2]
                     lower_indexes[dim + 1].extend([[id1, id2], [id2, id1]])
-                    all_shared_faces[dim + 1].extend([id, id])
+                    all_shared_boundaries[dim + 1].extend([id, id])
 
-    return all_shared_faces, all_shared_cofaces, lower_indexes, upper_indexes
+    return all_shared_boundaries, all_shared_coboundaries, lower_indexes, upper_indexes
 
 
 def construct_features(vx: Tensor, cell_tables, init_method: str) -> List:
@@ -448,51 +448,51 @@ def extract_labels(y, size):
     return v_y, complex_y
 
 
-def generate_chain(dim, x, all_upper_index, all_lower_index,
-                   all_shared_faces, all_shared_cofaces, simplex_tables, faces_tables,
+def generate_cochain(dim, x, all_upper_index, all_lower_index,
+                   all_shared_boundaries, all_shared_coboundaries, cell_tables, boundaries_tables,
                    complex_dim, y=None):
-    """Builds a Chain given all the adjacency data extracted from the complex."""
+    """Builds a Cochain given all the adjacency data extracted from the complex."""
     if dim == 0:
         assert len(all_lower_index[dim]) == 0
-        assert len(all_shared_faces[dim]) == 0
+        assert len(all_shared_boundaries[dim]) == 0
 
-    num_simplices_down = len(simplex_tables[dim-1]) if dim > 0 else None
-    num_simplices_up = len(simplex_tables[dim+1]) if dim < complex_dim else 0
+    num_cells_down = len(cell_tables[dim-1]) if dim > 0 else None
+    num_cells_up = len(cell_tables[dim+1]) if dim < complex_dim else 0
 
     up_index = (torch.tensor(all_upper_index[dim], dtype=torch.long).t()
                 if len(all_upper_index[dim]) > 0 else None)
     down_index = (torch.tensor(all_lower_index[dim], dtype=torch.long).t()
                   if len(all_lower_index[dim]) > 0 else None)
-    shared_cofaces = (torch.tensor(all_shared_cofaces[dim], dtype=torch.long)
-                      if len(all_shared_cofaces[dim]) > 0 else None)
-    shared_faces = (torch.tensor(all_shared_faces[dim], dtype=torch.long)
-                    if len(all_shared_faces[dim]) > 0 else None)
+    shared_coboundaries = (torch.tensor(all_shared_coboundaries[dim], dtype=torch.long)
+                      if len(all_shared_coboundaries[dim]) > 0 else None)
+    shared_boundaries = (torch.tensor(all_shared_boundaries[dim], dtype=torch.long)
+                    if len(all_shared_boundaries[dim]) > 0 else None)
     
-    face_index = None
-    if len(faces_tables[dim]) > 0:
-        face_index = [list(), list()]
-        for s, simplex in enumerate(faces_tables[dim]):
-            for face in simplex:
-                face_index[1].append(s)
-                face_index[0].append(face)
-        face_index = torch.LongTensor(face_index)
+    boundary_index = None
+    if len(boundaries_tables[dim]) > 0:
+        boundary_index = [list(), list()]
+        for s, cell in enumerate(boundaries_tables[dim]):
+            for boundary in cell:
+                boundary_index[1].append(s)
+                boundary_index[0].append(boundary)
+        boundary_index = torch.LongTensor(boundary_index)
         
-    if num_simplices_down is None:
-        assert shared_faces is None
-    if num_simplices_up == 0:
-        assert shared_cofaces is None
+    if num_cells_down is None:
+        assert shared_boundaries is None
+    if num_cells_up == 0:
+        assert shared_coboundaries is None
 
     if up_index is not None:
-        assert up_index.size(1) == shared_cofaces.size(0)
-        assert num_simplices_up == shared_cofaces.max() + 1
+        assert up_index.size(1) == shared_coboundaries.size(0)
+        assert num_cells_up == shared_coboundaries.max() + 1
     if down_index is not None:
-        assert down_index.size(1) == shared_faces.size(0)
-        assert num_simplices_down >= shared_faces.max() + 1
+        assert down_index.size(1) == shared_boundaries.size(0)
+        assert num_cells_down >= shared_boundaries.max() + 1
 
-    return Chain(dim=dim, x=x, upper_index=up_index,
-                 lower_index=down_index, shared_cofaces=shared_cofaces,
-                 shared_faces=shared_faces, y=y, num_simplices_down=num_simplices_down,
-                 num_simplices_up=num_simplices_up, face_index=face_index)
+    return Cochain(dim=dim, x=x, upper_index=up_index,
+                 lower_index=down_index, shared_coboundaries=shared_coboundaries,
+                 shared_boundaries=shared_boundaries, y=y, num_cells_down=num_cells_down,
+                 num_cells_up=num_cells_up, boundary_index=boundary_index)
 
 
 def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
@@ -521,12 +521,12 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # Builds tables of the simplicial complexes at each level and their IDs
     simplex_tables, id_maps = build_tables(simplex_tree, size)
 
-    # Extracts the faces and cofaces of each simplex in the complex
-    faces_tables, faces, co_faces = (
-        extract_faces_and_cofaces_from_simplex_tree(simplex_tree, id_maps, complex_dim))
+    # Extracts the boundaries and coboundaries of each simplex in the complex
+    boundaries_tables, boundaries, co_boundaries = (
+        extract_boundaries_and_coboundaries_from_simplex_tree(simplex_tree, id_maps, complex_dim))
 
     # Computes the adjacencies between all the simplexes in the complex
-    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj(faces, co_faces, id_maps,
+    shared_boundaries, shared_coboundaries, lower_idx, upper_idx = build_adj(boundaries, co_boundaries, id_maps,
                                                                    complex_dim, include_down_adj)
 
     # Construct features for the higher dimensions
@@ -536,14 +536,14 @@ def compute_clique_complex_with_gudhi(x: Tensor, edge_index: Adj, size: int,
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
 
-    chains = []
+    cochains = []
     for i in range(complex_dim+1):
         y = v_y if i == 0 else None
-        chain = generate_chain(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                               simplex_tables, faces_tables, complex_dim=complex_dim, y=y)
-        chains.append(chain)
+        cochain = generate_cochain(i, xs[i], upper_idx, lower_idx, shared_boundaries, shared_coboundaries,
+                               simplex_tables, boundaries_tables, complex_dim=complex_dim, y=y)
+        cochains.append(cochain)
 
-    return Complex(*chains, y=complex_y, dimension=complex_dim)
+    return Complex(*cochains, y=complex_y, dimension=complex_dim)
 
 
 def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_adj=True,
@@ -561,9 +561,9 @@ def convert_graph_dataset_with_gudhi(dataset, expansion_dim: int, include_down_a
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
             if num_features[dim] is None:
-                num_features[dim] = complex.chains[dim].num_features
+                num_features[dim] = complex.cochains[dim].num_features
             else:
-                assert num_features[dim] == complex.chains[dim].num_features
+                assert num_features[dim] == complex.cochains[dim].num_features
         complexes.append(complex)
 
     return complexes, dimension, num_features[:dimension+1]
@@ -581,7 +581,7 @@ def get_rings(edge_index, max_k=7):
     gt.stats.remove_self_loops(graph_gt)
     gt.stats.remove_parallel_edges(graph_gt)
     # We represent rings with their original node ordering
-    # so that we can easily read out the faces
+    # so that we can easily read out the boundaries
     # The use of the `sorted_rings` set allows to discard
     # different isomorphisms which are however associated
     # to the same original ring – this happens due to the intrinsic
@@ -608,7 +608,7 @@ def build_tables_with_rings(edge_index, simplex_tree, size, max_k):
     
     # Build simplex tables and id_maps up to edges by conveniently
     # invoking the code for simplicial complexes
-    simplex_tables, id_maps = build_tables(simplex_tree, size)
+    cell_tables, id_maps = build_tables(simplex_tree, size)
     
     # Find rings in the graph
     rings = get_rings(edge_index, max_k=max_k)
@@ -616,59 +616,59 @@ def build_tables_with_rings(edge_index, simplex_tree, size, max_k):
     if len(rings) > 0:
         # Extend the tables with rings as 2-cells
         id_maps += [{}]
-        simplex_tables += [[]]
-        assert len(simplex_tables) == 3, simplex_tables
+        cell_tables += [[]]
+        assert len(cell_tables) == 3, cell_tables
         for cell in rings:
-            next_id = len(simplex_tables[2])
+            next_id = len(cell_tables[2])
             id_maps[2][cell] = next_id
-            simplex_tables[2].append(list(cell))
+            cell_tables[2].append(list(cell))
 
-    return simplex_tables, id_maps
+    return cell_tables, id_maps
 
 
-def get_ring_faces(ring):
-    faces = list()
+def get_ring_boundaries(ring):
+    boundaries = list()
     for n in range(len(ring)):
         a = n
         if n + 1 == len(ring):
             b = 0
         else:
             b = n + 1
-        # We represent the faces in lexicographic order
+        # We represent the boundaries in lexicographic order
         # so to be compatible with 0- and 1- dim cells
         # extracted as simplices with gudhi
-        faces.append(tuple(sorted([ring[a], ring[b]])))
-    return sorted(faces)
+        boundaries.append(tuple(sorted([ring[a], ring[b]])))
+    return sorted(boundaries)
 
 
-def extract_faces_and_cofaces_with_rings(simplex_tree, id_maps):
-    """Build two maps: cell -> its cofaces and cell -> its faces"""
+def extract_boundaries_and_coboundaries_with_rings(simplex_tree, id_maps):
+    """Build two maps: cell -> its coboundaries and cell -> its boundaries"""
 
-    # Find faces and cofaces up to edges by conveniently
+    # Find boundaries and coboundaries up to edges by conveniently
     # invoking the code for simplicial complexes
     assert simplex_tree.dimension() <= 1
-    faces_tables, faces, cofaces = extract_faces_and_cofaces_from_simplex_tree(
+    boundaries_tables, boundaries, coboundaries = extract_boundaries_and_coboundaries_from_simplex_tree(
                                             simplex_tree, id_maps, simplex_tree.dimension())
     
     assert len(id_maps) <= 3
     if len(id_maps) == 3:
-        # Extend tables with face and coface information of rings
-        faces += [{}]
-        cofaces += [{}]
-        faces_tables += [[]]
+        # Extend tables with boundary and coboundary information of rings
+        boundaries += [{}]
+        coboundaries += [{}]
+        boundaries_tables += [[]]
         for cell in id_maps[2]:
-            cell_faces = get_ring_faces(cell)
-            faces[2][cell] = list()
-            faces_tables[2].append([])
-            for face in cell_faces:
-                assert face in id_maps[1], face
-                faces[2][cell].append(face)
-                if face not in cofaces[1]:
-                    cofaces[1][face] = list()
-                cofaces[1][face].append(cell)
-                faces_tables[2][-1].append(id_maps[1][face])
+            cell_boundaries = get_ring_boundaries(cell)
+            boundaries[2][cell] = list()
+            boundaries_tables[2].append([])
+            for boundary in cell_boundaries:
+                assert boundary in id_maps[1], boundary
+                boundaries[2][cell].append(boundary)
+                if boundary not in coboundaries[1]:
+                    coboundaries[1][boundary] = list()
+                coboundaries[1][boundary].append(cell)
+                boundaries_tables[2][-1].append(id_maps[1][boundary])
     
-    return faces_tables, faces, cofaces
+    return boundaries_tables, boundaries, coboundaries
 
 
 def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor, np.ndarray],
@@ -708,22 +708,22 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
     if simplex_tree.dimension() == 0:
         assert edge_index.size(1) == 0
 
-    # Builds tables of the simplicial complexes at each level and their IDs
-    simplex_tables, id_maps = build_tables_with_rings(edge_index, simplex_tree, size, max_k)
+    # Builds tables of the cellular complexes at each level and their IDs
+    cell_tables, id_maps = build_tables_with_rings(edge_index, simplex_tree, size, max_k)
     assert len(id_maps) <= 3
     complex_dim = len(id_maps)-1
 
-    # Extracts the faces and cofaces of each simplex in the complex
-    faces_tables, faces, co_faces = extract_faces_and_cofaces_with_rings(simplex_tree, id_maps)
+    # Extracts the boundaries and coboundaries of each cell in the complex
+    boundaries_tables, boundaries, co_boundaries = extract_boundaries_and_coboundaries_with_rings(simplex_tree, id_maps)
 
-    # Computes the adjacencies between all the simplexes in the complex;
+    # Computes the adjacencies between all the cells in the complex;
     # here we force complex dimension to be 2
-    shared_faces, shared_cofaces, lower_idx, upper_idx = build_adj(faces, co_faces, id_maps,
+    shared_boundaries, shared_coboundaries, lower_idx, upper_idx = build_adj(boundaries, co_boundaries, id_maps,
                                                                    complex_dim, include_down_adj)
     
     # Construct features for the higher dimensions
     xs = [x, None, None]
-    constructed_features = construct_features(x, simplex_tables, init_method)
+    constructed_features = construct_features(x, cell_tables, init_method)
     if simplex_tree.dimension() == 0:
         assert len(constructed_features) == 1
     if init_rings and len(constructed_features) > 2:
@@ -751,7 +751,7 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
             # Build edge feature matrix
             max_id = max(ex.keys())
             edge_feats = []
-            assert len(simplex_tables[1]) == max_id + 1
+            assert len(cell_tables[1]) == max_id + 1
             for id in range(max_id + 1):
                 edge_feats.append(ex[id])
             xs[1] = torch.stack(edge_feats, dim=0)
@@ -762,14 +762,14 @@ def compute_ring_2complex(x: Union[Tensor, np.ndarray], edge_index: Union[Tensor
     # Initialise the node / complex labels
     v_y, complex_y = extract_labels(y, size)
 
-    chains = []
+    cochains = []
     for i in range(complex_dim + 1):
         y = v_y if i == 0 else None
-        chain = generate_chain(i, xs[i], upper_idx, lower_idx, shared_faces, shared_cofaces,
-                               simplex_tables, faces_tables, complex_dim=complex_dim, y=y)
-        chains.append(chain)
+        cochain = generate_cochain(i, xs[i], upper_idx, lower_idx, shared_boundaries, shared_coboundaries,
+                               cell_tables, boundaries_tables, complex_dim=complex_dim, y=y)
+        cochains.append(cochain)
 
-    return Complex(*chains, y=complex_y, dimension=complex_dim)
+    return Complex(*cochains, y=complex_y, dimension=complex_dim)
 
 
 def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=False,
@@ -802,15 +802,15 @@ def convert_graph_dataset_with_rings(dataset, max_ring_size=7, include_down_adj=
             dimension = complex.dimension
         for dim in range(complex.dimension + 1):
             if num_features[dim] is None:
-                num_features[dim] = complex.chains[dim].num_features
+                num_features[dim] = complex.cochains[dim].num_features
             else:
-                assert num_features[dim] == complex.chains[dim].num_features
+                assert num_features[dim] == complex.cochains[dim].num_features
 
         # Validate against graph
         graph = dataset[c]
         assert torch.equal(complex.y, graph.y)
-        assert torch.equal(complex.chains[0].x, graph.x)
+        assert torch.equal(complex.cochains[0].x, graph.x)
         if complex.dimension >= 1:
-            assert complex.chains[1].x.size(0) == (graph.edge_index.size(1) // 2)
+            assert complex.cochains[1].x.size(0) == (graph.edge_index.size(1) // 2)
 
     return complexes, dimension, num_features[:dimension+1]

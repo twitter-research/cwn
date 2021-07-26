@@ -28,11 +28,11 @@ def visualise_flow_dataset():
     plt.triplot(points[:, 0], points[:, 1], triangles)
     plt.plot(points[:, 0], points[:, 1], 'o')
 
-    for i, chain in enumerate([dataset[180], dataset[480]]):
+    for i, cochain in enumerate([dataset[180], dataset[480]]):
         colors = ['red', 'navy', 'purple']
         color = colors[i]
 
-        x = chain.x
+        x = cochain.x
         #
         # source_edge = 92
         # source_points = edge_to_tuple[source_edge]
@@ -54,21 +54,21 @@ def visualise_flow_dataset():
             plt.arrow(p1[0], p1[1], p2[0] - p1[0], p2[1] - p1[1], color=color,
                 shape='full', lw=3, length_includes_head=True, head_width=.01, zorder=10)
 
-    # lower_index = chain.lower_index
+    # lower_index = cochain.lower_index
     # for i in range(lower_index.size(1)):
     #     n1, n2 = lower_index[0, i].item(), lower_index[1, i].item()
     #     if n1 == source_edge:
     #         source_points = edge_to_tuple[n2]
-    #         orient = chain.lower_orient[i].item()
+    #         orient = cochain.lower_orient[i].item()
     #         color = 'green' if orient == 1.0 else 'yellow'
     #         plot_arrow(points[source_points[0]], points[source_points[1]], color=color)
 
-    # upper_index = chain.upper_index
+    # upper_index = cochain.upper_index
     # for i in range(upper_index.size(1)):
     #     n1, n2 = upper_index[0, i].item(), upper_index[1, i].item()
     #     if n1 == source_edge:
     #         source_points = edge_to_tuple[n2]
-    #         orient = chain.upper_orient[i].item()
+    #         orient = cochain.upper_orient[i].item()
     #         color = 'green' if orient == 1.0 else 'yellow'
     #         plot_arrow(points[source_points[0]], points[source_points[1]], color=color)
 

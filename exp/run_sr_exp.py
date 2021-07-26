@@ -7,7 +7,7 @@ from definitions import ROOT_DIR
 from exp.parser import get_parser
 from exp.run_exp import main
 
-# python3 -m exp.run_sr_exp --task_type isomorphism --eval_metric isomorphism --untrained --model sparse_sin --nonlinearity id --emb_dim 16 --readout sum --num_layers 5
+# python3 -m exp.run_sr_exp --task_type isomorphism --eval_metric isomorphism --untrained --model sparse_cin --nonlinearity id --emb_dim 16 --readout sum --num_layers 5
 # python3 -m exp.run_sr_exp --task_type isomorphism --eval_metric isomorphism --untrained --model gin --nonlinearity id --emb_dim 16 --readout sum --num_layers 5
 #--jump_mode None
 

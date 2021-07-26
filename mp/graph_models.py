@@ -2,7 +2,7 @@
 Code based on https://github.com/rusty1s/pytorch_geometric/blob/master/benchmark/kernel/gin.py
 
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
-Copyright (c) 2021 The SCN Project Authors
+Copyright (c) 2021 The CWN Project Authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

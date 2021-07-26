@@ -1,6 +1,6 @@
 """
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
-Copyright (c) 2021 The SCN Project Authors
+Copyright (c) 2021 The CWN Project Authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,48 +28,48 @@ import copy
 
 from torch import Tensor
 from torch_sparse import SparseTensor
-from mp.smp import ChainMessagePassingParams
+from mp.cell_mp import CochainMessagePassingParams
 from torch_geometric.typing import Adj
 from typing import List
 
 __num_warn_msg__ = (
-    'The number of {0} in your chain object can only be inferred by its {1}, '
+    'The number of {0} in your cochain object can only be inferred by its {1}, '
     'and hence may result in unexpected batch-wise behavior, e.g., '
-    'in case there exists isolated simplices. Please consider explicitly setting '
+    'in case there exists isolated cells. Please consider explicitly setting '
     'the number of {0} for this data object by assigning it to '
-    'chain.num_{0}.')
+    'cochain.num_{0}.')
 
 __complex_max_dim_lower_bound__ = 2
 
 
-class Chain(object):
+class Cochain(object):
     """
-        Class representing a chain of k-dim simplices.
+        Class representing a cochain of k-dim cells.
     """
     def __init__(self, dim: int, x: Tensor = None, upper_index: Adj = None, lower_index: Adj = None,
-                 shared_faces: Tensor = None, shared_cofaces: Tensor = None, mapping: Tensor = None, 
-                 face_index: Adj = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
+                 shared_boundaries: Tensor = None, shared_coboundaries: Tensor = None, mapping: Tensor = None,
+                 boundary_index: Adj = None, upper_orient=None, lower_orient=None, y=None, **kwargs):
         """
         Args:
-            Constructs a `dim`-chain.
-            dim: dim of the simplices in the chain
-            x: feature matrix, shape [num_simplices, num_features]; may not be available
+            Constructs a `dim`-cochain.
+            dim: dim of the cells in the cochain
+            x: feature matrix, shape [num_cells, num_features]; may not be available
             upper_index: upper adjacency, matrix, shape [2, num_upper_connections];
                 may not be available, e.g. when `dim` is the top level dim of a complex
             lower_index: lower adjacency, matrix, shape [2, num_lower_connections];
                 may not be available, e.g. when `dim` is 0
-            shared_faces: a tensor of shape (num_lower_adjacencies,) specifying the indices of
-                the shared face for each lower adjacency
-            shared_cofaces: a tensor of shape (num_upper_adjacencies,) specifying the indices of
-                the shared coface for each upper adjacency
-            face_index: face adjacency, matrix, shape [2, num_faces_connections];
+            shared_boundaries: a tensor of shape (num_lower_adjacencies,) specifying the indices of
+                the shared boundary for each lower adjacency
+            shared_coboundaries: a tensor of shape (num_upper_adjacencies,) specifying the indices of
+                the shared coboundary for each upper adjacency
+            boundary_index: boundary adjacency, matrix, shape [2, num_boundaries_connections];
                 may not be available, e.g. when `dim` is 0
-            y: labels over simplices in the chain, shape [num_simplices,]
+            y: labels over cells in the cochain, shape [num_cells,]
         """
         if dim == 0:
             assert lower_index is None
-            assert shared_faces is None
-            assert face_index is None
+            assert shared_boundaries is None
+            assert boundary_index is None
 
         # Note, everything that is not of form __smth__ is made None during batching
         # So dim must be stored like this.
@@ -78,10 +78,10 @@ class Chain(object):
         self.__x = x
         self.upper_index = upper_index
         self.lower_index = lower_index
-        self.face_index = face_index
+        self.boundary_index = boundary_index
         self.y = y
-        self.shared_faces = shared_faces
-        self.shared_cofaces = shared_cofaces
+        self.shared_boundaries = shared_boundaries
+        self.shared_coboundaries = shared_coboundaries
         self.upper_orient = upper_orient
         self.lower_orient = lower_orient
         self.__oriented__ = False
@@ -89,18 +89,18 @@ class Chain(object):
         # TODO: Figure out what to do with mapping.
         self.__mapping = mapping
         for key, item in kwargs.items():
-            if key == 'num_simplices':
-                self.__num_simplices__ = item
-            elif key == 'num_simplices_down':
-                self.num_simplices_down = item
-            elif key == 'num_simplices_up':
-                self.num_simplices_up = item
+            if key == 'num_cells':
+                self.__num_cells__ = item
+            elif key == 'num_cells_down':
+                self.num_cells_down = item
+            elif key == 'num_cells_up':
+                self.num_cells_up = item
             else:
                 self[key] = item
 
     @property
     def dim(self):
-        """This field should not have a setter. The dimension of a chain cannot be changed"""
+        """This field should not have a setter. The dimension of a cochain cannot be changed"""
         return self.__dim__
     
     @property
@@ -110,15 +110,15 @@ class Chain(object):
     @x.setter
     def x(self, new_x):
         if new_x is None:
-            logging.warning("Chain features were set to None. ")
+            logging.warning("Cochain features were set to None. ")
         else:
-            assert self.num_simplices == len(new_x)
+            assert self.num_cells == len(new_x)
         self.__x = new_x
 
     @property
     def keys(self):
         """
-            Returns all names of chain attributes.
+            Returns all names of cochain attributes.
         """
         keys = [key for key in self.__dict__.keys() if self[key] is not None]
         keys = [key for key in keys if key[:2] != '__' and key[-2:] != '__']
@@ -148,8 +148,8 @@ class Chain(object):
             Returns the dimension for which :obj:`value` of attribute
             :obj:`key` will get concatenated when creating batches.
         """
-        if key in ['upper_index', 'lower_index', 'shared_faces', 
-                   'shared_cofaces', 'face_index']:
+        if key in ['upper_index', 'lower_index', 'shared_boundaries',
+                   'shared_coboundaries', 'boundary_index']:
             return -1
         # by default, concatenate sparse matrices diagonally.
         elif isinstance(value, SparseTensor):
@@ -162,15 +162,15 @@ class Chain(object):
             of the next attribute of :obj:`key` when creating batches.
         """
         if key in ['upper_index', 'lower_index']:
-            inc = self.num_simplices
-        elif key in ['shared_faces']:
-            inc = self.num_simplices_down
-        elif key == 'shared_cofaces':
-            inc = self.num_simplices_up
-        elif key == 'face_index':
-            face_inc = self.num_simplices_down if self.num_simplices_down is not None else 0
-            simplex_inc = self.num_simplices if self.num_simplices is not None else 0
-            inc = [[face_inc], [simplex_inc]]
+            inc = self.num_cells
+        elif key in ['shared_boundaries']:
+            inc = self.num_cells_down
+        elif key == 'shared_coboundaries':
+            inc = self.num_cells_up
+        elif key == 'boundary_index':
+            boundary_inc = self.num_cells_down if self.num_cells_down is not None else 0
+            cell_inc = self.num_cells if self.num_cells is not None else 0
+            inc = [[boundary_inc], [cell_inc]]
         else:
             inc = 0
         if inc is None:
@@ -180,7 +180,7 @@ class Chain(object):
     
     def __call__(self, *keys):
         """
-            Iterates over all attributes :obj:`*keys` in the chain, yielding
+            Iterates over all attributes :obj:`*keys` in the cochain, yielding
             their attribute names and content.
             If :obj:`*keys` is not given this method will iterative over all
             present attributes.
@@ -190,88 +190,88 @@ class Chain(object):
                 yield key, self[key]
 
     @property
-    def num_simplices(self):
+    def num_cells(self):
         """
-            Returns or sets the number of simplices in the chain.
+            Returns or sets the number of cells in the cochain.
 
         .. note::
-            The number of simplices in your chain object is typically automatically
-            inferred, *e.g.*, when chain features :obj:`x` are present.
-            In some cases however, a chain may only be given by its upper/lower
+            The number of cells in your cochain object is typically automatically
+            inferred, *e.g.*, when cochain features :obj:`x` are present.
+            In some cases however, a cochain may only be given by its upper/lower
             indices :obj:`edge_index`.
-            The code then *guesses* the number of simplices
+            The code then *guesses* the number of cells
             according to :obj:`{upper,lower}_index.max().item() + 1`, but in case there
-            exists isolated simplices, this number has not to be correct and can
+            exists isolated cells, this number has not to be correct and can
             therefore result in unexpected batch-wise behavior.
-            Thus, we recommend to set the number of simplices in the chain object
-            explicitly via :obj:`data.num_simplices = ...`.
+            Thus, we recommend to set the number of cells in the cochain object
+            explicitly via :obj:`data.num_cells = ...`.
             You will be given a warning that requests you to do so.
         """
-        if hasattr(self, '__num_simplices__'):
-            return self.__num_simplices__
+        if hasattr(self, '__num_cells__'):
+            return self.__num_cells__
         if self.x is not None:
             return self.x.size(self.__cat_dim__('x', self.x))
-        if self.face_index is not None:
-            return int(self.face_index[1,:].max()) + 1
+        if self.boundary_index is not None:
+            return int(self.boundary_index[1,:].max()) + 1
         if self.upper_index is not None:
-            logging.warning(__num_warn_msg__.format('simplices', 'upper_index'))
+            logging.warning(__num_warn_msg__.format('cells', 'upper_index'))
             return int(self.upper_index.max()) + 1
         if self.lower_index is not None:
-            logging.warning(__num_warn_msg__.format('simplices', 'lower_index'))
+            logging.warning(__num_warn_msg__.format('cells', 'lower_index'))
             return int(self.lower_index.max()) + 1
         return None
 
-    @num_simplices.setter
-    def num_simplices(self, num_simplices):
-        self.__num_simplices__ = num_simplices
+    @num_cells.setter
+    def num_cells(self, num_cells):
+        self.__num_cells__ = num_cells
 
     @property
-    def num_simplices_up(self):
+    def num_cells_up(self):
         """
-            Returns or sets the number of simplices in the upper chain.
-            In fact, this correspond to the overall number of cofaces in the current chain.
+            Returns or sets the number of cells in the upper cochain.
+            In fact, this correspond to the overall number of coboundaries in the current cochain.
         """
-        if hasattr(self, '__num_simplices_up__'):
-            return self.__num_simplices_up__
+        if hasattr(self, '__num_cells_up__'):
+            return self.__num_cells_up__
         if self.upper_index is None:
             return 0
-        if self.shared_cofaces is not None:
-            logging.warning(__num_warn_msg__.format('cofaces', 'shared_cofaces'))
-            # TODO: how can this be different than the actual number of cofaces?
-            return int(self.shared_cofaces.max()) + 1
+        if self.shared_coboundaries is not None:
+            logging.warning(__num_warn_msg__.format('coboundaries', 'shared_coboundaries'))
+            # TODO: how can this be different than the actual number of coboundaries?
+            return int(self.shared_coboundaries.max()) + 1
         return None
 
-    @num_simplices_up.setter
-    def num_simplices_up(self, num_simplices_up):
-        self.__num_simplices_up__ = num_simplices_up
+    @num_cells_up.setter
+    def num_cells_up(self, num_cells_up):
+        self.__num_cells_up__ = num_cells_up
 
     @property
-    def num_simplices_down(self):
+    def num_cells_down(self):
         """
-            Returns or sets the number of overall faces in the chain.
+            Returns or sets the number of overall boundaries in the cochain.
         """
         if self.dim == 0:
             return None
-        if hasattr(self, '__num_simplices_down__'):
-            return self.__num_simplices_down__
+        if hasattr(self, '__num_cells_down__'):
+            return self.__num_cells_down__
         if self.lower_index is None:
             return 0
-        if self.shared_faces is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'shared_faces'))
-            return int(self.shared_faces.max()) + 1
-        if self.face_index is not None:
-            logging.warning(__num_warn_msg__.format('faces', 'face_index'))
-            return int(self.face_index[0,:].max()) + 1
+        if self.shared_boundaries is not None:
+            logging.warning(__num_warn_msg__.format('boundaries', 'shared_boundaries'))
+            return int(self.shared_boundaries.max()) + 1
+        if self.boundary_index is not None:
+            logging.warning(__num_warn_msg__.format('boundaries', 'boundary_index'))
+            return int(self.boundary_index[0,:].max()) + 1
         return None
 
-    @num_simplices_down.setter
-    def num_simplices_down(self, num_simplices_down):
-        self.__num_simplices_down__ = num_simplices_down
+    @num_cells_down.setter
+    def num_cells_down(self, num_cells_down):
+        self.__num_cells_down__ = num_cells_down
         
     @property
     def num_features(self):
         """
-            Returns the number of features per simplex in the chain.
+            Returns the number of features per cell in the cochain.
         """
         if self.x is None:
             return 0
@@ -333,7 +333,7 @@ class Chain(object):
 
     def orient(self, arbitrary=None):
         """
-            Enforces orientation to the chain.
+            Enforces orientation to the cochain.
             If `arbitrary` orientation is provided, it enforces that. Otherwise the canonical one
             is enforced.
         """
@@ -349,7 +349,7 @@ class Chain(object):
     def get_hodge_laplacian(self):
         """
             Returns the Hodge Laplacian.
-            Orientation is required; if not present, the chain will first be oriented according
+            Orientation is required; if not present, the cochain will first be oriented according
             to the canonical ordering.
         """
         raise NotImplementedError
@@ -366,40 +366,40 @@ class Chain(object):
 
     def initialize_features(self, strategy='constant'):
         """
-            Routine to initialize simplex-wise features based on the provided `strategy`.
+            Routine to initialize cell-wise features based on the provided `strategy`.
         """
         raise NotImplementedError
         # self.x = ...
         # return
 
 
-class ChainBatch(Chain):
+class CochainBatch(Cochain):
 
     def __init__(self, dim, batch=None, ptr=None, **kwargs):
-        super(ChainBatch, self).__init__(dim, **kwargs)
+        super(CochainBatch, self).__init__(dim, **kwargs)
 
         for key, item in kwargs.items():
-            if key == 'num_simplices':
-                self.__num_simplices__ = item
+            if key == 'num_cells':
+                self.__num_cells__ = item
             else:
                 self[key] = item
 
         self.batch = batch
         self.ptr = ptr
-        self.__data_class__ = Chain
+        self.__data_class__ = Cochain
         self.__slices__ = None
         self.__cumsum__ = None
         self.__cat_dims__ = None
-        self.__num_simplices_list__ = None
-        self.__num_simplices_down_list__ = None
-        self.__num_simplices_up_list__ = None
-        self.__num_chains__ = None
+        self.__num_cells_list__ = None
+        self.__num_cells_down_list__ = None
+        self.__num_cells_up_list__ = None
+        self.__num_cochains__ = None
 
     @classmethod
-    def from_chain_list(cls, data_list, follow_batch=[]):
+    def from_cochain_list(cls, data_list, follow_batch=[]):
         """
             Constructs a batch object from a python list holding
-            :class:`Chain` objects.
+            :class:`Cochain` objects.
             The assignment vector :obj:`batch` is created on the fly.
             Additionally, creates assignment batch vectors for each key in
             :obj:`follow_batch`.
@@ -412,7 +412,7 @@ class ChainBatch(Chain):
             if key[:2] != '__' and key[-2:] != '__':
                 batch[key] = None
 
-        batch.__num_chains__ = len(data_list)
+        batch.__num_cochains__ = len(data_list)
         batch.__data_class__ = data_list[0].__class__
         for key in keys + ['batch']:
             batch[key] = []
@@ -422,9 +422,9 @@ class ChainBatch(Chain):
         slices = {key: [0] for key in keys}
         cumsum = {key: [0] for key in keys}
         cat_dims = {}
-        num_simplices_list = []
-        num_simplices_up_list = []
-        num_simplices_down_list = []
+        num_cells_list = []
+        num_cells_up_list = []
+        num_cells_down_list = []
         for i, data in enumerate(data_list):
             for key in keys:
                 item = data[key]
@@ -484,27 +484,27 @@ class ChainBatch(Chain):
                     inc = torch.tensor(inc)
                 cumsum[key].append(inc + cumsum[key][-1])
 
-            if hasattr(data, '__num_simplices__'):
-                num_simplices_list.append(data.__num_simplices__)
+            if hasattr(data, '__num_cells__'):
+                num_cells_list.append(data.__num_cells__)
             else:
-                num_simplices_list.append(None)
+                num_cells_list.append(None)
 
-            if hasattr(data, '__num_simplices_up__'):
-                num_simplices_up_list.append(data.__num_simplices_up__)
+            if hasattr(data, '__num_cells_up__'):
+                num_cells_up_list.append(data.__num_cells_up__)
             else:
-                num_simplices_up_list.append(None)
+                num_cells_up_list.append(None)
 
-            if hasattr(data, '__num_simplices_down__'):
-                num_simplices_down_list.append(data.__num_simplices_down__)
+            if hasattr(data, '__num_cells_down__'):
+                num_cells_down_list.append(data.__num_cells_down__)
             else:
-                num_simplices_down_list.append(None)
+                num_cells_down_list.append(None)
 
-            num_simplices = data.num_simplices
-            if num_simplices is not None:
-                item = torch.full((num_simplices, ), i, dtype=torch.long,
+            num_cells = data.num_cells
+            if num_cells is not None:
+                item = torch.full((num_cells, ), i, dtype=torch.long,
                                   device=device)
                 batch.batch.append(item)
-                batch.ptr.append(batch.ptr[-1] + num_simplices)
+                batch.ptr.append(batch.ptr[-1] + num_cells)
 
         # Fix initial slice values:
         for key in keys:
@@ -515,9 +515,9 @@ class ChainBatch(Chain):
         batch.__slices__ = slices
         batch.__cumsum__ = cumsum
         batch.__cat_dims__ = cat_dims
-        batch.__num_simplices_list__ = num_simplices_list
-        batch.__num_simplices_up_list__ = num_simplices_up_list
-        batch.__num_simplices_down_list__ = num_simplices_down_list
+        batch.__num_cells_list__ = num_cells_list
+        batch.__num_cells_up_list__ = num_cells_up_list
+        batch.__num_cells_down_list__ = num_cells_down_list
 
         ref_data = data_list[0]
         for key in batch.keys:
@@ -538,7 +538,7 @@ class ChainBatch(Chain):
 
     def __getitem__(self, idx):
         if isinstance(idx, str):
-            return super(ChainBatch, self).__getitem__(idx)
+            return super(CochainBatch, self).__getitem__(idx)
         elif isinstance(idx, int):
             raise NotImplementedError
             #return self.get_example(idx)
@@ -546,44 +546,44 @@ class ChainBatch(Chain):
             raise NotImplementedError
             # return self.index_select(idx)
 
-    # TODO: is the 'to_chain_list' method needed for now?
-    def to_chain_list(self) -> List[Chain]:
+    # TODO: is the 'to_cochain_list' method needed for now?
+    def to_cochain_list(self) -> List[Cochain]:
         r"""Reconstructs the list of :class:`torch_geometric.data.Data` objects
         from the batch object.
         The batch object must have been created via :meth:`from_data_list` in
         order to be able to reconstruct the initial objects."""
         raise NotImplementedError
-        #return [self.get_example(i) for i in range(self.num_chains)]
+        #return [self.get_example(i) for i in range(self.num_cochains)]
 
     @property
-    def num_chains(self) -> int:
-        """Returns the number of chains in the batch."""
-        if self.__num_chains__ is not None:
-            return self.__num_chains__
+    def num_cochains(self) -> int:
+        """Returns the number of cochains in the batch."""
+        if self.__num_cochains__ is not None:
+            return self.__num_cochains__
         return self.ptr.numel() + 1
 
 
 class Complex(object):
     """
-        Class representing an attributed simplicial complex.
+        Class representing an attributed cellular complex.
     """
 
-    def __init__(self, *chains: Chain, y: torch.Tensor = None, dimension: int = None):
+    def __init__(self, *cochains: Cochain, y: torch.Tensor = None, dimension: int = None):
 
-        if len(chains) == 0:
-            raise ValueError('At least one chain is required.')
+        if len(cochains) == 0:
+            raise ValueError('At least one cochain is required.')
         if dimension is None:
-            dimension = len(chains) - 1
-        if len(chains) < dimension + 1:
-            raise ValueError('Not enough chains passed (expected {}, received {})'.format(dimension + 1, len(chains)))
+            dimension = len(cochains) - 1
+        if len(cochains) < dimension + 1:
+            raise ValueError('Not enough cochains passed (expected {}, received {})'.format(dimension + 1, len(cochains)))
         
-        # TODO: This needs some data checking to check that these chains are consistent together
+        # TODO: This needs some data checking to check that these cochains are consistent together
         # ^^^ see `_consolidate`
         self.dimension = dimension
-        self.chains = {i: chains[i] for i in range(dimension + 1)}
-        self.nodes = chains[0]
-        self.edges = chains[1] if dimension >= 1 else None
-        self.triangles = chains[2] if dimension >= 2 else None
+        self.cochains = {i: cochains[i] for i in range(dimension + 1)}
+        self.nodes = cochains[0]
+        self.edges = cochains[1] if dimension >= 1 else None
+        self.two_cells = cochains[2] if dimension >= 2 else None
 
         self.y = y  # complex-wise label for complex-level tasks
         
@@ -592,41 +592,41 @@ class Complex(object):
     
     def _consolidate(self):
         for dim in range(self.dimension+1):
-            chain = self.chains[dim]
-            assert chain.dim == dim
+            cochain = self.cochains[dim]
+            assert cochain.dim == dim
             if dim < self.dimension:
-                upper_chain = self.chains[dim + 1]
-                num_simplices_up = upper_chain.num_simplices
-                assert num_simplices_up is not None
-                if 'num_simplices_up' in chain:
-                    assert chain.num_simplices_up == num_simplices_up
+                upper_cochain = self.cochains[dim + 1]
+                num_cells_up = upper_cochain.num_cells
+                assert num_cells_up is not None
+                if 'num_cells_up' in cochain:
+                    assert cochain.num_cells_up == num_cells_up
                 else:
-                    chain.num_simplices_up = num_simplices_up
+                    cochain.num_cells_up = num_cells_up
             if dim > 0:
-                lower_chain = self.chains[dim - 1]
-                num_simplices_down = lower_chain.num_simplices
-                assert num_simplices_down is not None
-                if 'num_simplices_down' in chain:
-                    assert chain.num_simplices_down == num_simplices_down
+                lower_cochain = self.cochains[dim - 1]
+                num_cells_down = lower_cochain.num_cells
+                assert num_cells_down is not None
+                if 'num_cells_down' in cochain:
+                    assert cochain.num_cells_down == num_cells_down
                 else:
-                    chain.num_simplices_down = num_simplices_down
+                    cochain.num_cells_down = num_cells_down
                     
     def to(self, device, **kwargs):
         """
-            Performs tensor dtype and/or device conversion to chains and label y,
+            Performs tensor dtype and/or device conversion to cochains and label y,
             if set.
         """
         # TODO: handle device conversion for specific attributes via `*keys` parameter
         for dim in range(self.dimension + 1):
-            self.chains[dim] = self.chains[dim].to(device, **kwargs)
+            self.cochains[dim] = self.cochains[dim].to(device, **kwargs)
         if self.y is not None:
             self.y = self.y.to(device, **kwargs)
         return self
 
-    def get_chain_params(self, dim, max_dim=2,
+    def get_cochain_params(self, dim, max_dim=2,
                          include_top_features=True,
                          include_down_features=True,
-                         include_face_features=True) -> ChainMessagePassingParams:
+                         include_boundary_features=True) -> CochainMessagePassingParams:
         """
             Conveniently returns all necessary input parameters to perform higher-dim
             neural message passing at the specified `dim`.
@@ -637,87 +637,87 @@ class Complex(object):
                     This is only used in conjunction with include_top_features.
                 include_top_features: Whether to include the top features from level max_dim+1.
                 include_down_features: Include the features for down adjacency
-                include_face_features: Include the features for the face
+                include_boundary_features: Include the features for the boundary
         """
-        if dim in self.chains:
-            simplices = self.chains[dim]
-            x = simplices.x
+        if dim in self.cochains:
+            cells = self.cochains[dim]
+            x = cells.x
             # Add up features
             upper_index, upper_features = None, None
-            # We also check that dim+1 does exist in the current complex. This chain might have been
+            # We also check that dim+1 does exist in the current complex. This cochain might have been
             # extracted from a higher dimensional complex by a batching operation, and dim+1
-            # might not exist anymore even though simplices.upper_index is present.
-            if simplices.upper_index is not None and (dim+1) in self.chains:
-                upper_index = simplices.upper_index
-                if self.chains[dim + 1].x is not None and (dim < max_dim or include_top_features):
-                    upper_features = torch.index_select(self.chains[dim + 1].x, 0,
-                                                        self.chains[dim].shared_cofaces)
+            # might not exist anymore even though cells.upper_index is present.
+            if cells.upper_index is not None and (dim+1) in self.cochains:
+                upper_index = cells.upper_index
+                if self.cochains[dim + 1].x is not None and (dim < max_dim or include_top_features):
+                    upper_features = torch.index_select(self.cochains[dim + 1].x, 0,
+                                                        self.cochains[dim].shared_coboundaries)
 
             # Add down features
             lower_index, lower_features = None, None
-            if include_down_features and simplices.lower_index is not None:
-                lower_index = simplices.lower_index
-                if dim > 0 and self.chains[dim - 1].x is not None:
-                    lower_features = torch.index_select(self.chains[dim - 1].x, 0,
-                                                        self.chains[dim].shared_faces)            
-            # Add face features
-            face_index, face_features = None, None
-            if include_face_features and simplices.face_index is not None:
-                face_index = simplices.face_index
-                if dim > 0 and self.chains[dim - 1].x is not None:
-                    face_features = self.chains[dim - 1].x
+            if include_down_features and cells.lower_index is not None:
+                lower_index = cells.lower_index
+                if dim > 0 and self.cochains[dim - 1].x is not None:
+                    lower_features = torch.index_select(self.cochains[dim - 1].x, 0,
+                                                        self.cochains[dim].shared_boundaries)
+            # Add boundary features
+            boundary_index, boundary_features = None, None
+            if include_boundary_features and cells.boundary_index is not None:
+                boundary_index = cells.boundary_index
+                if dim > 0 and self.cochains[dim - 1].x is not None:
+                    boundary_features = self.cochains[dim - 1].x
 
-            inputs = ChainMessagePassingParams(x, upper_index, lower_index,
+            inputs = CochainMessagePassingParams(x, upper_index, lower_index,
                                                up_attr=upper_features, down_attr=lower_features,
-                                               face_attr=face_features, face_index=face_index)
+                                               boundary_attr=boundary_features, boundary_index=boundary_index)
         else:
             raise NotImplementedError(
                 'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return inputs
 
-    def get_all_chain_params(self, max_dim=2,
+    def get_all_cochain_params(self, max_dim=2,
                              include_top_features=True,
                              include_down_features=True,
-                             include_face_features=True):
-        """Gets the chain parameters for message passing at all layers.
+                             include_boundary_features=True):
+        """Gets the cochain parameters for message passing at all layers.
 
         Args:
             max_dim: The maximum dimension to extract
             include_top_features: Whether to include the features from level max_dim+1
             include_down_features: Include the features for down adjacency
-            include_face_features: Include the features for the face
+            include_boundary_features: Include the features for the boundary
         """
         all_params = []
         return_dim = min(max_dim, self.dimension)
         for dim in range(return_dim+1):
-            all_params.append(self.get_chain_params(dim, max_dim=max_dim,
+            all_params.append(self.get_cochain_params(dim, max_dim=max_dim,
                                                     include_top_features=include_top_features,
                                                     include_down_features=include_down_features,
-                                                    include_face_features=include_face_features))
+                                                    include_boundary_features=include_boundary_features))
         return all_params
 
     def get_labels(self, dim=None):
         """
             Returns target labels.
             If `dim`==k (integer in [0, self.dimension]) then the labels over
-            k-simplices are returned.
+            k-cells are returned.
             In the case `dim` is None the complex-wise label is returned.
         """
         if dim is None:
             y = self.y
         else:
-            if dim in self.chains:
-                y = self.chains[dim].y
+            if dim in self.cochains:
+                y = self.cochains[dim].y
             else:
                 raise NotImplementedError(
                     'Dim {} is not present in the complex or not yet supported.'.format(dim))
         return y
 
     def set_xs(self, xs: List[Tensor]):
-        """Sets the features of the chains to the values in the list"""
+        """Sets the features of the cochains to the values in the list"""
         assert (self.dimension + 1) >= len(xs)
         for i, x in enumerate(xs):
-            self.chains[i].x = x
+            self.cochains[i].x = x
             
     @property
     def keys(self):
@@ -753,8 +753,8 @@ class ComplexBatch(Complex):
         Class representing a batch of complexes.
     """
 
-    def __init__(self, *chains: ChainBatch, dimension: int, y: torch.Tensor = None, num_complexes: int = None):
-        super(ComplexBatch, self).__init__(*chains, y=y)
+    def __init__(self, *cochains: CochainBatch, dimension: int, y: torch.Tensor = None, num_complexes: int = None):
+        super(ComplexBatch, self).__init__(*cochains, y=y)
         self.num_complexes = num_complexes
         self.dimension = dimension
 
@@ -763,27 +763,27 @@ class ComplexBatch(Complex):
         
         dimension = max([data.dimension for data in data_list])
         dimension = min(dimension, max_dim)
-        chains = [list() for _ in range(dimension + 1)]
+        cochains = [list() for _ in range(dimension + 1)]
         label_list = list()
         per_complex_labels = True
         for comp in data_list:
             for dim in range(dimension+1):
-                if dim not in comp.chains:
-                    # If a dim-chain is not present for the current complex, we instantiate one.
-                    chains[dim].append(Chain(dim=dim))
-                    if dim-1 in comp.chains:
-                        # If the chain below exists in the complex, we need to add the number of
-                        # faces to the newly initialised complex, otherwise batching will not work.
-                        chains[dim][-1].num_simplices_down = comp.chains[dim - 1].num_simplices
+                if dim not in comp.cochains:
+                    # If a dim-cochain is not present for the current complex, we instantiate one.
+                    cochains[dim].append(Cochain(dim=dim))
+                    if dim-1 in comp.cochains:
+                        # If the cochain below exists in the complex, we need to add the number of
+                        # boundaries to the newly initialised complex, otherwise batching will not work.
+                        cochains[dim][-1].num_cells_down = comp.cochains[dim - 1].num_cells
                 else:
-                    chains[dim].append(comp.chains[dim])
+                    cochains[dim].append(comp.cochains[dim])
             per_complex_labels &= comp.y is not None
             if per_complex_labels:
                 label_list.append(comp.y)
 
-        batched_chains = [ChainBatch.from_chain_list(chain_list, follow_batch=follow_batch)
-                          for chain_list in chains]
+        batched_cochains = [CochainBatch.from_cochain_list(cochain_list, follow_batch=follow_batch)
+                          for cochain_list in cochains]
         y = None if not per_complex_labels else torch.cat(label_list, 0)
-        batch = cls(*batched_chains, y=y, num_complexes=len(data_list), dimension=dimension)
+        batch = cls(*batched_cochains, y=y, num_complexes=len(data_list), dimension=dimension)
 
         return batch

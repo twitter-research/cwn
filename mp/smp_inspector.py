@@ -1,6 +1,6 @@
 """
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
-Copyright (c) 2021 The SCN Project Authors
+Copyright (c) 2021 The CWN Project Authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +27,10 @@ from typing import Dict, List, Any, Optional, Callable, Set
 from torch_geometric.nn.conv.utils.inspector import Inspector
 
 
-class SimplicialInspector(Inspector):
+class CellularInspector(Inspector):
 
     def __implements__(self, cls, func_name: str) -> bool:
-        if cls.__name__ == 'ChainMessagePassing':
+        if cls.__name__ == 'CochainMessagePassing':
             return False
         if func_name in cls.__dict__.keys():
             return True

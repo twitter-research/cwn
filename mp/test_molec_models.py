@@ -4,11 +4,11 @@ import pytest
 
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
-from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
+from mp.molec_models import EmbedSparseCIN, OGBEmbedSparseCIN, EmbedSparseCINNoRings, EmbedGIN
 from data.data_loading import DataLoader, load_dataset
 
 
-def test_zinc_sparse_sin0_model_with_batching():
+def test_zinc_sparse_cin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -22,18 +22,18 @@ def test_zinc_sparse_sin0_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = EmbedSparseSIN(atom_types=32, bond_types=4, out_size=3, num_layers=3, hidden=5,
+        model = EmbedSparseCIN(atom_types=32, bond_types=4, out_size=3, num_layers=3, hidden=5,
                                jump_mode='cat', max_dim=model_max_dim)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
 
         batched_res = {}
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred, res = model.forward(batch, include_partial=True)
             for key in res:
@@ -48,11 +48,11 @@ def test_zinc_sparse_sin0_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred, res = model.forward(batch, include_partial=True)
             for key in res:
@@ -68,7 +68,7 @@ def test_zinc_sparse_sin0_model_with_batching():
                     print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
-def test_embed_sparse_sin_no_rings_model_with_batching():
+def test_embed_sparse_cin_no_rings_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -82,17 +82,17 @@ def test_embed_sparse_sin_no_rings_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = EmbedSparseSINNoRings(atom_types=32, bond_types=4, out_size=3, num_layers=3, hidden=5)
+        model = EmbedSparseCINNoRings(atom_types=32, bond_types=4, out_size=3, num_layers=3, hidden=5)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
 
         batched_res = []
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred = model.forward(batch)
             batched_res.append(batched_pred)
@@ -103,11 +103,11 @@ def test_embed_sparse_sin_no_rings_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred = model.forward(batch)
             unbatched_res.append(pred)
@@ -136,11 +136,11 @@ def test_embed_gin_model_with_batching():
 
         batched_res = []
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred = model.forward(batch)
             batched_res.append(batched_pred)
@@ -151,11 +151,11 @@ def test_embed_gin_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred = model.forward(batch)
             unbatched_res.append(pred)
@@ -165,7 +165,7 @@ def test_embed_gin_model_with_batching():
 
 
 @pytest.mark.data
-def test_zinc_sparse_sin0_model_with_batching_on_proteins():
+def test_zinc_sparse_cin0_model_with_batching_on_proteins():
     """Check this runs without errors and that batching and no batching produce the same output."""
     dataset = load_dataset('PROTEINS', max_dim=2, fold=0, init_method='mean')
     assert len(dataset) == 1113
@@ -176,18 +176,18 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
     max_dim = 2
     torch.manual_seed(0)
     data_loader = DataLoader(dataset, batch_size=32, max_dim=max_dim)
-    model = EmbedSparseSIN(atom_types=64, bond_types=4, out_size=3, num_layers=3, hidden=5,
+    model = EmbedSparseCIN(atom_types=64, bond_types=4, out_size=3, num_layers=3, hidden=5,
                            jump_mode='cat', max_dim=max_dim)
     model.eval()
 
     batched_res = {}
     for batch in data_loader:
-        # Simulate no edge and triangle features to test init layer
-        batch.chains[1].x = None
-        if len(batch.chains) == 3:
-            batch.chains[2].x = None
-        # ZincSparseSin assumes features are unidimensional like in ZINC
-        batch.chains[0].x = batch.chains[0].x[:, :1]
+        # Simulate no edge and two_cell features to test init layer
+        batch.cochains[1].x = None
+        if len(batch.cochains) == 3:
+            batch.cochains[2].x = None
+        # ZincSparseCIN assumes features are unidimensional like in ZINC
+        batch.cochains[0].x = batch.cochains[0].x[:, :1]
 
         batched_pred, res = model.forward(batch, include_partial=True)
         for key in res:
@@ -201,12 +201,12 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
     unbatched_res = {}
     for complex in dataset:
         batch = ComplexBatch.from_complex_list([complex], max_dim=max_dim)
-        # Simulate no edge and triangle features to test init layer
-        batch.chains[1].x = None
-        if len(batch.chains) == 3:
-            batch.chains[2].x = None
-        # ZincSparseSin assumes features are unidimensional like in ZINC
-        batch.chains[0].x = batch.chains[0].x[:, :1]
+        # Simulate no edge and two_cell features to test init layer
+        batch.cochains[1].x = None
+        if len(batch.cochains) == 3:
+            batch.cochains[2].x = None
+        # ZincSparseCIN assumes features are unidimensional like in ZINC
+        batch.cochains[0].x = batch.cochains[0].x[:, :1]
 
         pred, res = model.forward(batch, include_partial=True)
         for key in res:
@@ -222,7 +222,7 @@ def test_zinc_sparse_sin0_model_with_batching_on_proteins():
                 print(key, torch.max(torch.abs(unbatched_res[key] - batched_res[key]))))
 
 
-def test_ogb_sparse_sin0_model_with_batching():
+def test_ogb_sparse_cin0_model_with_batching():
     """Check this runs without errors and that batching and no batching produce the same output."""
     data_list = get_testing_complex_list()
 
@@ -236,18 +236,18 @@ def test_ogb_sparse_sin0_model_with_batching():
             continue
 
         data_loader = DataLoader(data_list, batch_size=batch_size, max_dim=batch_max_dim)
-        model = OGBEmbedSparseSIN(out_size=3, num_layers=3, hidden=5,
+        model = OGBEmbedSparseCIN(out_size=3, num_layers=3, hidden=5,
                                   jump_mode=None, max_dim=model_max_dim)
         # We use the model in eval mode to avoid problems with batch norm.
         model.eval()
 
         batched_res = {}
         for batch in data_loader:
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             batched_pred, res = model.forward(batch, include_partial=True)
             for key in res:
@@ -263,11 +263,11 @@ def test_ogb_sparse_sin0_model_with_batching():
         for complex in data_list:
             batch = ComplexBatch.from_complex_list([complex], max_dim=batch_max_dim)
 
-            # Simulate no edge and triangle features to test init layer
-            if len(batch.chains) >= 2:
-                batch.chains[1].x = None
-            if len(batch.chains) == 3:
-                batch.chains[2].x = None
+            # Simulate no edge and two_cell features to test init layer
+            if len(batch.cochains) >= 2:
+                batch.cochains[1].x = None
+            if len(batch.cochains) == 3:
+                batch.cochains[2].x = None
 
             pred, res = model.forward(batch, include_partial=True)
 

@@ -32,16 +32,16 @@ def test_ringtree_dataset_conversion():
                                                        include_down_adj=False, init_rings=True)
 
     for complex in complexes:
-        assert 2 in complex.chains
-        assert complex.chains[2].num_simplices == 1
-        assert complex.chains[1].num_simplices == 10
-        assert complex.chains[0].num_simplices == 10
+        assert 2 in complex.cochains
+        assert complex.cochains[2].num_cells == 1
+        assert complex.cochains[1].num_cells == 10
+        assert complex.cochains[0].num_cells == 10
         assert complex.nodes.x.size(0) == 10
         assert complex.nodes.x.size(1) == 5
         assert complex.edges.x.size(0) == 10
         assert complex.edges.x.size(1) == 5
-        assert complex.triangles.x.size(0) == 1
-        assert complex.triangles.x.size(1) == 5
+        assert complex.two_cells.x.size(0) == 1
+        assert complex.two_cells.x.size(1) == 5
 
 
 def test_ringtree_dataset_loading():

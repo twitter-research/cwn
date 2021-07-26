@@ -1,6 +1,6 @@
 """
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
-Copyright (c) 2021 The SCN Project Authors
+Copyright (c) 2021 The CWN Project Authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ import os.path as osp
 
 from torch_geometric.data import Dataset
 from itertools import repeat, product
-from data.complex import Complex, Chain
+from data.complex import Complex, Cochain
 from torch import Tensor
 
 
@@ -42,7 +42,7 @@ def __repr__(obj):
 
 class ComplexDataset(Dataset, ABC):
     """
-        Base class for simplicial complex datasets.
+        Base class for cellular complex datasets.
     """
 
     def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None,
@@ -74,7 +74,7 @@ class ComplexDataset(Dataset, ABC):
 
     @property
     def processed_dir(self):
-        """This is overwritten, so the simplicial complex data is placed in another folder"""
+        """This is overwritten, so the cellular complex data is placed in another folder"""
         prefix = "cell_" if self._cellular else ""
         return osp.join(self.root, f'{prefix}complex_dim{self.max_dim}_{self._init_method}')
 
@@ -89,9 +89,9 @@ class ComplexDataset(Dataset, ABC):
         for complex in self:
             for dim in range(complex.dimension + 1):
                 if self._num_features[dim] is None:
-                    self._num_features[dim] = complex.chains[dim].num_features
+                    self._num_features[dim] = complex.cochains[dim].num_features
                 else:
-                    assert self._num_features[dim] == complex.chains[dim].num_features
+                    assert self._num_features[dim] == complex.cochains[dim].num_features
 
     def get_idx_split(self):
         idx_split = {
@@ -149,8 +149,8 @@ class InMemoryComplexDataset(ComplexDataset):
                 if data is not None:
                     return copy.copy(data)
         
-        retrieved = [self._get_chain(dim, idx) for dim in range(0, self.max_dim + 1)]
-        chains = [r[0] for r in retrieved if not r[1]]
+        retrieved = [self._get_cochain(dim, idx) for dim in range(0, self.max_dim + 1)]
+        cochains = [r[0] for r in retrieved if not r[1]]
         
         targets = self.data['labels']
         start, end = idx, idx + 1
@@ -166,39 +166,39 @@ class InMemoryComplexDataset(ComplexDataset):
         target = targets[s]
         
         dim = self.data['dims'][idx].item()
-        assert dim == len(chains) - 1
-        data = Complex(*chains, y=target)
+        assert dim == len(cochains) - 1
+        data = Complex(*cochains, y=target)
     
         if hasattr(self, '__data_list__'):
             self.__data_list__[idx] = copy.copy(data)
             
         return data
     
-    def _get_chain(self, dim, idx) -> (Chain, bool):
+    def _get_cochain(self, dim, idx) -> (Cochain, bool):
         
         if dim < 0 or dim > self.max_dim:
-            raise ValueError(f'The current dataset does not have chains at dimension {dim}.')
+            raise ValueError(f'The current dataset does not have cochains at dimension {dim}.')
 
-        chain_data = self.data[dim]
-        chain_slices = self.slices[dim]
-        data = Chain(dim)
-        if chain_data.__num_simplices__[idx] is not None:
-            data.num_simplices = chain_data.__num_simplices__[idx]
-        if chain_data.__num_simplices_up__[idx] is not None:
-            data.num_simplices_up = chain_data.__num_simplices_up__[idx]
-        if chain_data.__num_simplices_down__[idx] is not None:
-            data.num_simplices_down = chain_data.__num_simplices_down__[idx]
+        cochain_data = self.data[dim]
+        cochain_slices = self.slices[dim]
+        data = Cochain(dim)
+        if cochain_data.__num_cells__[idx] is not None:
+            data.num_cells = cochain_data.__num_cells__[idx]
+        if cochain_data.__num_cells_up__[idx] is not None:
+            data.num_cells_up = cochain_data.__num_cells_up__[idx]
+        if cochain_data.__num_cells_down__[idx] is not None:
+            data.num_cells_down = cochain_data.__num_cells_down__[idx]
         elif dim == 0:
-            data.num_simplices_down = None
+            data.num_cells_down = None
 
-        for key in chain_data.keys:
-            item, slices = chain_data[key], chain_slices[key]
+        for key in cochain_data.keys:
+            item, slices = cochain_data[key], cochain_slices[key]
             start, end = slices[idx].item(), slices[idx + 1].item()
             data[key] = None
             if start != end:
                 if torch.is_tensor(item):
                     s = list(repeat(slice(None), item.dim()))
-                    cat_dim = chain_data.__cat_dim__(key, item)
+                    cat_dim = cochain_data.__cat_dim__(key, item)
                     if cat_dim is None:
                         cat_dim = 0
                     s[cat_dim] = slice(start, end)
@@ -207,7 +207,7 @@ class InMemoryComplexDataset(ComplexDataset):
                 else:
                     s = slice(start, end)
                 data[key] = item[s]
-        empty = (data.num_simplices is None)
+        empty = (data.num_cells is None)
 
         return data, empty
     
@@ -217,23 +217,23 @@ class InMemoryComplexDataset(ComplexDataset):
         format of :class:`InMemoryComplexDataset`."""
         
         def init_keys(dim, keys):
-            chain = Chain(dim)
+            cochain = Cochain(dim)
             for key in keys[dim]:
-                chain[key] = []
-            chain.__num_simplices__ = []
-            chain.__num_simplices_up__ = []
-            chain.__num_simplices_down__ = []
+                cochain[key] = []
+            cochain.__num_cells__ = []
+            cochain.__num_cells_up__ = []
+            cochain.__num_cells_down__ = []
             slc = {key: [0] for key in keys[dim]}
-            return chain, slc
+            return cochain, slc
         
         def collect_keys(data_list, max_dim):
             keys = {dim: set() for dim in range(0, max_dim + 1)}
             for complex in data_list:
                 for dim in keys:
-                    if dim not in complex.chains:
+                    if dim not in complex.cochains:
                         continue
-                    chain = complex.chains[dim]
-                    keys[dim] |= set(chain.keys)
+                    cochain = complex.cochains[dim]
+                    keys[dim] |= set(cochain.keys)
             return keys
             
         keys = collect_keys(data_list, max_dim)
@@ -247,36 +247,36 @@ class InMemoryComplexDataset(ComplexDataset):
         
         for complex in data_list:
             
-            # Collect chain-wise items
+            # Collect cochain-wise items
             for dim in range(0, max_dim + 1):
                 
-                # Get chain, if present
-                chain = None
-                if dim in complex.chains:
-                    chain = complex.chains[dim]
+                # Get cochain, if present
+                cochain = None
+                if dim in complex.cochains:
+                    cochain = complex.cochains[dim]
                 
                 # Iterate on keys
                 for key in keys[dim]:
-                    if chain is not None and hasattr(chain, key) and chain[key] is not None:
-                        data[dim][key].append(chain[key])
-                        if isinstance(chain[key], Tensor) and chain[key].dim() > 0:
-                            cat_dim = chain.__cat_dim__(key, chain[key])
+                    if cochain is not None and hasattr(cochain, key) and cochain[key] is not None:
+                        data[dim][key].append(cochain[key])
+                        if isinstance(cochain[key], Tensor) and cochain[key].dim() > 0:
+                            cat_dim = cochain.__cat_dim__(key, cochain[key])
                             cat_dim = 0 if cat_dim is None else cat_dim
-                            s = slices[dim][key][-1] + chain[key].size(cat_dim)
+                            s = slices[dim][key][-1] + cochain[key].size(cat_dim)
                             if key not in cat_dims:
                                 cat_dims[key] = cat_dim
                             else:
                                 assert cat_dim == cat_dims[key]
                             if key not in tensor_dims:
-                                tensor_dims[key] = chain[key].dim()
+                                tensor_dims[key] = cochain[key].dim()
                             else:
-                                assert chain[key].dim() == tensor_dims[key]
+                                assert cochain[key].dim() == tensor_dims[key]
                         else:
                             s = slices[dim][key][-1] + 1
                         if key not in types:
-                            types[key] = type(chain[key])
+                            types[key] = type(cochain[key])
                         else:
-                            assert type(chain[key]) is types[key]
+                            assert type(cochain[key]) is types[key]
                     else:
                         s = slices[dim][key][-1] + 0
                     slices[dim][key].append(s)
@@ -286,16 +286,16 @@ class InMemoryComplexDataset(ComplexDataset):
                 num = None
                 num_up = None
                 num_down = None
-                if chain is not None:
-                    if hasattr(chain, '__num_simplices__'):
-                        num = chain.__num_simplices__
-                    if hasattr(chain, '__num_simplices_up__'):
-                        num_up = chain.__num_simplices_up__
-                    if hasattr(chain, '__num_simplices_down__'):
-                        num_down = chain.__num_simplices_down__
-                data[dim].__num_simplices__.append(num)
-                data[dim].__num_simplices_up__.append(num_up)
-                data[dim].__num_simplices_down__.append(num_down)
+                if cochain is not None:
+                    if hasattr(cochain, '__num_cells__'):
+                        num = cochain.__num_cells__
+                    if hasattr(cochain, '__num_cells_up__'):
+                        num_up = cochain.__num_cells_up__
+                    if hasattr(cochain, '__num_cells_down__'):
+                        num_down = cochain.__num_cells_down__
+                data[dim].__num_cells__.append(num)
+                data[dim].__num_cells_up__.append(num_up)
+                data[dim].__num_cells_down__.append(num_down)
                     
             # Collect complex-wise label(s) and dims
             if not hasattr(complex, 'y'):
@@ -307,7 +307,7 @@ class InMemoryComplexDataset(ComplexDataset):
 
         # Pack lists into tensors
         
-        # Chains
+        # Cochains
         for dim in range(0, max_dim + 1):
             for key in keys[dim]:
                 if types[key] is Tensor and len(data_list) > 1:

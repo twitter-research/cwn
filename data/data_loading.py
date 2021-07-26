@@ -1,6 +1,6 @@
 """
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
-Copyright (c) 2021 The SCN Project Authors
+Copyright (c) 2021 The CWN Project Authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ from torch_geometric.data import Data, Batch
 from torch._six import container_abcs, string_classes, int_classes
 
 from definitions import ROOT_DIR
-from data.complex import Chain, ChainBatch, Complex, ComplexBatch
+from data.complex import Cochain, CochainBatch, Complex, ComplexBatch
 from data.datasets import (
     load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset,
     load_ring_transfer_dataset, load_ring_lookup_dataset)
@@ -45,8 +45,8 @@ class Collater(object):
 
     def collate(self, batch):
         elem = batch[0]
-        if isinstance(elem, Chain):
-            return ChainBatch.from_chain_list(batch, self.follow_batch)
+        if isinstance(elem, Cochain):
+            return CochainBatch.from_cochain_list(batch, self.follow_batch)
         elif isinstance(elem, Complex):
             return ComplexBatch.from_complex_list(batch, self.follow_batch, max_dim=self.max_dim)
         elif isinstance(elem, Data):

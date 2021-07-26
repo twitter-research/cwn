@@ -11,9 +11,9 @@ from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
-from mp.models import SIN0, Dummy, SparseSIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
-from mp.molec_models import EmbedSparseSIN, OGBEmbedSparseSIN, EmbedSparseSINNoRings, EmbedGIN
-from mp.ring_exp_models import RingSparseSIN, RingGIN
+from mp.models import CIN0, Dummy, SparseCIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
+from mp.molec_models import EmbedSparseCIN, OGBEmbedSparseCIN, EmbedSparseCINNoRings, EmbedGIN
+from mp.ring_exp_models import RingSparseCIN, RingGIN
 
 
 def main(args):
@@ -95,13 +95,13 @@ def main(args):
     # automatic evaluator, takes dataset name as input
     evaluator = Evaluator(args.eval_metric)
 
-    # use cofaces?
-    use_cofaces = args.use_cofaces.lower() == 'true'
+    # use coboundaries?
+    use_coboundaries = args.use_coboundaries.lower() == 'true'
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
-    if args.model == 'sin':
-        model = SIN0(dataset.num_features_in_dim(0),          # num_input_features
+    if args.model == 'cin':
+        model = CIN0(dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -111,8 +111,8 @@ def main(args):
                      nonlinearity=args.nonlinearity,          # nonlinearity
                      readout=args.readout,                    # readout
                     ).to(device)
-    elif args.model == 'sparse_sin':
-        model = SparseSIN(dataset.num_features_in_dim(0),     # num_input_features
+    elif args.model == 'sparse_cin':
+        model = SparseCIN(dataset.num_features_in_dim(0),     # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -123,18 +123,18 @@ def main(args):
                      readout=args.readout,                    # readout
                      final_readout=args.final_readout,        # final readout
                      apply_dropout_before=args.drop_position, # where to apply dropout
-                     use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
+                     use_coboundaries=use_coboundaries,                 # whether to use coboundaries in up-msg
                      graph_norm=args.graph_norm,              # normalization layer
         ).to(device)
-    elif args.model == 'ring_sparse_sin':
-        model = RingSparseSIN(
+    elif args.model == 'ring_sparse_cin':
+        model = RingSparseCIN(
                      dataset.num_features_in_dim(0),          # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
                      max_dim=dataset.max_dim,                 # max_dim
                      nonlinearity=args.nonlinearity,          # nonlinearity
-                     use_cofaces=use_cofaces,                 # whether to use cofaces in up-msg
+                     use_coboundaries=use_coboundaries,                 # whether to use coboundaries in up-msg
                      graph_norm=args.graph_norm,              # normalization layer
                     ).to(device)
     elif args.model == 'gin':
@@ -200,8 +200,8 @@ def main(args):
                       dropout_rate=args.drop_rate,  # dropout rate
                       fully_invar=args.fully_orient_invar,
         ).to(device)
-    elif args.model == 'embed_sparse_sin':
-        model = EmbedSparseSIN(dataset.num_node_type,  # The number of atomic types
+    elif args.model == 'embed_sparse_cin':
+        model = EmbedSparseCIN(dataset.num_node_type,  # The number of atomic types
                                dataset.num_edge_type,  # The number of bond types
                                dataset.num_classes,  # num_classes
                                args.num_layers,  # num_layers
@@ -213,12 +213,12 @@ def main(args):
                                readout=args.readout,  # readout
                                final_readout=args.final_readout,  # final readout
                                apply_dropout_before=args.drop_position,  # where to apply dropout
-                               use_cofaces=use_cofaces,
+                               use_coboundaries=use_coboundaries,
                                embed_edge=args.use_edge_features,
                                graph_norm=args.graph_norm,  # normalization layer
         ).to(device)
-    elif args.model == 'embed_sparse_sin_no_rings':
-        model = EmbedSparseSINNoRings(dataset.num_node_type,  # The number of atomic types
+    elif args.model == 'embed_sparse_cin_no_rings':
+        model = EmbedSparseCINNoRings(dataset.num_node_type,  # The number of atomic types
                                       dataset.num_edge_type,  # The number of bond types
                                       dataset.num_classes,  # num_classes
                                       args.num_layers,  # num_layers
@@ -228,7 +228,7 @@ def main(args):
                                       readout=args.readout,  # readout
                                       final_readout=args.final_readout,  # final readout
                                       apply_dropout_before=args.drop_position,  # where to apply dropout
-                                      use_cofaces=use_cofaces,
+                                      use_coboundaries=use_coboundaries,
                                       embed_edge=args.use_edge_features,
                                       graph_norm=args.graph_norm,  # normalization layer
         ).to(device)
@@ -245,8 +245,8 @@ def main(args):
                          embed_edge=args.use_edge_features,
         ).to(device)
     # TODO: handle this as above
-    elif args.model == 'ogb_embed_sparse_sin':
-        model = OGBEmbedSparseSIN(dataset.num_tasks,                       # out_size
+    elif args.model == 'ogb_embed_sparse_cin':
+        model = OGBEmbedSparseCIN(dataset.num_tasks,                       # out_size
                                   args.num_layers,                         # num_layers
                                   args.emb_dim,                            # hidden
                                   dropout_rate=args.drop_rate,             # dropout_rate
@@ -257,7 +257,7 @@ def main(args):
                                   readout=args.readout,                    # readout
                                   final_readout=args.final_readout,        # final readout
                                   apply_dropout_before=args.drop_position, # where to apply dropout
-                                  use_cofaces=use_cofaces,                 # whether to use cofaces
+                                  use_coboundaries=use_coboundaries,                 # whether to use coboundaries
                                   embed_edge=args.use_edge_features,       # whether to use edge feats
                                   graph_norm=args.graph_norm,              # normalization layer
         ).to(device)

@@ -35,9 +35,9 @@ def train(model, device, loader, optimizer, task_type='classification', ignore_u
     for step, batch in enumerate(tqdm(loader, desc="Training iteration")):
         batch = batch.to(device)
         if isinstance(batch, ComplexBatch):
-            num_samples = batch.chains[0].x.size(0)
+            num_samples = batch.cochains[0].x.size(0)
             for dim in range(1, batch.dimension+1):
-                num_samples = min(num_samples, batch.chains[dim].num_simplices)
+                num_samples = min(num_samples, batch.cochains[dim].num_cells)
         else:
             # This is graph.
             num_samples = batch.x.size(0)

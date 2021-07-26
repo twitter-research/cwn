@@ -71,8 +71,8 @@ class DummyMolecularDataset(InMemoryComplexDataset):
         complexes = get_mol_testing_complex_list()
         for c, complex in enumerate(complexes):
             if remove_2feats:
-                if 2 in complex.chains:
-                    complex.chains[2].x = None
+                if 2 in complex.cochains:
+                    complex.cochains[2].x = None
             complex.y = torch.LongTensor([c % 2])
         return complexes
         

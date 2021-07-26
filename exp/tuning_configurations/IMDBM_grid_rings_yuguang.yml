@@ -41,8 +41,8 @@ max_dim:
 max_ring_size:
     - 6
 model:
-    - sparse_sin
-use_cofaces:
+    - sparse_cin
+use_coboundaries:
     - True
     - False
 nonlinearity:
