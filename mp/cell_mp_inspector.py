@@ -32,7 +32,7 @@ from torch_geometric.nn.conv.utils.inspector import Inspector
 
 
 class CellularInspector(Inspector):
-    """Wrapper of the PyTorch Geometric Inspector."""
+    """Wrapper of the PyTorch Geometric Inspector so to adapt it to our use cases."""
 
     def __implements__(self, cls, func_name: str) -> bool:
         if cls.__name__ == 'CochainMessagePassing':
