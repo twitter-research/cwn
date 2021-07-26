@@ -39,7 +39,7 @@ from mp.cell_mp_inspector import CellularInspector
 
 
 class CochainMessagePassing(torch.nn.Module):
-    """The base class for building message passing models on cocahin complexes.
+    """The base class for building message passing models on cochain complexes.
 
     # TODO: Add support for co-boundary adjacencies
     The class considers three types of adjacencies:
