@@ -41,7 +41,7 @@ class DummyDataset(InMemoryComplexDataset):
 
 
 class DummyMolecularDataset(InMemoryComplexDataset):
-    """A dymmy dataset using a list of hand-crafted cell complexes with many edge cases."""
+    """A dummy dataset using a list of hand-crafted molecular cell complexes with many edge cases."""
 
     def __init__(self, root, remove_2feats=False):
         self.name = 'DUMMYM'
