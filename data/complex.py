@@ -679,7 +679,7 @@ class Complex(object):
 class ComplexBatch(Complex):
     """Class representing a batch of cochain complexes.
 
-    This is stored as a single cochain complex formed of multiple independent subcomplexes.
+    This is stored as a single cochain complex formed of batched cochains.
 
     Args:
         cochains: A list of cochain batches that will be put together in a complex batch

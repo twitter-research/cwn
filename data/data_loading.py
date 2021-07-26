@@ -1,4 +1,6 @@
 """
+Code is adapted from https://github.com/rusty1s/pytorch_geometric/blob/6442a6e287563b39dae9f5fcffc52cd780925f89/torch_geometric/data/dataloader.py
+
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
 Copyright (c) 2021 The CWN Project Authors
 
