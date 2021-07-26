@@ -698,7 +698,7 @@ class ComplexBatch(Complex):
 
     @classmethod
     def from_complex_list(cls, data_list: List[Complex], follow_batch=[], max_dim: int = 2):
-        """Cnstructs a ComplexBatch from a list of complexes.
+        """Constructs a ComplexBatch from a list of complexes.
 
         Args:
             data_list: a list of complexes from which the batch is built.
