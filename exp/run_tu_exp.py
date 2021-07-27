@@ -71,12 +71,20 @@ def exp_main(passed_args):
     print('Writing results at: {}'.format(filename))
     with open(filename, 'w') as handle:
         handle.write(msg)
-        for arg in passed_args:
+        a = 0
+        b = a
+        while a < len(passed_args):
+            arg = passed_args[a]
             if arg.startswith('--'):
                 handle.write(arg+': ')
+                b = a + 1
+                while b < len(passed_args) and not passed_args[b].startswith('--'):
+                    handle.write(passed_args[b]+' ')
+                    b += 1
+                handle.write('\n')
+                a = b
             else:
-                handle.write(arg+'\n')
-
+                a += 1
 
 if __name__ == "__main__":
     

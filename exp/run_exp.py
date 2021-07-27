@@ -99,8 +99,7 @@ def main(args):
     use_coboundaries = args.use_coboundaries.lower() == 'true'
 
     # readout dimensions
-    readout_dims = sorted(args.readout_dims.strip().split('-'))
-    readout_dims = tuple([int(i) for i in readout_dims])
+    readout_dims = tuple(sorted(args.readout_dims))
 
     # instantiate model
     # NB: here we assume to have the same number of features per dim
