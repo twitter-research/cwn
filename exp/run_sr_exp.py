@@ -67,11 +67,9 @@ if __name__ == "__main__":
             else:
                 assert '--max_ring_size' not in passed_args
                 max_dim = args.max_dim
-            readout_dims = ''
-            for i in range(max_dim + 1):
-                readout_dims += f'{i}-'
-            readout_dims = readout_dims[:-1]
-            current_args += ['--readout_dims', readout_dims]
+            readout_dims = [str(i) for i in range(max_dim + 1)]
+            readout_dims = ['--readout_dims'] + readout_dims
+            current_args += readout_dims
             parsed_args = parser.parse_args(current_args)
             curves = main(parsed_args)
             results[f].append(curves)

@@ -11,7 +11,7 @@ def get_args_for_dummym():
     args += ['--batch_size', '3']
     args += ['--epochs', '1']
     args += ['--dataset', 'DUMMYM']
-    args += ['--max_ring_size', '8']
+    args += ['--max_ring_size', '5']
     args += ['--exp_name', 'dummym_test']
     args += ['--readout_dims', '0', '2']
     return args
