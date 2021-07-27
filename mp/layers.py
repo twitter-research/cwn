@@ -81,7 +81,6 @@ class CINCochainConv(CochainMessagePassing):
                                              up_attr=cochain.kwargs['up_attr'],
                                              down_attr=cochain.kwargs['down_attr'])
 
-        # TODO: This is probably not injective, so we should do something else.
         out_up += (1 + self.eps) * cochain.x
         out_down += (1 + self.eps) * cochain.x
         return self.update_nn(out_up + out_down)
@@ -154,9 +153,17 @@ class EdgeCINConv(torch.nn.Module):
 
 class SparseCINCochainConv(CochainMessagePassing):
     """This is a CIN Cochain layer that operates of boundaries and upper adjacent cells."""
-    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
-                 msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable, update_boundaries_nn,
-                 combine_nn: Callable, eps: float = 0., train_eps: bool = False):
+    def __init__(self, dim: int,
+                 up_msg_size: int,
+                 down_msg_size: int,
+                 boundary_msg_size: Optional[int],
+                 msg_up_nn: Callable,
+                 msg_boundaries_nn: Callable,
+                 update_up_nn: Callable,
+                 update_boundaries_nn: Callable,
+                 combine_nn: Callable,
+                 eps: float = 0.,
+                 train_eps: bool = False):
         super(SparseCINCochainConv, self).__init__(up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
                                                  use_down_msg=False)
         self.dim = dim
@@ -433,11 +440,13 @@ class OGBEmbedVEWithReduce(AbstractEmbedVEWithReduce):
     def _prepare_v_inputs(self, v_params):
         assert v_params.x is not None
         assert v_params.x.dim() == 2
-        # NB: Inputs in ogbg-mol* datasets are already long; this is to test the layer with other datasets.
+        # Inputs in ogbg-mol* datasets are already long.
+        # This is to test the layer with other datasets.
         return v_params.x.to(dtype=torch.long)
     
     def _prepare_e_inputs(self, e_params):
         assert self.e_embed_layer is not None
         assert e_params.x.dim() == 2
-        # NB: Inputs in ogbg-mol* datasets are already long; this is to test the layer with other datasets.
+        # Inputs in ogbg-mol* datasets are already long.
+        # This is to test the layer with other datasets.
         return e_params.x.to(dtype=torch.long)

@@ -39,29 +39,32 @@ from mp.cell_mp_inspector import CellularInspector
 
 
 class CochainMessagePassing(torch.nn.Module):
-    r"""Base class for creating message passing layers of the form
+    """The base class for building message passing models on cochain complexes.
 
-    .. math::
-        \mathbf{x}_i^{\prime} = \gamma_{\mathbf{\Theta}} \left( \mathbf{x}_i,
-        \square_{j \in \mathcal{N}(i)} \, \phi_{\mathbf{\Theta}}
-        \left(\mathbf{x}_i, \mathbf{x}_j,\mathbf{e}_{j,i}\right) \right),
-
-    where :math:`\square` denotes a differentiable, permutation invariant
-    function, *e.g.*, sum, mean or max, and :math:`\gamma_{\mathbf{\Theta}}`
-    and :math:`\phi_{\mathbf{\Theta}}` denote differentiable functions such as
-    MLPs.
-    See `here <https://pytorch-geometric.readthedocs.io/en/latest/notes/
-    create_gnn.html>`__ for the accompanying tutorial.
+    # TODO: Add support for co-boundary adjacencies
+    The class considers three types of adjacencies:
+    boundary, upper and lower adjacencies.
 
     Args:
-        aggr (string, optional): The aggregation scheme to use
+        up_msg_size (int): The dimensionality of the messages coming from the upper adjacent cells.
+        down_msg_size (int): The dimensionality of the messages coming from the
+            lower adjacent cells.
+        aggr_up (string, optional): The aggregation scheme to use for upper-adjacencies
             (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"` or :obj:`None`).
             (default: :obj:`"add"`)
+        aggr_down (string, optional): The aggregation scheme to use for lower-adjacencies
+            (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"` or :obj:`None`).
+            (default: :obj:`"add"`)
+        aggr_boundary (string, optional): The aggregation scheme to use for boundary adjacencies.
         flow (string, optional): The flow adjacency of message passing
             (:obj:`"source_to_target"` or :obj:`"target_to_source"`).
             (default: :obj:`"source_to_target"`)
         node_dim (int, optional): The axis along which to propagate.
             (default: :obj:`-2`)
+        boundary_msg_size (int, optional): The dimensionality of the messages coming from the
+            boundary cells.
+        use_down_msg (bool): Whether to propagate messages via the lower adjacencies.
+        use_boundary_msg (bool): Whether to propagate messages via the boundary adjacencies.
     """
 
     special_args: Set[str] = {
@@ -76,12 +79,16 @@ class CochainMessagePassing(torch.nn.Module):
     }
 
     def __init__(self,
-                 up_msg_size, down_msg_size,
+                 up_msg_size,
+                 down_msg_size,
                  aggr_up: Optional[str] = "add",
                  aggr_down: Optional[str] = "add",
                  aggr_boundary: Optional[str] = "add",
-                 flow: str = "source_to_target", node_dim: int = -2,
-                 boundary_msg_size=None, use_down_msg=True, use_boundary_msg=True):
+                 flow: str = "source_to_target",
+                 node_dim: int = -2,
+                 boundary_msg_size=None,
+                 use_down_msg=True,
+                 use_boundary_msg=True):
 
         super(CochainMessagePassing, self).__init__()
 
@@ -354,9 +361,7 @@ class CochainMessagePassing(torch.nn.Module):
                   down_size: Size = None,
                   boundary_size: Size = None,
                   **kwargs):
-        r"""The initial call to start propagating messages.
-
-        """
+        """The initial call to start propagating messages."""
         up_size = self.__check_input_separately__(up_index, up_size)
         down_size = self.__check_input_separately__(down_index, down_size)
         boundary_size = self.__check_input_separately__(boundary_index, boundary_size)
@@ -387,37 +392,30 @@ class CochainMessagePassing(torch.nn.Module):
         return self.update(up_out, down_out, boundary_out, **update_kwargs)
 
     def message_up(self, up_x_j: Tensor, up_attr: Tensor) -> Tensor:
-        r"""Constructs messages from node :math:`j` to node :math:`i`
-        in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
-        :obj:`edge_index`.
-        This function can take any argument as input which was initially
-        passed to :meth:`propagate`.
-        Furthermore, tensors passed to :meth:`propagate` can be mapped to the
-        respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
-        :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
+        r"""Constructs upper messages from cell :math:`j` to cell :math:`i` for each edge in
+        :obj:`up_index`. This function can take any argument as input which was initially
+        passed to :meth:`propagate`. Furthermore, tensors passed to :meth:`propagate` can be mapped
+        to the respective cells :math:`i` and :math:`j` by appending :obj:`_i` or
+        :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`. The parameter
+        :obj:`up_attr` includes the features of the shared coboundary cell.
         """
         return up_x_j
 
     def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
-        r"""Constructs messages from node :math:`j` to node :math:`i`
-        in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
-        :obj:`edge_index`.
-        This function can take any argument as input which was initially
-        passed to :meth:`propagate`.
-        Furthermore, tensors passed to :meth:`propagate` can be mapped to the
-        respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
-        :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
+        r"""Constructs lower messages from cell :math:`j` to cell :math:`i` for each edge in
+        :obj:`down_index`. This function can take any argument as input which was initially
+        passed to :meth:`propagate`. Furthermore, tensors passed to :meth:`propagate` can be mapped
+        to the respective cells :math:`i` and :math:`j` by appending :obj:`_i` or
+        :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`. The parameter
+        :obj:`down_attr` includes the features of the shared boundary cell.
         """
         return down_x_j
 
     def message_boundary(self, boundary_x_j: Tensor):
-        r"""Constructs messages from node :math:`j` to node :math:`i`
-        in analogy to :math:`\phi_{\mathbf{\Theta}}` for each edge in
-        :obj:`edge_index`.
-        This function can take any argument as input which was initially
-        passed to :meth:`propagate`.
-        Furthermore, tensors passed to :meth:`propagate` can be mapped to the
-        respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
+        r"""Constructs boundary messages from cell :math:`j` to cell :math:`i` for each edge in
+        :obj:`boundary_index`. This function can take any argument as input which was initially
+        passed to :meth:`propagate`. Furthermore, tensors passed to :meth:`propagate` can be mapped
+        to the respective cells :math:`i` and :math:`j` by appending :obj:`_i` or
         :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
         """
         return boundary_x_j
@@ -425,8 +423,7 @@ class CochainMessagePassing(torch.nn.Module):
     def aggregate_up(self, inputs: Tensor, agg_up_index: Tensor,
                      up_ptr: Optional[Tensor] = None,
                      up_dim_size: Optional[int] = None) -> Tensor:
-        r"""Aggregates messages from neighbors as
-        :math:`\square_{j \in \mathcal{N}(i)}`.
+        r"""Aggregates messages from upper adjacent cells.
 
         Takes in the output of message computation as first argument and any
         argument which was initially passed to :meth:`propagate`.
@@ -445,8 +442,7 @@ class CochainMessagePassing(torch.nn.Module):
     def aggregate_down(self, inputs: Tensor, agg_down_index: Tensor,
                        down_ptr: Optional[Tensor] = None,
                        down_dim_size: Optional[int] = None) -> Tensor:
-        r"""Aggregates messages from neighbors as
-        :math:`\square_{j \in \mathcal{N}(i)}`.
+        r"""Aggregates messages from lower adjacent cells.
 
         Takes in the output of message computation as first argument and any
         argument which was initially passed to :meth:`propagate`.
@@ -465,8 +461,7 @@ class CochainMessagePassing(torch.nn.Module):
     def aggregate_boundary(self, inputs: Tensor, agg_boundary_index: Tensor,
                        boundary_ptr: Optional[Tensor] = None,
                        boundary_dim_size: Optional[int] = None) -> Tensor:
-        r"""Aggregates messages from neighbors as
-        :math:`\square_{j \in \mathcal{N}(i)}`.
+        r"""Aggregates messages from the boundary cells.
 
         Takes in the output of message computation as first argument and any
         argument which was initially passed to :meth:`propagate`.
@@ -484,7 +479,7 @@ class CochainMessagePassing(torch.nn.Module):
                            reduce=self.aggr_boundary)
 
     def message_and_aggregate_up(self, up_adj_t: SparseTensor) -> Tensor:
-        r"""Fuses computations of :func:`message` and :func:`aggregate` into a
+        r"""Fuses computations of :func:`message_up` and :func:`aggregate_up` into a
         single function.
         If applicable, this saves both time and memory since messages do not
         explicitly need to be materialized.
@@ -494,7 +489,7 @@ class CochainMessagePassing(torch.nn.Module):
         raise NotImplementedError
 
     def message_and_aggregate_down(self, down_adj_t: SparseTensor) -> Tensor:
-        r"""Fuses computations of :func:`message` and :func:`aggregate` into a
+        r"""Fuses computations of :func:`message_down` and :func:`aggregate_down` into a
         single function.
         If applicable, this saves both time and memory since messages do not
         explicitly need to be materialized.
@@ -504,7 +499,7 @@ class CochainMessagePassing(torch.nn.Module):
         raise NotImplementedError
 
     def message_and_aggregate_boundary(self, boundary_adj_t: SparseTensor) -> Tensor:
-        r"""Fuses computations of :func:`message` and :func:`aggregate` into a
+        r"""Fuses computations of :func:`message_boundary` and :func:`aggregate_boundary` into a
         single function.
         If applicable, this saves both time and memory since messages do not
         explicitly need to be materialized.
@@ -515,11 +510,9 @@ class CochainMessagePassing(torch.nn.Module):
 
     def update(self, up_inputs: Optional[Tensor], down_inputs: Optional[Tensor],
                boundary_inputs: Optional[Tensor], x: Tensor) -> (Tensor, Tensor, Tensor):
-        r"""Updates node embeddings in analogy to
-        :math:`\gamma_{\mathbf{\Theta}}` for each node
-        :math:`i \in \mathcal{V}`.
-        Takes in the output of aggregation as first argument and any argument
-        which was initially passed to :meth:`propagate`.
+        r"""Updates cell embeddings. Takes in the output of the aggregations from different
+        adjacencies as the first three arguments and any argument which was initially passed to
+        :meth:`propagate`.
         """
         if up_inputs is None:
             up_inputs = torch.zeros(x.size(0), self.up_msg_size).to(device=x.device)
@@ -532,6 +525,16 @@ class CochainMessagePassing(torch.nn.Module):
 
 
 class CochainMessagePassingParams:
+    """A helper class storing the parameters to be supplied to the propagate function.
+
+    This object stores the equivalent of the `x` and `edge_index` objects from PyTorch Geometric.
+    TODO: The boundary_index and boundary_attr as well as other essential parameters are
+          currently passed as keyword arguments. Special parameters should be created.
+    Args:
+        x: The features of the cochain where message passing will be performed.
+        up_index: The index for the upper adjacencies of the cochain.
+        down_index: The index for the lower adjacencies of the cochain.
+    """
     def __init__(self, x: Tensor, up_index: Adj = None, down_index: Adj = None, **kwargs):
         self.x = x
         self.up_index = up_index

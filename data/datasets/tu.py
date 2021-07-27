@@ -35,6 +35,7 @@ def load_tu_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), degree_
 
 
 class TUDataset(InMemoryComplexDataset):
+    """A dataset of complexes obtained by lifting graphs from TUDatasets."""
 
     def __init__(self, root, name, max_dim=2, num_classes=2, degree_as_tag=False, fold=0,
                  init_method='sum', seed=0, include_down_adj=False, max_ring_size=None):
@@ -126,4 +127,3 @@ class TUDataset(InMemoryComplexDataset):
         #     'valid': self.tune_val_ids,
         #     'test': self.tune_test_ids}
         # return idx_split
-

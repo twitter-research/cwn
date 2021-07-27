@@ -1,4 +1,6 @@
 """
+Code is adapted from https://github.com/rusty1s/pytorch_geometric/blob/6442a6e287563b39dae9f5fcffc52cd780925f89/torch_geometric/data/dataloader.py
+
 Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
 Copyright (c) 2021 The CWN Project Authors
 
@@ -39,11 +41,18 @@ from data.datasets import (
 
 
 class Collater(object):
+    """Object that converts python lists of objects into the appropiate storage format.
+
+    Args:
+        follow_batch: Creates assignment batch vectors for each key in the list.
+        max_dim: The maximum dimension of the cochains considered from the supplied list.
+    """
     def __init__(self, follow_batch, max_dim=2):
         self.follow_batch = follow_batch
         self.max_dim = max_dim
 
     def collate(self, batch):
+        """Converts a data list in the right storage format."""
         elem = batch[0]
         if isinstance(elem, Cochain):
             return CochainBatch.from_cochain_list(batch, self.follow_batch)
@@ -73,7 +82,7 @@ class Collater(object):
 
 
 class DataLoader(torch.utils.data.DataLoader):
-    r"""Data loader which merges data objects to a mini-batch.
+    r"""Data loader which merges cochain complexes into to a mini-batch.
 
     Args:
         dataset (Dataset): The dataset from which to load the data.
@@ -83,6 +92,8 @@ class DataLoader(torch.utils.data.DataLoader):
             reshuffled at every epoch. (default: :obj:`False`)
         follow_batch (list or tuple, optional): Creates assignment batch
             vectors for each key in the list. (default: :obj:`[]`)
+        max_dim (int): The maximum dimension of the chains to be used in the batch.
+            (default: 2)
     """
     def __init__(self, dataset, batch_size=1, shuffle=False, follow_batch=[],
                  max_dim=2, **kwargs):
@@ -100,6 +111,7 @@ class DataLoader(torch.utils.data.DataLoader):
 
 def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=0,
                  init_method='sum', n_jobs=2, **kwargs) -> ComplexDataset:
+    """Returns a ComplexDataset with the specified name and initialised with the given params."""
     if name.startswith('sr'):
         dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=max_dim,
             num_classes=16, max_ring_size=kwargs.get('max_ring_size', None),
@@ -163,6 +175,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
 
 
 def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **kwargs):
+    """Returns a graph dataset with the specified name and initialised with the given params."""
     if name.startswith('sr'):
         graph_list, train_ids, val_ids, test_ids = load_sr_graph_dataset(name, root=root)
         data = (graph_list, train_ids, val_ids, test_ids, None)

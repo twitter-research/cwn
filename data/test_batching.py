@@ -2,12 +2,12 @@ import torch
 import pytest
 import itertools
 
-from data.dummy_complexes import get_house_complex, get_square_complex, get_pyramid_complex, get_square_dot_complex, get_kite_complex
+from data.dummy_complexes import (get_house_complex, get_square_complex, get_pyramid_complex,
+    get_square_dot_complex, get_kite_complex)
 
 from data.complex import ComplexBatch
 from data.dummy_complexes import get_testing_complex_list
 from data.data_loading import DataLoader, load_dataset
-from definitions import ROOT_DIR
 
 
 def validate_double_house(batch):

@@ -17,7 +17,7 @@ from mp.ring_exp_models import RingSparseCIN, RingGIN
 
 
 def main(args):
-
+    """The common training and evaluation script used by all the experiments."""
     # set device
     device = torch.device(
         "cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")

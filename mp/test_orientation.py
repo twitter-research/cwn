@@ -39,7 +39,7 @@ def generate_oriented_flow_pair():
 
 
 def test_edge_orient_model_on_flow_dataset_with_batching():
-    dataset, _, _ = load_flow_dataset(num_points=300, num_train=50, num_test=2)
+    dataset, _, _ = load_flow_dataset(num_points=100, num_train=20, num_test=2)
 
     np.random.seed(4)
     data_loader = DataLoader(dataset, batch_size=16)

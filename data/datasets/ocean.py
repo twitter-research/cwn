@@ -8,6 +8,10 @@ from data.datasets.ocean_utils import load_ocean_dataset
 # TODO: Set up a cochain dataset structure or make complex dataset better support cochain-only data.
 # TODO: Refactor the dataset to use the latest storage formatting.
 class OceanDataset(InMemoryComplexDataset):
+    """A real-world dataset for edge-flow classification.
+
+    The dataset is adapted from https://arxiv.org/abs/1807.05044
+    """
 
     def __init__(self, root, name, load_graph=False, train_orient='default',
                  test_orient='default'):

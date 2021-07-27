@@ -5,7 +5,9 @@ import networkx as nx
 from torch_geometric.utils import convert
 from torch_geometric.data import Data
 
+
 def check_edge_index_are_the_same(upper_index, edge_index):
+    """Checks that two edge/cell indexes are the same."""
     # These two tensors should have the same content but in different order.
     assert upper_index.size() == edge_index.size()
     num_edges = edge_index.size(1)
@@ -25,6 +27,7 @@ def check_edge_index_are_the_same(upper_index, edge_index):
 
 
 def get_table(boundary_index):
+    """Indexes each cell based on the boundary index."""
     elements = boundary_index.size(1)
     id_to_cell = dict()
     for i in range(elements):
@@ -37,6 +40,7 @@ def get_table(boundary_index):
 
 
 def check_edge_attr_are_the_same(boundary_index, ex, edge_index, edge_attr):
+    """Checks that a pairs of edge attributes are identical."""
     # The maximum node that has an edge must be the same.
     assert boundary_index[0, :].max() == edge_index.max()
     # The number of edges present in both tensors should be the same.
@@ -62,6 +66,7 @@ def check_edge_attr_are_the_same(boundary_index, ex, edge_index, edge_attr):
 
 
 def get_rings(n, edge_index, max_ring):
+    """Extracts the induced cycles from a graph using networkx."""
     x = torch.zeros((n, 1))
     data = Data(x, edge_index=edge_index)
     graph = convert.to_networkx(data)
@@ -95,6 +100,7 @@ def get_rings(n, edge_index, max_ring):
 
 
 def get_complex_rings(r_boundary_index, e_boundary_index):
+    """Extracts the vertices that are part of a ring."""
     # Construct the edge and ring tables
     id_to_ring = get_table(r_boundary_index)
     id_to_edge = get_table(e_boundary_index)
@@ -111,7 +117,7 @@ def get_complex_rings(r_boundary_index, e_boundary_index):
 
 
 def compare_complexes(yielded, expected, include_down_adj):
-    
+    """Checks that two cell complexes are the same."""
     assert yielded.dimension == expected.dimension
     assert torch.equal(yielded.y, expected.y)
     for dim in range(expected.dimension + 1):
@@ -150,7 +156,8 @@ def compare_complexes(yielded, expected, include_down_adj):
     
 
 def compare_complexes_without_2feats(yielded, expected, include_down_adj):
-    
+    """Checks that two cell complexes are the same, except for the features of the 2-cells."""
+
     assert yielded.dimension == expected.dimension
     assert torch.equal(yielded.y, expected.y)
     for dim in range(expected.dimension + 1):

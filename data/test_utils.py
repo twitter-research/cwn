@@ -1,11 +1,10 @@
 import torch
+
 from torch_geometric.data import Data
 from data.utils import compute_clique_complex_with_gudhi, compute_ring_2complex
 from data.utils import convert_graph_dataset_with_gudhi, convert_graph_dataset_with_rings
-from torch_sparse import coalesce
 from data.complex import ComplexBatch
 from data.dummy_complexes import convert_to_graph, get_testing_complex_list
-import numpy as np
 import pytest
 
 # TODO: Gudhi does not preserve the order of the edges in edge_index. It uses a lexicographic order
@@ -31,10 +30,12 @@ import pytest
 #  |   |
 #  .---.
 
+
 @pytest.fixture
 def house_edge_index():
     return torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4],
                          [1, 3, 0, 2, 1, 3, 4, 0, 2, 4, 2, 3]], dtype=torch.long)
+
 
 def test_gudhi_clique_complex(house_edge_index):
     '''

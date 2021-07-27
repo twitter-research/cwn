@@ -44,7 +44,7 @@ def test_ringtree_dataset_conversion():
         assert complex.two_cells.x.size(1) == 5
 
 
-def test_ringtree_dataset_loading():
+def test_ring_transfer_dataset_loading():
     # Test everything runs without errors.
     root = osp.join(ROOT_DIR, 'datasets', 'RING-TRANSFER')
     dataset = RingTransferDataset(root=root, train=20, test=10)
