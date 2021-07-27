@@ -32,6 +32,8 @@ def get_parser():
                         help='readout function (default: sum)')
     parser.add_argument('--final_readout', type=str, default='sum',
                         help='final readout function (default: sum)')
+    parser.add_argument('--readout_dims', type=int, nargs='+', default=(0, 1, 2),
+                        help='dims at which to apply the final readout (default: 0 1 2, i.e. nodes, edges, 2-cells)')
     parser.add_argument('--jump_mode', type=str, default=None,
                         help='Mode for JK (default: None, i.e. no JK)')
     parser.add_argument('--graph_norm', type=str, default='bn', choices=['bn', 'ln', 'id'],

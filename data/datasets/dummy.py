@@ -12,6 +12,9 @@ class DummyDataset(InMemoryComplexDataset):
         super(DummyDataset, self).__init__(root, max_dim=3, num_classes=2,
             init_method=None, include_down_adj=True, cellular=False)
         self.data, self.slices = torch.load(self.processed_paths[0])
+        self.train_ids = list(range(self.len()))
+        self.val_ids = list(range(self.len()))
+        self.test_ids = list(range(self.len()))
             
     @property
     def processed_file_names(self):
@@ -49,6 +52,9 @@ class DummyMolecularDataset(InMemoryComplexDataset):
         super(DummyMolecularDataset, self).__init__(root, max_dim=2, num_classes=2,
             init_method=None, include_down_adj=True, cellular=True)
         self.data, self.slices = torch.load(self.processed_paths[0])
+        self.train_ids = list(range(self.len()))
+        self.val_ids = list(range(self.len()))
+        self.test_ids = list(range(self.len()))
             
     @property
     def processed_file_names(self):

@@ -98,6 +98,9 @@ def main(args):
     # use coboundaries?
     use_coboundaries = args.use_coboundaries.lower() == 'true'
 
+    # readout dimensions
+    readout_dims = tuple(sorted(args.readout_dims))
+
     # instantiate model
     # NB: here we assume to have the same number of features per dim
     if args.model == 'cin':
@@ -123,9 +126,10 @@ def main(args):
                      readout=args.readout,                    # readout
                      final_readout=args.final_readout,        # final readout
                      apply_dropout_before=args.drop_position, # where to apply dropout
-                     use_coboundaries=use_coboundaries,                 # whether to use coboundaries in up-msg
+                     use_coboundaries=use_coboundaries,       # whether to use coboundaries in up-msg
                      graph_norm=args.graph_norm,              # normalization layer
-        ).to(device)
+                     readout_dims=readout_dims                # readout_dims
+                    ).to(device)
     elif args.model == 'ring_sparse_cin':
         model = RingSparseCIN(
                      dataset.num_features_in_dim(0),          # num_input_features
@@ -134,7 +138,7 @@ def main(args):
                      args.emb_dim,                            # hidden
                      max_dim=dataset.max_dim,                 # max_dim
                      nonlinearity=args.nonlinearity,          # nonlinearity
-                     use_coboundaries=use_coboundaries,                 # whether to use coboundaries in up-msg
+                     use_coboundaries=use_coboundaries,       # whether to use coboundaries in up-msg
                      graph_norm=args.graph_norm,              # normalization layer
                     ).to(device)
     elif args.model == 'gin':
@@ -216,7 +220,8 @@ def main(args):
                                use_coboundaries=use_coboundaries,
                                embed_edge=args.use_edge_features,
                                graph_norm=args.graph_norm,  # normalization layer
-        ).to(device)
+                               readout_dims=readout_dims  # readout_dims
+                               ).to(device)
     elif args.model == 'embed_sparse_cin_no_rings':
         model = EmbedSparseCINNoRings(dataset.num_node_type,  # The number of atomic types
                                       dataset.num_edge_type,  # The number of bond types
@@ -257,10 +262,11 @@ def main(args):
                                   readout=args.readout,                    # readout
                                   final_readout=args.final_readout,        # final readout
                                   apply_dropout_before=args.drop_position, # where to apply dropout
-                                  use_coboundaries=use_coboundaries,                 # whether to use coboundaries
+                                  use_coboundaries=use_coboundaries,       # whether to use coboundaries
                                   embed_edge=args.use_edge_features,       # whether to use edge feats
                                   graph_norm=args.graph_norm,              # normalization layer
-        ).to(device)
+                                  readout_dims=readout_dims                # readout_dims
+                                 ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
 
