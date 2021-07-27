@@ -44,12 +44,17 @@ if __name__ == "__main__":
     assert '--readout_dims' not in passed_args
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
-    ts = str(time.time())
-    if '--result_folder' not in passed_args:
-        result_folder = os.path.join(ROOT_DIR, 'exp', 'results', 'sr-{}'.format(ts))
-        passed_args += ['--result_folder', result_folder]
+    
+    result_prefix = 'mpsn-'
+    result_suffix = ''
+    if '--max_ring_size' in passed_args:
+        result_prefix = 'cwn-'
+        result_suffix = f'-{args.max_ring_size}'  
+    if args.model == 'mp_agnostic':
+        result_folder = os.path.join(args.result_folder, f'{result_prefix}sr-base{result_suffix}')
     else:
-        result_folder = args.result_folder
+        result_folder = os.path.join(args.result_folder, f'{result_prefix}sr{result_suffix}')
+    passed_args += ['--result_folder', result_folder]
     
     # run each experiment separately and gather results
     results = [list() for _ in __families__]

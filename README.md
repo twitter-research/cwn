@@ -50,46 +50,46 @@ pytest .
 ```
 This command will recursively fetch all unit tests present in the repository and run them. A summary will be printed out in the end. All tests should pass (typically showed in green).
 
-## Experiments on molecular benchmarks
+## Experiments on molecular benchmarks with CWNs
 
-### CIN
+### Unconstrained models
 
 In order to run an experiment on a molecular benchmark simply execute:
 ```
-sh exp/<benchmark>.sh
+sh exp/scripts/cwn-<benchmark>.sh
 ```
 where `<benchmark>` with one amongst `zinc`, `zinc-full`, `molhiv`.
 
 These shell scripts will run the `exp/run_mol_exp.py` script passing the required parameters for each experiment.
 
-Internally, for a specified range of random seeds, the script will run the trainings sequentially, compute final performance statistics and print them on screen in the end. Additionally, the script will write these results under `exp/results/<BENCHMARK>-<benchmark>/`.
+Internally, for a specified range of random seeds, the script will run the trainings sequentially, compute final performance statistics and print them on screen in the end. Additionally, the script will write these results under `exp/results/<BENCHMARK>-cwn-<benchmark>/`.
 
 _Note_: before the training starts, the script will download the corresponding graph datasets and perform the appropriate ring-lifting procedure.
 
-### CIN-small
+### Imposing the parameter budget
 
 Imposing the parameter budget: in order to run the 'smaller' `CIN` counterparts on these benchmarks, it is sufficient to add the suffix `-small` to the `<benchmark>` placeholder.
 ```
-sh exp/<benchmark>-small.sh`
+sh exp/scripts/cwn-<benchmark>-small.sh`
 ```
-For example, `sh exp/zinc-small.sh` will run the training on ZINC with parameter budget.
+For example, `sh exp/scripts/cwn-zinc-small.sh` will run the training on ZINC with parameter budget.
 
-## SR synthetic experiment
+## Experiments on SR families with (untrained) CWNs
 
-In order to run an experiment on the SR benchmark, run the following:
+In order to run an experiment on the SR benchmark with a CWN, run the following:
 ```
-sh exp/sr.sh <k>
+sh exp/scripts/cwn-sr.sh <k>
 ```
-Replacing `<k>` with the a value amongst `4`, `5`, `6` (this corresponds to the maximum ring size employed in the lifting procedure).
-The shell script will internally run the `exp/run_sr_exp.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/sr-<k>/`.
+replacing `<k>` with the a value amongst `4`, `5`, `6` (this corresponds to the maximum ring size employed in the lifting procedure).
+The shell script will internally run the `exp/run_sr_exp.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/cwn-sr-<k>/`.
 
 _Note_: before the inference starts, the script will perform the appropriate ring-lifting procedure on the SR graphs in the family.
 
 Finally, the following command will run the MLP-sum (strong) baseline described in the paper:
 ```
-sh exp/sr-base.sh
+sh exp/scripts/cwn-sr-base.sh
 ```
-Results will be written under `exp/results/sr-base-<k>/`.
+Results will be written under `exp/results/cwn-sr-base-<k>/`.
 
 ### Credits
 
