@@ -35,7 +35,8 @@ from data.datasets import (
     load_ring_transfer_dataset, load_ring_lookup_dataset)
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
-    OceanDataset, ZincDataset, CSLDataset, OGBDataset, RingTransferDataset, RingLookupDataset)
+    OceanDataset, ZincDataset, CSLDataset, OGBDataset, RingTransferDataset, RingLookupDataset,
+    DummyDataset, DummyMolecularDataset)
 
 
 class Collater(object):
@@ -157,6 +158,10 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = OGBDataset(os.path.join(root, name), official_name, max_ring_size=kwargs['max_ring_size'],
                              use_edge_features=kwargs['use_edge_features'], simple=kwargs['simple_features'],
                              init_method=init_method, n_jobs=n_jobs)
+    elif name == 'DUMMY':
+        dataset = DummyDataset(os.path.join(root, name))
+    elif name == 'DUMMYM':
+        dataset = DummyMolecularDataset(os.path.join(root, name))
     else:
         raise NotImplementedError(name)
     return dataset
