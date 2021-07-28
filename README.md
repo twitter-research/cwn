@@ -81,15 +81,31 @@ In order to run an experiment on the SR benchmark with a CWN, run the following:
 sh exp/scripts/cwn-sr.sh <k>
 ```
 replacing `<k>` with the a value amongst `4`, `5`, `6` (this corresponds to the maximum ring size employed in the lifting procedure).
-The shell script will internally run the `exp/run_sr_exp.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/SR-cwn-<k>/`.
+The shell script will internally run the `exp/run_sr_exp.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/SR-cwn-sr-<k>/`.
 
 _Note_: before the inference starts, the script will perform the appropriate ring-lifting procedure on the SR graphs in the family.
 
 Finally, the following command will run the MLP-sum (strong) baseline described in the paper:
 ```
-sh exp/scripts/cwn-sr-base.sh
+sh exp/scripts/cwn-sr-base.sh <k>
 ```
-Results will be written under `exp/results/SR-cwn-base-<k>/`.
+Results will be written under `exp/results/SR-cwn-base-sr-<k>/`.
+
+## Experiments on SR families with (untrained) MPSNs
+
+In order to run an experiment on the SR benchmark with a MPSN, run the following:
+```
+sh exp/scripts/mpsn-sr.sh
+```
+The shell script will internally run the `exp/run_sr_exp.py` script, passing the required parameters. The script will instantiate and run a SIN model on all the SR families, repeating each experiment with 10 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/SR-mpsn-sr/`.
+
+_Note_: before the inference starts, the script will perform the appropriate clique-lifting procedure on the SR graphs in the family, up to dimension `k-1`, with `k` the maximum clique-size in the family.
+
+Finally, the following command will run the MLP-sum (strong) baseline described in the paper:
+```
+sh exp/scripts/mpsn-sr-base.sh
+```
+Results will be written under `exp/results/SR-mpsn-base-sr/`.
 
 ### Credits
 
