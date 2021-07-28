@@ -94,6 +94,19 @@ The MLP-sum baseline on clique-complexes is run with (results under `exp/results
 sh exp/scripts/mpsn-sr-base.sh
 ```
 
+## MPSN Orientation Experiments
+
+For the Ocean Dataset experiments, the data must be downloaded from [here](https://github.com/nglaze00/SCoNe_GCN/blob/master/ocean_drifters_data/dataBuoys.jld2).
+The file must be placed in `datasets/OCEAN/raw/`. 
+
+For running the experiments use the following scripts:
+```shell
+sh ./exp/scripts/mpsn-flow.sh [id/relu/tanh]
+sh ./exp/scripts/mpsn-ocean.sh [id/relu/tanh]
+sh ./exp/scripts/gnn-inv-flow.sh
+sh ./exp/scripts/gnn-inv-ocean.sh
+```
+
 ### Credits
 
 For attribution in academic contexts, please cite the following papers
