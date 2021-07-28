@@ -227,14 +227,18 @@ class SparseCINConv(torch.nn.Module):
     neighbors and boundaries, but not from lower neighbors (hence why "Sparse")
     """
 
+    # TODO: Refactor the way we pass networks externally to allow for different networks per dim.
     def __init__(self, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
-                 msg_up_nn: Callable, msg_boundaries_nn: Callable, update_up_nn: Callable,
-                 update_boundaries_nn: Callable, eps: float = 0., train_eps: bool = False,
-                 max_dim: int = 2, graph_norm=BN, use_coboundaries=False, **kwargs):
+                 passed_msg_up_nn: Optional[Callable], passed_msg_boundaries_nn: Optional[Callable],
+                 passed_update_up_nn: Optional[Callable],
+                 passed_update_boundaries_nn: Optional[Callable],
+                 eps: float = 0., train_eps: bool = False, max_dim: int = 2,
+                 graph_norm=BN, use_coboundaries=False, **kwargs):
         super(SparseCINConv, self).__init__()
         self.max_dim = max_dim
         self.mp_levels = torch.nn.ModuleList()
         for dim in range(max_dim+1):
+            msg_up_nn = passed_msg_up_nn
             if msg_up_nn is None:
                 if use_coboundaries:
                     msg_up_nn = Sequential(
@@ -243,8 +247,12 @@ class SparseCINConv(torch.nn.Module):
                             kwargs['act_module']())
                 else:
                     msg_up_nn = lambda xs: xs[0]
+
+            msg_boundaries_nn = passed_msg_boundaries_nn
             if msg_boundaries_nn is None:
                 msg_boundaries_nn = lambda x: x
+
+            update_up_nn = passed_update_up_nn
             if update_up_nn is None:
                 update_up_nn = Sequential(
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
@@ -254,6 +262,8 @@ class SparseCINConv(torch.nn.Module):
                     graph_norm(kwargs['hidden']),
                     kwargs['act_module']()
                 )
+
+            update_boundaries_nn = passed_update_boundaries_nn
             if update_boundaries_nn is None:
                 update_boundaries_nn = Sequential(
                     Linear(kwargs['layer_dim'], kwargs['hidden']),
