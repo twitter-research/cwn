@@ -3,6 +3,8 @@ import sys
 import copy
 import time
 import numpy as np
+import subprocess
+
 from definitions import ROOT_DIR
 from exp.parser import get_parser
 from exp.run_exp import main
