@@ -157,6 +157,7 @@ def validate_args(args):
             assert args.task_type == 'bin_classification'
             assert not args.minimize
     elif args.dataset.startswith('sr'):
+        assert args.model in ['sparse_cin', 'mp_agnostic']
         assert args.eval_metric == 'isomorphism'
         assert args.task_type == 'isomorphism'
         assert args.jump_mode is None

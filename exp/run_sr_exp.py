@@ -3,6 +3,8 @@ import sys
 import copy
 import time
 import numpy as np
+import subprocess
+
 from definitions import ROOT_DIR
 from exp.parser import get_parser
 from exp.run_exp import main
@@ -36,27 +38,30 @@ __max_dim__ = [
 
 if __name__ == "__main__":
     
+    # Extract the commit sha so we can check the code that was used for each experiment
+    sha = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+    
     # standard args
     passed_args = sys.argv[1:]
     assert '--seed' not in passed_args
     assert '--dataset' not in passed_args
-    assert '--exp_name' not in passed_args
     assert '--readout_dims' not in passed_args
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
-    ts = str(time.time())
-    if '--result_folder' not in passed_args:
-        result_folder = os.path.join(ROOT_DIR, 'exp', 'results', 'sr-{}'.format(ts))
-        passed_args += ['--result_folder', result_folder]
-    else:
-        result_folder = args.result_folder
+    
+    # set result folder
+    folder_name = f'SR-{args.exp_name}'
+    if '--max_ring_size' in passed_args:
+        folder_name += f'-{args.max_ring_size}'
+    result_folder = os.path.join(args.result_folder, folder_name)
+    passed_args += ['--result_folder', result_folder]
     
     # run each experiment separately and gather results
     results = [list() for _ in __families__]
     for f, family in enumerate(__families__):
         for seed in range(args.start_seed, args.stop_seed + 1):
             print(f'[i] family {family}, seed {seed}')
-            current_args = copy.copy(passed_args) + ['--dataset', family, '--exp_name', family, '--seed', str(seed)]
+            current_args = copy.copy(passed_args) + ['--dataset', family, '--seed', str(seed)]
             if '--max_dim' not in passed_args:
                 if '--max_ring_size' not in passed_args:
                     current_args += ['--max_dim', str(__max_dim__[f])]
@@ -74,7 +79,10 @@ if __name__ == "__main__":
             curves = main(parsed_args)
             results[f].append(curves)
             
-    msg = ''
+    msg = (
+        f"========= Final result ==========\n"
+        f'Datasets:               SR\n'
+        f'SHA:                    {sha}\n')
     for f, family in enumerate(__families__):
         curves = results[f]
         test_perfs = [curve['last_test'] for curve in curves]
@@ -84,7 +92,7 @@ if __name__ == "__main__":
         minim = np.min(test_perfs)
         maxim = np.max(test_perfs)
         msg += (
-            f'Dataset:               {family}\n'
+            f'------------------ {family} ------------------\n'
             f'Mean failure rate:     {mean}\n'
             f'StdErr failure rate:   {std_err}\n'
             f'Min failure rate:      {minim}\n'

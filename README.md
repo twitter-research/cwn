@@ -14,82 +14,85 @@ We use `Python 3.8` and `PyTorch 1.7.0` on `CUDA 10.2` for this project.
 Please open a terminal window and follow these steps to prepare the virtual environment needed to run any experiment.
 
 Create the environment:
-```
+```shell
 conda create --name cwn python=3.8
 conda activate cwn
 ```
 
 Install torch:
-```
+```shell
 conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch
 ```
 
 Install torch-geometric:
-```
+```shell
 sh pyG_install.sh cu102
 ```
 
 Install other required packages via pip:
-```
+```shell
 pip install -r requirements.txt
 ```
 
 Install graph-tool via conda:
-```
+```shell
 sh graph-tool_install.sh
 ```
 
-At this point you should be good to go. Please remind to always activate the environment before running any of the commads listed in the following.
+At this point you should be good to go. Always activate the environment before running the commands listed below.
 
 ## Testing
 
-We provide a series of Python unit tests that can be conveniently run by `pytest`.
-We suggest running all tests in the repository after installation to verify everything is in place. Simply run:
-```
+We suggest running all tests in the repository to verify everything is in place. Run:
+```shell
 pytest .
 ```
-This command will recursively fetch all unit tests present in the repository and run them. A summary will be printed out in the end. All tests should pass (typically showed in green).
+All tests should pass (typically showed in green).
 
 ## Experiments on molecular benchmarks
 
-### CIN
-
-In order to run an experiment on a molecular benchmark simply execute:
+To run an experiment on a molecular benchmark with a CWN, execute:
+```shell
+sh exp/scripts/cwn-<benchmark>.sh
 ```
-sh exp/<benchmark>.sh
-```
-where `<benchmark>` with one amongst `zinc`, `zinc-full`, `molhiv`.
+with `<benchmark>` one amongst `zinc`, `zinc-full`, `molhiv`.
 
-These shell scripts will run the `exp/run_mol_exp.py` script passing the required parameters for each experiment.
-
-Internally, for a specified range of random seeds, the script will run the trainings sequentially, compute final performance statistics and print them on screen in the end. Additionally, the script will write these results under `exp/results/<BENCHMARK>-<benchmark>/`.
+The results will be written under `exp/results/<BENCHMARK>-cwn-<benchmark>/`.
 
 _Note_: before the training starts, the script will download the corresponding graph datasets and perform the appropriate ring-lifting procedure.
 
-### CIN-small
+Imposing the parameter budget: it is sufficient to add the suffix `-small` to the `<benchmark>` placeholder:
+```shell
+sh exp/scripts/cwn-<benchmark>-small.sh
+```
+For example, `sh exp/scripts/cwn-zinc-small.sh` will run the training on ZINC with parameter budget.
 
-Imposing the parameter budget: in order to run the 'smaller' `CIN` counterparts on these benchmarks, it is sufficient to add the suffix `-small` to the `<benchmark>` placeholder.
-```
-sh exp/<benchmark>-small.sh`
-```
-For example, `sh exp/zinc-small.sh` will run the training on ZINC with parameter budget.
+## Experiments on SR families
 
-## SR synthetic experiment
-
-In order to run an experiment on the SR benchmark, run the following:
+To run an experiment on the SR benchmark with a CWN, run:
+```shell
+sh exp/scripts/cwn-sr.sh <k>
 ```
-sh exp/sr.sh <k>
-```
-Replacing `<k>` with the a value amongst `4`, `5`, `6` (this corresponds to the maximum ring size employed in the lifting procedure).
-The shell script will internally run the `exp/run_sr_exp.py` script, passing the required parameters. The script will instantiate and run a CIN model on all the SR families, repeating each experiment with 5 different random seeds. It will then print on screen the failure rate statistics on every family, and also dump this result on file, under `exp/results/sr-<k>/`.
+replacing `<k>` with a value amongst `4`, `5`, `6` (`<k>` is the maximum ring size employed in the lifting procedure). The results, for each family, will be written under `exp/results/SR-cwn-sr-<k>/`.
 
 _Note_: before the inference starts, the script will perform the appropriate ring-lifting procedure on the SR graphs in the family.
 
-Finally, the following command will run the MLP-sum (strong) baseline described in the paper:
+The following command will run the MLP-sum (strong) baseline on the same ring-lifted graphs (results under `exp/results/SR-cwn-base-sr-<k>/`):
+```shell
+sh exp/scripts/cwn-sr-base.sh <k>
 ```
-sh exp/sr-base.sh
+
+In order to run these experiment with clique-lifting (MPSNs), run (results under `exp/results/SR-mpsn-sr/`):
+```shell
+sh exp/scripts/mpsn-sr.sh
 ```
-Results will be written under `exp/results/sr-base-<k>/`.
+
+_Note_: Clique-lifting is applied up to dimension `k-1`, with `k` the maximum clique-size in the family.
+
+The MLP-sum baseline on clique-complexes is run with (results under `exp/results/SR-mpsn-base-sr/`):
+```shell
+sh exp/scripts/mpsn-sr-base.sh
+```
 
 ### Credits
 
