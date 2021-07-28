@@ -63,7 +63,7 @@ _Note_: before the training starts, the script will download the corresponding g
 
 Imposing the parameter budget: it is sufficient to add the suffix `-small` to the `<benchmark>` placeholder:
 ```shell
-sh exp/scripts/cwn-<benchmark>-small.sh`
+sh exp/scripts/cwn-<benchmark>-small.sh
 ```
 For example, `sh exp/scripts/cwn-zinc-small.sh` will run the training on ZINC with parameter budget.
 
