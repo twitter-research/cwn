@@ -31,8 +31,8 @@ class RingSparseCIN(torch.nn.Module):
             layer_dim = num_input_features if i == 0 else hidden
             self.convs.append(
                 SparseCINConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
-                    boundary_msg_size=layer_dim, msg_boundaries_nn=None, msg_up_nn=None,
-                    update_up_nn=None, update_boundaries_nn=None,
+                    boundary_msg_size=layer_dim, passed_msg_boundaries_nn=None, passed_msg_up_nn=None,
+                    passed_update_up_nn=None, passed_update_boundaries_nn=None,
                     train_eps=train_eps, max_dim=self.max_dim,
                     hidden=hidden, act_module=act_module, layer_dim=layer_dim,
                     graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
