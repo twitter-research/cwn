@@ -4,6 +4,7 @@ python -m exp.run_sr_exp \
 --start_seed 0 \
 --stop_seed 4 \
 --device 0 \
+--exp_name cwn-sr-base \
 --model mp_agnostic \
 --use_coboundaries True \
 --drop_rate 0.0 \

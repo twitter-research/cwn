@@ -40,20 +40,15 @@ if __name__ == "__main__":
     passed_args = sys.argv[1:]
     assert '--seed' not in passed_args
     assert '--dataset' not in passed_args
-    assert '--exp_name' not in passed_args
     assert '--readout_dims' not in passed_args
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
     
-    result_prefix = 'mpsn-'
-    result_suffix = ''
+    # set result folder
+    folder_name = f'SR-{args.exp_name}'
     if '--max_ring_size' in passed_args:
-        result_prefix = 'cwn-'
-        result_suffix = f'-{args.max_ring_size}'  
-    if args.model == 'mp_agnostic':
-        result_folder = os.path.join(args.result_folder, f'{result_prefix}sr-base{result_suffix}')
-    else:
-        result_folder = os.path.join(args.result_folder, f'{result_prefix}sr{result_suffix}')
+        folder_name += f'-{args.max_ring_size}'
+    result_folder = os.path.join(args.result_folder, folder_name)
     passed_args += ['--result_folder', result_folder]
     
     # run each experiment separately and gather results
@@ -61,7 +56,7 @@ if __name__ == "__main__":
     for f, family in enumerate(__families__):
         for seed in range(args.start_seed, args.stop_seed + 1):
             print(f'[i] family {family}, seed {seed}')
-            current_args = copy.copy(passed_args) + ['--dataset', family, '--exp_name', family, '--seed', str(seed)]
+            current_args = copy.copy(passed_args) + ['--dataset', family, '--seed', str(seed)]
             if '--max_dim' not in passed_args:
                 if '--max_ring_size' not in passed_args:
                     current_args += ['--max_dim', str(__max_dim__[f])]
