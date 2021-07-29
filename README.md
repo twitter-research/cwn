@@ -58,7 +58,7 @@ datasets or take a long time to run. We periodically run these tests manually.
 We prepared individual scripts for each experiment. The results are written in the
 `exp/results/` directory and are also displayed in the terminal once the training is
 complete. Before the training starts, the scripts will download the corresponding graph datasets 
-and perform the appropriate ring-lifting procedure (this might take a while).
+and perform the appropriate graph-lifting procedure (this might take a while).
 
 ### Molecular benchmarks
 
