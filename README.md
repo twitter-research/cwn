@@ -94,6 +94,13 @@ The MLP-sum baseline on clique-complexes is run with (results under `exp/results
 sh exp/scripts/mpsn-sr-base.sh
 ```
 
+## Circular Skip Link (CSL) Experiments
+
+To run the experiments on the CSL dataset (5 folds x 20 seeds), run the following script:
+```shell
+sh exp/scripts/cwn-csl.sh
+```
+
 ## MPSN Orientation Experiments
 
 For the Ocean Dataset experiments, the data must be downloaded from [here](https://github.com/nglaze00/SCoNe_GCN/blob/master/ocean_drifters_data/dataBuoys.jld2).

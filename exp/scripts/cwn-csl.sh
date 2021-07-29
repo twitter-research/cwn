@@ -1,0 +1,32 @@
+#!/bin/bash
+
+python -m exp.run_mol_exp \
+  --start_seed 0 \
+  --stop_seed 19 \
+  --folds 5 \
+  --exp_name=cwn-csl \
+  --dataset CSL \
+  --train_eval_period 25 \
+  --epochs 300 \
+  --batch_size 12 \
+  --drop_rate 0.0 \
+  --graph_norm ln \
+  --drop_position lin2 \
+  --emb_dim 160 \
+  --max_dim 2 \
+  --final_readout sum \
+  --init_method sum \
+  --lr 5e-4 \
+  --model embed_sparse_cin \
+  --nonlinearity relu \
+  --num_layers 3 \
+  --readout mean \
+  --max_ring_size=8 \
+  --lr_scheduler='ReduceLROnPlateau' \
+  --lr_scheduler_min 1e-6 \
+  --lr_scheduler_patience 20 \
+  --early_stop \
+  --use_edge_features \
+  --device=0 \
+  --use_coboundaries True \
+  --preproc_jobs 32
