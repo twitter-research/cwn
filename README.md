@@ -118,6 +118,17 @@ sh ./exp/scripts/gnn-inv-flow.sh
 sh ./exp/scripts/gnn-inv-ocean.sh
 ```
 
+### TUDatasets
+
+For experiments on TUDatasets first download the raw data from [here](https://www.dropbox.com/s/2ekun30wxyxpcr7/datasets.zip?dl=0).
+Please place the content of the unzipped folder under `datasets/`.
+
+Here we provide the scripts to run two experiments: CWN on NCI109 and MPSN on IMDBBINARY. These scripts can be customised to run additional experiments on other datasets.
+```shell
+sh ./exp/scripts/cwn-nci109.sh
+sh ./exp/scripts/mpsn-imdbb.sh
+```
+
 ### Credits
 
 For attribution in academic contexts, please cite the following papers
