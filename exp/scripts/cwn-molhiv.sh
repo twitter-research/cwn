@@ -21,7 +21,7 @@ python -m exp.run_mol_exp \
   --emb_dim 64 \
   --batch_size 128 \
   --epochs 150 \
-  --num_workers 4 \
+  --num_workers 2 \
   --preproc_jobs 32 \
   --task_type bin_classification \
   --eval_metric ogbg-molhiv \
