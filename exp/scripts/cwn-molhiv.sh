@@ -10,12 +10,12 @@ python -m exp.run_mol_exp \
   --use_coboundaries True \
   --indrop_rate 0.0 \
   --drop_rate 0.5 \
+  --graph_norm bn \
   --drop_position lin2 \
   --nonlinearity relu \
   --readout mean \
   --final_readout sum \
   --lr 0.0001 \
-  --graph_norm id \
   --lr_scheduler None \
   --num_layers 2 \
   --emb_dim 64 \

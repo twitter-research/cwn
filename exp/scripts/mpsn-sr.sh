@@ -8,6 +8,7 @@ python -m exp.run_sr_exp \
   --model sparse_cin \
   --use_coboundaries True \
   --drop_rate 0.0 \
+  --graph_norm id \
   --nonlinearity elu \
   --readout sum \
   --final_readout sum \
@@ -15,7 +16,7 @@ python -m exp.run_sr_exp \
   --num_layers 5 \
   --emb_dim 16 \
   --batch_size 8 \
-  --num_workers 8 \
+  --num_workers 2 \
   --task_type isomorphism \
   --eval_metric isomorphism \
   --init_method sum \
