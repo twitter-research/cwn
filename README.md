@@ -142,3 +142,5 @@ For attribution in academic contexts, please cite the following papers
 - [ ] Remove redundant parameters from the models 
   (e.g. msg_up_nn in the top dimension.)   
 - [ ] Address other TODOs left in the code. 
+- [ ] Refactor data classes so to remove setters for `__num_xxx_cells__` like attributes.
+- [ ] Remove unused imports and constants.
