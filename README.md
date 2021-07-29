@@ -135,6 +135,10 @@ For attribution in academic contexts, please cite the following papers
 }
 ```
 
-### Known issues
+## TODOs
 
-- Coboundary adjacencies are not supported
+- [ ] Add support for coboundary adjacencies. 
+- [ ] Refactor the way empty cochains are handled for batching.
+- [ ] Remove redundant parameters from the models 
+  (e.g. msg_up_nn in the top dimension.)   
+- [ ] Address other TODOs left in the code. 
