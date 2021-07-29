@@ -17,7 +17,7 @@ python -m exp.run_mol_exp \
   --final_readout sum \
   --init_method sum \
   --lr 5e-4 \
-  --model embed_sparse_sin \
+  --model embed_sparse_cin \
   --nonlinearity relu \
   --num_layers 3 \
   --readout mean \
