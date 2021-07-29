@@ -1,4 +1,5 @@
 #!/bin/bash
+# Just a convenient shell script that can be used to parallelise grid searches.
 low=0
 high=7
 gridpath="<path_to_grid>"

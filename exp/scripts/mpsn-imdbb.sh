@@ -1,0 +1,31 @@
+#!/bin/bash
+
+python -m exp.run_tu_exp \
+  --device 0 \
+  --exp_name mpsn-imdbb \
+  --dataset IMDBBINARY \
+  --train_eval_period 50 \
+  --epochs 150 \
+  --batch_size 32 \
+  --drop_rate 0.5 \
+  --drop_position lin2 \
+  --emb_dim 64 \
+  --max_dim 2 \
+  --final_readout sum \
+  --readout_dims 0 2 \
+  --init_method mean \
+  --jump_mode 'cat' \
+  --lr 0.0005 \
+  --graph_norm bn \
+  --model sparse_cin \
+  --nonlinearity relu \
+  --num_layers 4 \
+  --readout mean \
+  --task_type classification \
+  --eval_metric accuracy \
+  --lr_scheduler 'StepLR' \
+  --lr_scheduler_decay_rate 0.5 \
+  --lr_scheduler_decay_steps 20 \
+  --use_coboundaries False \
+  --dump_curves \
+  --preproc_jobs 1
