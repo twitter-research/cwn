@@ -1,12 +1,12 @@
 import torch
 import torch.nn.functional as F
 
-from torch.nn import Linear, Sequential, ReLU, BatchNorm1d as BN, LayerNorm as LN
+from torch.nn import Linear, Sequential, BatchNorm1d as BN
 from torch_geometric.nn import JumpingKnowledge
 from mp.layers import (
     CINConv, EdgeCINConv, SparseCINConv, DummyCellularMessagePassing, OrientedConv)
 from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex, get_graph_norm
-from data.complex import Complex, ComplexBatch, CochainBatch
+from data.complex import ComplexBatch, CochainBatch
 
 
 class CIN0(torch.nn.Module):

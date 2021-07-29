@@ -3,7 +3,7 @@ import torch
 from mp.layers import SparseCINConv
 from mp.nn import get_nonlinearity, get_graph_norm
 from data.complex import ComplexBatch
-from torch.nn import Linear, Sequential, BatchNorm1d as BN
+from torch.nn import Linear, Sequential
 from torch_geometric.nn import GINConv
 
 
