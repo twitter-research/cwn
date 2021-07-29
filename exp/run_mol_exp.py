@@ -28,7 +28,7 @@ def exp_main(passed_args):
     else:
         # Used by CSL only to run experiments across both seeds and folds
         assert args.dataset == 'CSL'
-        for seed, fold in product(range(args.seeds), range(args.folds)):
+        for seed, fold in product(range(args.start_seed, args.stop_seed + 1), range(args.folds)):
             current_args = copy.copy(passed_args) + ['--seed', str(seed)] + ['--fold', str(fold)]
             parsed_args = parser.parse_args(current_args)
             curves = main(parsed_args)
