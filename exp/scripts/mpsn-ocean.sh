@@ -14,4 +14,5 @@ python -m exp.run_mol_exp \
   --nonlinearity "$1" \
   --drop_rate 0.0 \
   --lr_scheduler_decay_steps 50 \
-  --exp_name ocean_mpsn --dump_curves
+  --exp_name ocean_mpsn \
+  --dump_curves

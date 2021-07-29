@@ -1,22 +1,23 @@
 #!/bin/bash
 
 python -m exp.run_sr_exp \
---start_seed 0 \
---stop_seed 9 \
---device 0 \
---exp_name mpsn-sr \
---model sparse_cin \
---use_coboundaries True \
---drop_rate 0.0 \
---nonlinearity elu \
---readout sum \
---final_readout sum \
---lr_scheduler None \
---num_layers 5 \
---emb_dim 16 \
---batch_size 8 \
---num_workers 8 \
---task_type isomorphism \
---eval_metric isomorphism \
---init_method sum \
---untrained
+  --start_seed 0 \
+  --stop_seed 9 \
+  --device 0 \
+  --exp_name mpsn-sr \
+  --model sparse_cin \
+  --use_coboundaries True \
+  --drop_rate 0.0 \
+  --graph_norm id \
+  --nonlinearity elu \
+  --readout sum \
+  --final_readout sum \
+  --lr_scheduler None \
+  --num_layers 5 \
+  --emb_dim 16 \
+  --batch_size 8 \
+  --num_workers 2 \
+  --task_type isomorphism \
+  --eval_metric isomorphism \
+  --init_method sum \
+  --untrained
