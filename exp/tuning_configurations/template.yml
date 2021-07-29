@@ -1,21 +1,21 @@
+# Just a basic template that can be customised to set-up grids on TUDatasets.
+# TODO: add support to readout only on specific dimensions with arg "--readout_dims".
 dataset: TU_dataset_name
 epochs:
     - 150
-    # If you can afford it, consider running on 300 epochs
-    # - 300
 batch_size:
     - 32
     - 128
 drop_position:
     - lin2
-    # If you can afford it, consider also other dropout positions
-    # - final_readout
-    # - lin1
+    - final_readout
+    - lin1
 drop_rate:
     - 0.0
     - 0.5
 emb_dim:
     - 16
+    - 32
     - 64
 final_readout:
     - sum
@@ -25,7 +25,9 @@ init_method:
 jump_mode:
     - cat
 lr:
+    - 0.0005
     - 0.001
+    - 0.003
     - 0.01
 lr_scheduler:
     - StepLR
@@ -39,6 +41,7 @@ max_dim:
     # If supplying a max_ring_size, max_dim should be set to 2.
     - 2
 max_ring_size:
+    # Remove this one if you want to tune an MPSN.
     - 6
 model:
     - sparse_cin
@@ -48,10 +51,11 @@ use_coboundaries:
 nonlinearity:
     - relu
 num_layers:
+    - 3
     - 4
 readout:
     - mean
-    # use sum for bio datasets
+    # Use sum for bio datasets.
     # - sum
 train_eval_period:
     - 50
