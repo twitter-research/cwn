@@ -8,6 +8,23 @@ and [Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](
 
 ![alt text](./figures/glue_disks.jpeg)&nbsp;&nbsp;&nbsp;&nbsp;  ![alt text](./figures/sphere.jpeg)&nbsp;&nbsp;  ![alt text](./figures/empty_tetrahderon.jpeg)
 
+*Graph Neural Networks (GNNs) are limited in their expressive power, struggle with long-range 
+interactions and lack a principled way to model higher-order structures. These problems can be 
+attributed to the strong coupling between the computational graph and the input graph structure. 
+The recently proposed Message Passing Simplicial Networks naturally decouple these elements 
+by performing message passing on the clique complex of the graph. Nevertheless, 
+these models are severely constrained by the rigid combinatorial structure of 
+Simplicial Complexes (SCs). In this work, we extend recent theoretical results on SCs to 
+regular Cell Complexes, topological objects that flexibly subsume SCs and graphs. 
+We show that this generalisation provides a powerful set of graph "lifting" transformations, 
+each leading to a unique hierarchical message passing procedure. The resulting methods, 
+which we collectively call CW Networks (CWNs), are strictly more powerful than the WL test and, 
+in certain cases, not less powerful than the 3-WL test. In particular, we demonstrate the 
+effectiveness of one such scheme, based on rings, when applied to molecular graph problems. 
+The proposed architecture benefits from provably larger expressivity than commonly used GNNs, 
+principled modelling of higher-order signals and from compressing the distances between nodes. 
+We demonstrate that our model achieves state-of-the-art results on a variety of molecular datasets.*
+
 ## Installation
 
 We use `Python 3.8` and `PyTorch 1.7.0` on `CUDA 10.2` for this project.
@@ -19,37 +36,31 @@ conda create --name cwn python=3.8
 conda activate cwn
 ```
 
-Install torch:
+Install dependencies:
 ```shell
 conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch
-```
-
-Install torch-geometric:
-```shell
 sh pyG_install.sh cu102
-```
-
-Install other required packages via pip:
-```shell
 pip install -r requirements.txt
-```
-
-Install graph-tool via conda:
-```shell
 sh graph-tool_install.sh
 ```
 
-At this point you should be good to go. Always activate the environment before running the commands listed below.
-
-## Testing
+### Testing
 
 We suggest running all tests in the repository to verify everything is in place. Run:
 ```shell
-pytest .
+pytest -v .
 ```
-All tests should pass (typically showed in green).
+All tests should pass. Note that some tests are skipped since they rely on external
+datasets or take a long time to run. We periodically run these tests manually.  
 
-## Experiments on molecular benchmarks
+## Experiments 
+
+We prepared individual scripts for each experiment. The results are written in the
+`exp/results/` directory and are also displayed in the terminal once the training is
+complete. Before the training starts, the scripts will download the corresponding graph datasets 
+and perform the appropriate ring-lifting procedure (this might take a while).
+
+### Molecular benchmarks
 
 To run an experiment on a molecular benchmark with a CWN, execute:
 ```shell
@@ -57,17 +68,13 @@ sh exp/scripts/cwn-<benchmark>.sh
 ```
 with `<benchmark>` one amongst `zinc`, `zinc-full`, `molhiv`.
 
-The results will be written under `exp/results/<BENCHMARK>-cwn-<benchmark>/`.
-
-_Note_: before the training starts, the script will download the corresponding graph datasets and perform the appropriate ring-lifting procedure.
-
 Imposing the parameter budget: it is sufficient to add the suffix `-small` to the `<benchmark>` placeholder:
 ```shell
 sh exp/scripts/cwn-<benchmark>-small.sh
 ```
 For example, `sh exp/scripts/cwn-zinc-small.sh` will run the training on ZINC with parameter budget.
 
-## Experiments on SR families
+### Distinguishing SR graphs
 
 To run an experiment on the SR benchmark with a CWN, run:
 ```shell
@@ -75,33 +82,30 @@ sh exp/scripts/cwn-sr.sh <k>
 ```
 replacing `<k>` with a value amongst `4`, `5`, `6` (`<k>` is the maximum ring size employed in the lifting procedure). The results, for each family, will be written under `exp/results/SR-cwn-sr-<k>/`.
 
-_Note_: before the inference starts, the script will perform the appropriate ring-lifting procedure on the SR graphs in the family.
-
-The following command will run the MLP-sum (strong) baseline on the same ring-lifted graphs (results under `exp/results/SR-cwn-base-sr-<k>/`):
+The following command will run the MLP-sum (strong) baseline on the same ring-lifted graphs:
 ```shell
 sh exp/scripts/cwn-sr-base.sh <k>
 ```
 
-In order to run these experiment with clique-lifting (MPSNs), run (results under `exp/results/SR-mpsn-sr/`):
+In order to run these experiment with clique-complex lifting (MPSNs), run:
 ```shell
 sh exp/scripts/mpsn-sr.sh
 ```
+Clique-lifting is applied up to dimension `k-1`, with `k` the maximum clique-size in the family.
 
-_Note_: Clique-lifting is applied up to dimension `k-1`, with `k` the maximum clique-size in the family.
-
-The MLP-sum baseline on clique-complexes is run with (results under `exp/results/SR-mpsn-base-sr/`):
+The MLP-sum baseline on clique-complexes is run with:
 ```shell
 sh exp/scripts/mpsn-sr-base.sh
 ```
 
-## Circular Skip Link (CSL) Experiments
+### Circular Skip Link (CSL) Experiments
 
 To run the experiments on the CSL dataset (5 folds x 20 seeds), run the following script:
 ```shell
 sh exp/scripts/cwn-csl.sh
 ```
 
-## MPSN Orientation Experiments
+### Trajectory classification
 
 For the Ocean Dataset experiments, the data must be downloaded from [here](https://github.com/nglaze00/SCoNe_GCN/blob/master/ocean_drifters_data/dataBuoys.jld2).
 The file must be placed in `datasets/OCEAN/raw/`. 
