@@ -15,7 +15,7 @@ def exp_main(passed_args):
 
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
-    assert args.stop_seed > args.start_seed
+    assert args.stop_seed >= args.start_seed
 
     # run each experiment separately and gather results
     results = list()
