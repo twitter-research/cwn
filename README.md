@@ -123,9 +123,10 @@ sh ./exp/scripts/gnn-inv-ocean.sh
 For experiments on TUDatasets first download the raw data from [here](https://www.dropbox.com/s/2ekun30wxyxpcr7/datasets.zip?dl=0).
 Please place the downloaded archive on the root of the repository and unzip it (e.g. `unzip ./datasets.zip`).
 
-Here we provide the script to run CWN on NCI109. This script can be customised to run additional experiments on other datasets.
+Here we provide the scripts to run CWN on NCI109 and MPSN on REDDITBINARY. This script can be customised to run additional experiments on other datasets.
 ```shell
 sh ./exp/scripts/cwn-nci109.sh
+sh ./exp/scripts/mpsn-redditb.sh
 ```
 
 ### Credits
