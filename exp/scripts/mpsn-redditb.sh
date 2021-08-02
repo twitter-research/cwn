@@ -5,7 +5,7 @@ python -m exp.run_tu_exp \
   --exp_name mpsn-redditb \
   --dataset REDDITBINARY \
   --train_eval_period 50 \
-  --epochs 150 \
+  --epochs 200 \
   --batch_size 32 \
   --drop_rate 0.0 \
   --drop_position 'final_readout' \
