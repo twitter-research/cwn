@@ -1,6 +1,10 @@
 name: Build and Test
 
-on: [push]
+on:
+  push:
+  schedule:
+    # Run the tests at 00:00 each day
+    - cron: "0 0 * * *"
 
 jobs:
   build:
@@ -43,6 +47,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
+      - name: Install graph-tool
+        run: |
+          conda install -c conda-forge graph-tool==2.29
       - name: pytorch
         run: |
           pip install torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
@@ -52,9 +59,6 @@ jobs:
       - name: Install pyG
         run: |
           ./pyG_install.sh cpu
-      - name: Install graph-tool
-        run: |
-          conda install -c conda-forge graph-tool==2.29
       - name: Test with pytest
         run: |
           pytest -v
