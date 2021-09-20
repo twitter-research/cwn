@@ -38,10 +38,10 @@ conda activate cwn
 
 Install dependencies:
 ```shell
+sh graph-tool_install.sh
 conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch
 sh pyG_install.sh cu102
 pip install -r requirements.txt
-sh graph-tool_install.sh
 ```
 
 ### Testing
