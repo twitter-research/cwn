@@ -2,9 +2,9 @@
 
 ![example workflow](https://github.com/twitter-research/scn/actions/workflows/python-package.yml/badge.svg)
 
-This repository contains the code used for the papers
-[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (Under review)
-and [Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212) (ICML 2021)
+This repository contains the official code used for the papers
+**[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (NeurIPS 2021)**
+and **[Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212) (ICML 2021)**
 
 ![alt text](./figures/glue_disks.jpeg)&nbsp;&nbsp;&nbsp;&nbsp;  ![alt text](./figures/sphere.jpeg)&nbsp;&nbsp;  ![alt text](./figures/empty_tetrahderon.jpeg)
 
@@ -51,7 +51,7 @@ We suggest running all tests in the repository to verify everything is in place.
 pytest -v .
 ```
 All tests should pass. Note that some tests are skipped since they rely on external
-datasets or take a long time to run. We periodically run these tests manually.  
+datasets or take a long time to run. We periodically run these additional tests manually.  
 
 ## Experiments 
 
@@ -134,7 +134,7 @@ sh ./exp/scripts/mpsn-redditb.sh
 For attribution in academic contexts, please cite the following papers
 
 ```
-@InProceedings{pmlr-v139-bodnar21a,
+@inproceedings{pmlr-v139-bodnar21a,
   title = 	 {Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks},
   author =       {Bodnar, Cristian and Frasca, Fabrizio and Wang, Yuguang and Otter, Nina and Montufar, Guido F and Li{\'o}, Pietro and Bronstein, Michael},
   booktitle = 	 {Proceedings of the 38th International Conference on Machine Learning},
@@ -149,10 +149,11 @@ For attribution in academic contexts, please cite the following papers
 ```
 
 ```
-@article{bodnar2021b,
+@inproceedings{neurips-bodnar2021b,
   title={Weisfeiler and Lehman Go Cellular: CW Networks},
   author={Bodnar, Cristian and Frasca, Fabrizio and Otter, Nina and Wang, Yu Guang and Li{\`o}, Pietro and Mont{\'u}far, Guido and Bronstein, Michael},
-  journal={arXiv preprint arXiv:2106.12575},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume = {34},
   year={2021}
 }
 ```
