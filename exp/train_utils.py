@@ -132,7 +132,7 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     y_true = torch.cat(y_true, dim=0).numpy()  if len(y_true) > 0 else None
     y_pred = torch.cat(y_pred, dim=0).numpy()
 
-    input_dict = {'y_pred': y_pred, 'y_true': y_true}
+    input_dict = {'y_pred': y_pred, 'y_true': y_true, 'eps': 0.0001}
     mean_loss = float(np.mean(losses)) if len(losses) > 0 else np.nan
     return evaluator.eval(input_dict), mean_loss
 

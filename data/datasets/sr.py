@@ -21,10 +21,16 @@ def makedirs(path):
             raise e
 
 
-def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
+def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), prefer_pkl=False):
     raw_dir = os.path.join(root, 'SR_graphs', 'raw')
     load_from = os.path.join(raw_dir, '{}.g6'.format(name))
-    data = load_sr_dataset(load_from)
+    load_from_pkl = os.path.join(raw_dir, '{}.pkl'.format(name))
+    if prefer_pkl and osp.exists(load_from_pkl):
+        print(f"Loading SR graph {name} from pickle dump...")
+        with open(load_from_pkl, 'rb') as handle:
+            data = pickle.load(handle)
+    else:
+        data = load_sr_dataset(load_from)
     graphs = list()
     for datum in data:
         edge_index, num_nodes = datum
@@ -73,7 +79,7 @@ class SRDataset(InMemoryComplexDataset):
 
     def process(self):
         
-        graphs, _, _, _ = load_sr_graph_dataset(self.name)
+        graphs, _, _, _ = load_sr_graph_dataset(self.name, prefer_pkl=True)
         exp_dim = self.max_dim
         if self._cellular:
             print(f"Converting the {self.name} dataset to a cell complex...")

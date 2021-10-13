@@ -375,9 +375,12 @@ def main(args):
         test_curve.append(np.nan)
 
     print('Final Evaluation...')
-    final_train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
-    final_val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
+    final_train_perf = np.nan
+    final_val_perf = np.nan
     final_test_perf = np.nan
+    if not args.dataset.startswith('sr'):
+        final_train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
+        final_val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
     if test_loader is not None:
         final_test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
 
