@@ -219,6 +219,9 @@ class SparseCIN(torch.nn.Module):
         if self.jump_mode is not None:
             xs = self.jump_complex(jump_xs)
 
+        # print('--------------- before readout')
+        # print(xs[-1][:10])
+        # print(xs[-1].shape)
         xs = self.pool_complex(xs, data)
         # Select the dimensions we want at the end.
         xs = [xs[i] for i in self.readout_dims]
@@ -227,11 +230,15 @@ class SparseCIN(torch.nn.Module):
             for k in range(len(xs)):
                 res[f"pool_{k}"] = xs[k]
         
+        # print('--------------- before lin1')
+        # print(xs[0][:10])
+        # print(xs[0].shape)
         new_xs = []
         for i, x in enumerate(xs):
             if self.apply_dropout_before == 'lin1':
                 x = F.dropout(x, p=self.dropout_rate, training=self.training)
-            new_xs.append(act(self.lin1s[self.readout_dims[i]](x)))
+            # Here we are forcing an id nonlinearity for these SR experiments
+            new_xs.append((self.lin1s[self.readout_dims[i]](x)))
 
         x = torch.stack(new_xs, dim=0)
         
@@ -246,7 +253,13 @@ class SparseCIN(torch.nn.Module):
         if self.apply_dropout_before not in ['lin1', 'final_readout']:
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
+        # print('--------------- after final_readout')
+        # print(x[:10])
+        # print(x.shape)
         x = self.lin2(x)
+        # print('--------------- after lin2')
+        # print(x[:10])
+        # print(x.shape)
 
         if include_partial:
             res['out'] = x
