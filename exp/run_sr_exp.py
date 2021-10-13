@@ -45,7 +45,7 @@ if __name__ == "__main__":
     passed_args = sys.argv[1:]
     assert '--seed' not in passed_args
     assert '--dataset' not in passed_args
-    assert '--readout_dims' not in passed_args
+    # assert '--readout_dims' not in passed_args
     parser = get_parser()
     args = parser.parse_args(copy.copy(passed_args))
     
@@ -72,9 +72,10 @@ if __name__ == "__main__":
             else:
                 assert '--max_ring_size' not in passed_args
                 max_dim = args.max_dim
-            readout_dims = [str(i) for i in range(max_dim + 1)]
-            readout_dims = ['--readout_dims'] + readout_dims
-            current_args += readout_dims
+            # readout_dims = [str(i) for i in range(max_dim + 1)]
+            # readout_dims = ['--readout_dims'] + readout_dims
+            # current_args += readout_dims
+            print(current_args)
             parsed_args = parser.parse_args(current_args)
             curves = main(parsed_args)
             results[f].append(curves)
