@@ -40,29 +40,37 @@ def test_sparse_cin0_perm_invariance_on_dummy_mol_complexes():
 
 def _validate_iso_on_sr(family):
 
-    eps = 0.0001
+    # Uncomment this to perform the check in double precision
+    # torch.set_default_dtype(torch.float64)
+
+    # Please set the parameters below to the ones used in SR experiments.
+    # If so, if tests pass then the experiments are deemed sound.
+    eps = 0.01
     hidden = 16
     num_layers = 3
     max_ring_size = 6
-    nonlinearity = 'id'
-    graph_norm = 'ln'
-    readout = 'mean'
+    use_coboundaries = True
+    nonlinearity = 'elu'
+    graph_norm = 'id'
+    readout = 'sum'
     final_readout = 'sum'
+    readout_dims = (0,1,2)
+    init = 'sum'
     jobs = 64
     seed = 43
     device = torch.device("cuda:" + str(0)) if torch.cuda.is_available() else torch.device("cpu")
 
     # Build and dump dataset if needed
-    prepare(family, jobs, max_ring_size, True, seed)
+    prepare(family, jobs, max_ring_size, True, init, seed)
 
     # Load reference dataset
-    complexes = load_dataset(family, max_dim=2, max_ring_size=max_ring_size)
-    permuted_complexes = load_dataset(f'{family}p{seed}', max_dim=2, max_ring_size=max_ring_size)
+    complexes = load_dataset(family, max_dim=2, max_ring_size=max_ring_size, init_method=init)
+    permuted_complexes = load_dataset(f'{family}p{seed}', max_dim=2, max_ring_size=max_ring_size, init_method=init)
 
     # Instantiate model
     model = SparseCIN(num_input_features=1, num_classes=complexes.num_classes, num_layers=num_layers, hidden=hidden, 
-                        use_coboundaries=True, nonlinearity=nonlinearity, graph_norm=graph_norm, 
-                        readout=readout, final_readout=final_readout)
+                        use_coboundaries=use_coboundaries, nonlinearity=nonlinearity, graph_norm=graph_norm, 
+                        readout=readout, final_readout=final_readout, readout_dims=readout_dims)
     model = model.to(device)
     model.eval()
 
@@ -71,24 +79,33 @@ def _validate_iso_on_sr(family):
     data_loader_perm = DataLoader(permuted_complexes, batch_size=8, shuffle=False, num_workers=16, max_dim=2)
 
     with torch.no_grad():
-        embeddings = [model.forward(batch.to(device)) for batch in data_loader]
+        embeddings = list()
+        perm_embeddings = list()
+        for batch in data_loader:
+            # Uncomment these to perform the check in double precision
+            # batch.nodes.x = batch.nodes.x.double()
+            # batch.edges.x = batch.edges.x.double()
+            # batch.two_cells.x = batch.two_cells.x.double()
+            embeddings.append(model.forward(batch.to(device)))
+        for batch in data_loader_perm:
+            # Uncomment these to perform the check in double precision
+            # batch.nodes.x = batch.nodes.x.double()
+            # batch.edges.x = batch.edges.x.double()
+            # batch.two_cells.x = batch.two_cells.x.double()
+            perm_embeddings.append(model.forward(batch.to(device)))
         embeddings = torch.cat(embeddings, 0)  # n x d
-        perm_embeddings = [model.forward(batch.to(device)) for batch in data_loader_perm]
         perm_embeddings = torch.cat(perm_embeddings, 0)  # n x d
     assert embeddings.size(0) == perm_embeddings.size(0)
     assert embeddings.size(1) == perm_embeddings.size(1)
 
-    # Test iso between perms
-    # assert False, embeddings[:10]
-    dist = torch.sqrt(torch.sum(torch.square(embeddings - perm_embeddings), 1))
-    assert torch.all(dist <= eps)
-    
-    # for i in range(embeddings.size(0)):
-    #     preds = torch.stack((embeddings[i], perm_embeddings[i]), 0)
-    #     assert preds.size(0) == 2
-    #     assert preds.size(1) == complexes.num_classes
-    #     dist = torch.pdist(preds, p=2).item()
-    #     assert dist <= eps
+    # print(embeddings[:10])
+    # print(perm_embeddings[:10])
+    for i in range(embeddings.size(0)):
+        preds = torch.stack((embeddings[i], perm_embeddings[i]), 0)
+        assert preds.size(0) == 2
+        assert preds.size(1) == complexes.num_classes
+        dist = torch.pdist(preds, p=2).item()
+        assert dist <= eps
 
 
 def test_sparse_cin0_self_isomorphism_on_sr16622():
@@ -106,8 +123,8 @@ def test_sparse_cin0_self_isomorphism_on_sr281264():
 def test_sparse_cin0_self_isomorphism_on_sr291467():
     _validate_iso_on_sr('sr291467')
 
-# def test_sparse_cin0_self_isomorphism_on_sr351668():
-#     _validate_iso_on_sr('sr351668')
+def test_sparse_cin0_self_isomorphism_on_sr351668():
+    _validate_iso_on_sr('sr351668')
 
 def test_sparse_cin0_self_isomorphism_on_sr351899():
     _validate_iso_on_sr('sr351899')
@@ -115,5 +132,5 @@ def test_sparse_cin0_self_isomorphism_on_sr351899():
 def test_sparse_cin0_self_isomorphism_on_sr361446():
     _validate_iso_on_sr('sr361446')
 
-# def test_sparse_cin0_self_isomorphism_on_sr401224():
-#     _validate_iso_on_sr('sr401224')
+def test_sparse_cin0_self_isomorphism_on_sr401224():
+    _validate_iso_on_sr('sr401224')
