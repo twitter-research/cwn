@@ -46,8 +46,8 @@ def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), prefer_
 class SRDataset(InMemoryComplexDataset):
     """A dataset of complexes obtained by lifting Strongly Regular graphs."""
 
-    def __init__(self, root, name, max_dim=2, num_classes=16,
-                 train_ids=None, val_ids=None, test_ids=None, include_down_adj=False, max_ring_size=None, n_jobs=2):
+    def __init__(self, root, name, max_dim=2, num_classes=16, train_ids=None, val_ids=None, test_ids=None, 
+                 include_down_adj=False, max_ring_size=None, n_jobs=2, init_method='sum'):
         self.name = name
         self._num_classes = num_classes
         self._n_jobs = n_jobs
@@ -57,7 +57,7 @@ class SRDataset(InMemoryComplexDataset):
         if cellular:
             assert max_dim == 2
         super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
-            include_down_adj=include_down_adj, cellular=cellular)
+            include_down_adj=include_down_adj, cellular=cellular, init_method=init_method)
         
         self.data, self.slices = torch.load(self.processed_paths[0])
             
@@ -87,7 +87,7 @@ class SRDataset(InMemoryComplexDataset):
                 graphs,
                 max_ring_size=self._max_ring_size,
                 include_down_adj=self.include_down_adj,
-                init_method='sum',
+                init_method=self._init_method,
                 init_edges=True,
                 init_rings=True,
                 n_jobs=self._n_jobs)
@@ -97,7 +97,7 @@ class SRDataset(InMemoryComplexDataset):
                 graphs,
                 expansion_dim=exp_dim,                                               
                 include_down_adj=self.include_down_adj,                    
-                init_method='sum')
+                init_method=self._init_method)
         
         if self._max_ring_size is not None:
             assert max_dim <= 2

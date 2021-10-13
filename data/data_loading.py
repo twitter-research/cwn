@@ -116,7 +116,7 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
     if name.startswith('sr'):
         dataset = SRDataset(os.path.join(root, 'SR_graphs'), name, max_dim=max_dim,
             num_classes=16, max_ring_size=kwargs.get('max_ring_size', None),
-            n_jobs=n_jobs)
+            n_jobs=n_jobs, init_method=init_method)
     elif name == 'CLUSTER':
         dataset = ClusterDataset(os.path.join(root, 'CLUSTER'), max_dim)
     elif name == 'IMDBBINARY':
