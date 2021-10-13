@@ -92,16 +92,16 @@ def main(args):
             test_loader = DataLoader(dataset.get_split('test'), batch_size=args.batch_size,
                 shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
 
-    # automatic evaluator, takes dataset name as input
-    evaluator = Evaluator(args.eval_metric)
+    # Automatic evaluator, takes dataset name as input
+    evaluator = Evaluator(args.eval_metric, eps=args.iso_eps)
 
-    # use coboundaries?
+    # Use coboundaries?
     use_coboundaries = args.use_coboundaries.lower() == 'true'
 
-    # readout dimensions
+    # Readout dimensions
     readout_dims = tuple(sorted(args.readout_dims))
 
-    # instantiate model
+    # Instantiate model
     # NB: here we assume to have the same number of features per dim
     if args.model == 'cin':
         model = CIN0(dataset.num_features_in_dim(0),          # num_input_features

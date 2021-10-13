@@ -89,7 +89,7 @@ def infer(model, device, loader):
     return y_pred
 
 
-def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
+def eval(model, device, loader, evaluator, task_type):
     """
         Evaluates a model over all the batches of a data loader.
     """
@@ -132,16 +132,18 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     y_true = torch.cat(y_true, dim=0).numpy()  if len(y_true) > 0 else None
     y_pred = torch.cat(y_pred, dim=0).numpy()
 
-    input_dict = {'y_pred': y_pred, 'y_true': y_true, 'eps': 0.0001}
+    input_dict = {'y_pred': y_pred, 'y_true': y_true}
     mean_loss = float(np.mean(losses)) if len(losses) > 0 else np.nan
     return evaluator.eval(input_dict), mean_loss
 
     
 class Evaluator(object):
     
-    def __init__(self, metric):
+    def __init__(self, metric, **kwargs):
         if metric == 'isomorphism':
             self.eval_fn = self._isomorphism
+            self.eps = kwargs.get('eps', 0.01)
+            self.p = kwargs.get('p', 2)
         elif metric == 'accuracy':
             self.eval_fn = self._accuracy
         elif metric == 'mae':
@@ -158,8 +160,8 @@ class Evaluator(object):
         
     def _isomorphism(self, input_dict):
         # NB: here we return the failure percentage... the smaller the better!
-        p = input_dict.get('p', 2)
-        eps = input_dict.get('eps', 0.01)
+        p = self.p
+        eps = self.eps
         preds = input_dict['y_pred']
         assert preds is not None
         mm = torch.pdist(torch.tensor(preds, dtype=torch.float32), p=p)
