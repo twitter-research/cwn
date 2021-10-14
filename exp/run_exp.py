@@ -37,6 +37,10 @@ def main(args):
     np.random.seed(args.seed)
     random.seed(args.seed)
 
+    # Set double precision for SR experiments
+    if args.dataset.startswith('sr'):
+        torch.set_default_dtype(torch.float64)
+
     # Create results folder
     result_folder = os.path.join(
         args.result_folder, f'{args.dataset}-{args.exp_name}', f'seed-{args.seed}')

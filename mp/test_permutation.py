@@ -1,4 +1,6 @@
 import torch
+import numpy as np
+import random
 
 from data.utils import compute_ring_2complex
 from data.perm_utils import permute_graph, generate_permutation_matrices
@@ -38,14 +40,20 @@ def test_sparse_cin0_perm_invariance_on_dummy_mol_complexes():
             assert torch.allclose(comp_emb, permuted_emb, atol=1e-6)
 
 
-def _validate_iso_on_sr(family):
+def _get_sr_embeddings(family, seed):
+
+    # Set the seed for everything
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
     # Uncomment this to perform the check in double precision
-    # torch.set_default_dtype(torch.float64)
+    torch.set_default_dtype(torch.float64)
 
     # Please set the parameters below to the ones used in SR experiments.
     # If so, if tests pass then the experiments are deemed sound.
-    eps = 0.01
     hidden = 16
     num_layers = 3
     max_ring_size = 6
@@ -79,58 +87,163 @@ def _validate_iso_on_sr(family):
     data_loader_perm = DataLoader(permuted_complexes, batch_size=8, shuffle=False, num_workers=16, max_dim=2)
 
     with torch.no_grad():
-        embeddings = list()
-        perm_embeddings = list()
+        embeddings = list()        
+        interm_embeddings = list()
+        perm_embeddings = list()        
+        interm_perm_embeddings = list()
         for batch in data_loader:
             # Uncomment these to perform the check in double precision
-            # batch.nodes.x = batch.nodes.x.double()
-            # batch.edges.x = batch.edges.x.double()
-            # batch.two_cells.x = batch.two_cells.x.double()
-            embeddings.append(model.forward(batch.to(device)))
+            batch.nodes.x = batch.nodes.x.double()
+            batch.edges.x = batch.edges.x.double()
+            batch.two_cells.x = batch.two_cells.x.double()
+            out, res = model.forward(batch.to(device), include_partial=True)
+            embeddings.append(out)
+            interm_embeddings.append(res)
         for batch in data_loader_perm:
             # Uncomment these to perform the check in double precision
-            # batch.nodes.x = batch.nodes.x.double()
-            # batch.edges.x = batch.edges.x.double()
-            # batch.two_cells.x = batch.two_cells.x.double()
-            perm_embeddings.append(model.forward(batch.to(device)))
+            batch.nodes.x = batch.nodes.x.double()
+            batch.edges.x = batch.edges.x.double()
+            batch.two_cells.x = batch.two_cells.x.double()
+            out, res = model.forward(batch.to(device), include_partial=True)
+            perm_embeddings.append(out)
+            interm_perm_embeddings.append(res)
         embeddings = torch.cat(embeddings, 0)  # n x d
         perm_embeddings = torch.cat(perm_embeddings, 0)  # n x d
     assert embeddings.size(0) == perm_embeddings.size(0)
-    assert embeddings.size(1) == perm_embeddings.size(1)
+    assert embeddings.size(1) == perm_embeddings.size(1) == complexes.num_classes
 
-    # print(embeddings[:10])
-    # print(perm_embeddings[:10])
+    return embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings
+
+def _validate_self_iso_on_sr(embeddings, perm_embeddings):
+    eps = 0.01
     for i in range(embeddings.size(0)):
         preds = torch.stack((embeddings[i], perm_embeddings[i]), 0)
         assert preds.size(0) == 2
-        assert preds.size(1) == complexes.num_classes
+        assert preds.size(1) == embeddings.size(1)
         dist = torch.pdist(preds, p=2).item()
         assert dist <= eps
 
+def _validate_magnitude_embeddings(embeddings):
+    thresh = 1e8
+    apex = torch.max(torch.abs(embeddings))
+    print(apex)
+    assert apex < thresh
+
+def _parse_interm(embs):
+    interm_res = dict()
+    for item in embs:
+        for key in item:
+            if key not in interm_res:
+                interm_res[key] = list()
+            interm_res[key].append(item[key])
+    for key in interm_res:
+        interm_res[key] = torch.cat(interm_res[key], 0)
+    return interm_res
 
 def test_sparse_cin0_self_isomorphism_on_sr16622():
-    _validate_iso_on_sr('sr16622')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr16622', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr251256():
-    _validate_iso_on_sr('sr251256')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr251256', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr261034():
-    _validate_iso_on_sr('sr261034')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr261034', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr281264():
-    _validate_iso_on_sr('sr281264')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr281264', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr291467():
-    _validate_iso_on_sr('sr291467')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr291467', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr351668():
-    _validate_iso_on_sr('sr351668')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr351668', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr351899():
-    _validate_iso_on_sr('sr351899')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr351899', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr361446():
-    _validate_iso_on_sr('sr361446')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr361446', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr401224():
-    _validate_iso_on_sr('sr401224')
+    for seed in range(1):
+        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr401224', seed)
+        interm_res = _parse_interm(interm_embeddings)
+        interm_perm_res = _parse_interm(interm_perm_embeddings)
+        for key in interm_res:
+            _validate_magnitude_embeddings(interm_res[key])
+            _validate_magnitude_embeddings(interm_perm_res[key])
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)

@@ -2,18 +2,19 @@
 
 python -m exp.run_sr_exp \
   --start_seed 0 \
-  --stop_seed 1 \
+  --stop_seed 4 \
   --device 0 \
-  --exp_name cwn-sr-id-ln-mean-sum-0.0001 \
+  --exp_name 1014-cwn-sr-3-elu-id-sum-sum-sum-012-0.01-fp64 \
   --model sparse_cin \
   --use_coboundaries True \
   --drop_rate 0.0 \
-  --graph_norm ln \
-  --nonlinearity id \
-  --readout mean \
+  --graph_norm id \
+  --nonlinearity elu \
+  --readout sum \
   --final_readout sum \
+  --readout_dims 0 1 2 \
   --lr_scheduler None \
-  --num_layers 5 \
+  --num_layers 3 \
   --emb_dim 16 \
   --batch_size 8 \
   --num_workers 16 \

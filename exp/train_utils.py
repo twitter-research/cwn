@@ -110,6 +110,12 @@ def eval(model, device, loader, evaluator, task_type):
     y_pred = []
     losses = []
     for step, batch in enumerate(tqdm(loader, desc="Eval iteration")):
+        
+        # Cast features to double precision if that is used
+        if torch.get_default_dtype() == torch.float64:
+            for dim in range(batch.dimension):
+                batch.cochains[dim].x = batch.cochains[dim].x.double()
+
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
