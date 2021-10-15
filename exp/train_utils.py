@@ -113,8 +113,9 @@ def eval(model, device, loader, evaluator, task_type):
         
         # Cast features to double precision if that is used
         if torch.get_default_dtype() == torch.float64:
-            for dim in range(batch.dimension):
+            for dim in range(batch.dimension + 1):
                 batch.cochains[dim].x = batch.cochains[dim].x.double()
+                assert batch.cochains[dim].x.dtype == torch.float64, batch.cochains[dim].x.dtype
 
         batch = batch.to(device)
         with torch.no_grad():

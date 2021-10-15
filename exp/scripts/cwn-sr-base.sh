@@ -4,7 +4,7 @@ python -m exp.run_sr_exp \
   --start_seed 0 \
   --stop_seed 4 \
   --device 0 \
-  --exp_name 1014-cwn-sr-base-elu-id-sum-sum-sum-012-0.01-fp64 \
+  --exp_name 1015-cwn-sr-base-elu-id-sum-sum-sum-012-0.01-fp64 \
   --model mp_agnostic \
   --use_coboundaries True \
   --drop_rate 0.0 \

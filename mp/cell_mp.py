@@ -287,7 +287,7 @@ class CochainMessagePassing(torch.nn.Module):
         if adjacency == 'down':
             return self.message_and_aggregate_down
         elif adjacency == 'boundary':
-            return self.message_and_aggregate_boundaries
+            return self.message_and_aggregate_boundary
         else:
             return None
 
