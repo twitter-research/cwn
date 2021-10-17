@@ -8,7 +8,7 @@ from data.dummy_complexes import get_mol_testing_complex_list, convert_to_graph
 from data.complex import ComplexBatch
 from data.data_loading import DataLoader, load_dataset
 from exp.prepare_sr_experiment import prepare
-from mp.models import SparseCIN
+from mp.models import MessagePassingAgnostic, SparseCIN
 
 def test_sparse_cin0_perm_invariance_on_dummy_mol_complexes():
 
@@ -40,7 +40,7 @@ def test_sparse_cin0_perm_invariance_on_dummy_mol_complexes():
             assert torch.allclose(comp_emb, permuted_emb, atol=1e-6)
 
 
-def _get_sr_embeddings(family, seed):
+def _get_sr_embeddings(family, seed, baseline=False):
 
     # Set the seed for everything
     torch.manual_seed(seed)
@@ -49,7 +49,7 @@ def _get_sr_embeddings(family, seed):
     np.random.seed(seed)
     random.seed(seed)
 
-    # Uncomment this to perform the check in double precision
+    # Perform the check in double precision
     torch.set_default_dtype(torch.float64)
 
     # Please set the parameters below to the ones used in SR experiments.
@@ -76,9 +76,15 @@ def _get_sr_embeddings(family, seed):
     permuted_complexes = load_dataset(f'{family}p{seed}', max_dim=2, max_ring_size=max_ring_size, init_method=init)
 
     # Instantiate model
-    model = SparseCIN(num_input_features=1, num_classes=complexes.num_classes, num_layers=num_layers, hidden=hidden, 
-                        use_coboundaries=use_coboundaries, nonlinearity=nonlinearity, graph_norm=graph_norm, 
-                        readout=readout, final_readout=final_readout, readout_dims=readout_dims)
+    if not baseline:
+        model = SparseCIN(num_input_features=1, num_classes=complexes.num_classes, num_layers=num_layers, hidden=hidden, 
+                            use_coboundaries=use_coboundaries, nonlinearity=nonlinearity, graph_norm=graph_norm, 
+                            readout=readout, final_readout=final_readout, readout_dims=readout_dims)
+    else:
+        hidden = 256
+        model = MessagePassingAgnostic(num_input_features=1, num_classes=complexes.num_classes, hidden=hidden,
+                                        nonlinearity=nonlinearity, readout=readout)
+
     model = model.to(device)
     model.eval()
 
@@ -88,31 +94,25 @@ def _get_sr_embeddings(family, seed):
 
     with torch.no_grad():
         embeddings = list()        
-        interm_embeddings = list()
         perm_embeddings = list()        
-        interm_perm_embeddings = list()
         for batch in data_loader:
-            # Uncomment these to perform the check in double precision
             batch.nodes.x = batch.nodes.x.double()
             batch.edges.x = batch.edges.x.double()
             batch.two_cells.x = batch.two_cells.x.double()
-            out, res = model.forward(batch.to(device), include_partial=True)
+            out = model.forward(batch.to(device))
             embeddings.append(out)
-            interm_embeddings.append(res)
         for batch in data_loader_perm:
-            # Uncomment these to perform the check in double precision
             batch.nodes.x = batch.nodes.x.double()
             batch.edges.x = batch.edges.x.double()
             batch.two_cells.x = batch.two_cells.x.double()
-            out, res = model.forward(batch.to(device), include_partial=True)
+            out = model.forward(batch.to(device))
             perm_embeddings.append(out)
-            interm_perm_embeddings.append(res)
-        embeddings = torch.cat(embeddings, 0)  # n x d
+        embeddings = torch.cat(embeddings, 0)            # n x d
         perm_embeddings = torch.cat(perm_embeddings, 0)  # n x d
     assert embeddings.size(0) == perm_embeddings.size(0)
     assert embeddings.size(1) == perm_embeddings.size(1) == complexes.num_classes
 
-    return embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings
+    return embeddings, perm_embeddings
 
 def _validate_self_iso_on_sr(embeddings, perm_embeddings):
     eps = 0.01
@@ -124,126 +124,135 @@ def _validate_self_iso_on_sr(embeddings, perm_embeddings):
         assert dist <= eps
 
 def _validate_magnitude_embeddings(embeddings):
-    thresh = 1e8
+    # At (5)e8, the fp64 granularity is still
+    # (2**29 - 2**28) / (2**52) ≈ 0.000000059604645
+    thresh = 5*1e8
     apex = torch.max(torch.abs(embeddings))
     print(apex)
     assert apex < thresh
 
-def _parse_interm(embs):
-    interm_res = dict()
-    for item in embs:
-        for key in item:
-            if key not in interm_res:
-                interm_res[key] = list()
-            interm_res[key].append(item[key])
-    for key in interm_res:
-        interm_res[key] = torch.cat(interm_res[key], 0)
-    return interm_res
-
 def test_sparse_cin0_self_isomorphism_on_sr16622():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr16622', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr16622', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr251256():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr251256', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr251256', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr261034():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr261034', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr261034', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr281264():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr281264', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr281264', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr291467():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr291467', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr291467', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr351668():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr351668', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr351668', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr351899():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr351899', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr351899', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr361446():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr361446', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr361446', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
 def test_sparse_cin0_self_isomorphism_on_sr401224():
-    for seed in range(1):
-        embeddings, perm_embeddings, interm_embeddings, interm_perm_embeddings = _get_sr_embeddings('sr401224', seed)
-        interm_res = _parse_interm(interm_embeddings)
-        interm_perm_res = _parse_interm(interm_perm_embeddings)
-        for key in interm_res:
-            _validate_magnitude_embeddings(interm_res[key])
-            _validate_magnitude_embeddings(interm_perm_res[key])
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr401224', seed)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr16622():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr16622', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr251256():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr251256', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr261034():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr261034', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr281264():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr281264', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr291467():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr291467', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr351668():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr351668', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr351899():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr351899', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr361446():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr361446', seed, baseline=True)
+        _validate_magnitude_embeddings(embeddings)
+        _validate_magnitude_embeddings(perm_embeddings)
+        _validate_self_iso_on_sr(embeddings, perm_embeddings)
+
+def test_baseline_self_isomorphism_on_sr401224():
+    for seed in range(5):
+        embeddings, perm_embeddings = _get_sr_embeddings('sr401224', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
