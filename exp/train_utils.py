@@ -173,7 +173,6 @@ class Evaluator(object):
         assert preds is not None
         assert preds.dtype == np.float64
         preds = torch.tensor(preds, dtype=torch.float64)
-        print(torch.max(torch.abs(preds)))
         mm = torch.pdist(preds, p=p)
         wrong = (mm < eps).sum().item()
         metric = wrong / mm.shape[0]
