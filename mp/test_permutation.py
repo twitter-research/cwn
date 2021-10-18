@@ -125,7 +125,7 @@ def _validate_self_iso_on_sr(embeddings, perm_embeddings):
 
 def _validate_magnitude_embeddings(embeddings):
     # At (5)e8, the fp64 granularity is still (2**29 - 2**28) / (2**52) ≈ 0.000000059604645
-    # The fact that we work in such a safe range can also be verified by running the following:
+    # The fact that we work in such a (safe) range can also be verified by running the following:
     #   a = torch.DoubleTensor([2.5e8])
     #   d = torch.DoubleTensor([5.0e8])
     #   b = torch.nextafter(a, d)

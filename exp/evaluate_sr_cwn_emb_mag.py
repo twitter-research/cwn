@@ -97,7 +97,7 @@ if __name__ == "__main__":
         print(text)
         for seed in range(5):
             embeddings = compute_embeddings(family, baseline, seed)
-            text = f'seed {seed}: {torch.max(embeddings):.2f}'
+            text = f'seed {seed}: {torch.max(torch.abs(embeddings)):.2f}'
             msg += text+'\n'
             print(text)
     path = os.path.join(ROOT_DIR, 'exp', 'results')

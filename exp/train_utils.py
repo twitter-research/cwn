@@ -171,7 +171,11 @@ class Evaluator(object):
         eps = self.eps
         preds = input_dict['y_pred']
         assert preds is not None
-        mm = torch.pdist(torch.tensor(preds, dtype=torch.float32), p=p)
+        assert preds.dtype in [np.float32, np.float64]
+        dtype = torch.float32 if preds.dtype == np.float32 else torch.float64
+        preds = torch.tensor(preds, dtype=dtype)
+        print(torch.max(torch.abs(preds)))
+        mm = torch.pdist(preds, p=p)
         wrong = (mm < eps).sum().item()
         metric = wrong / mm.shape[0]
         return metric
