@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import random
+import pytest
 
 from data.utils import compute_ring_2complex
 from data.perm_utils import permute_graph, generate_permutation_matrices
@@ -40,7 +41,7 @@ def test_sparse_cin0_perm_invariance_on_dummy_mol_complexes():
             assert torch.allclose(comp_emb, permuted_emb, atol=1e-6)
 
 
-def _get_sr_embeddings(family, seed, baseline=False):
+def _get_cwn_sr_embeddings(family, seed, baseline=False):
 
     # Set the seed for everything
     torch.manual_seed(seed)
@@ -136,128 +137,146 @@ def _validate_magnitude_embeddings(embeddings):
     print(apex)
     assert apex < thresh
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr16622():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr16622', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr16622', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr251256():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr251256', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr251256', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr261034():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr261034', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr261034', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr281264():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr281264', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr281264', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr291467():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr291467', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr291467', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr351668():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr351668', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr351668', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr351899():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr351899', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr351899', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr361446():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr361446', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr361446', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
+@pytest.mark.slow
 def test_sparse_cin0_self_isomorphism_on_sr401224():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr401224', seed)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr401224', seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr16622():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr16622():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr16622', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr16622', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr251256():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr251256():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr251256', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr251256', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr261034():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr261034():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr261034', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr261034', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr281264():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr281264():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr281264', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr281264', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr291467():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr291467():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr291467', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr291467', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr351668():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr351668():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr351668', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr351668', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr351899():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr351899():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr351899', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr351899', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr361446():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr361446():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr361446', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr361446', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
 
-def test_baseline_self_isomorphism_on_sr401224():
+@pytest.mark.slow
+def test_cwn_baseline_self_isomorphism_on_sr401224():
     for seed in range(5):
-        embeddings, perm_embeddings = _get_sr_embeddings('sr401224', seed, baseline=True)
+        embeddings, perm_embeddings = _get_cwn_sr_embeddings('sr401224', seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
