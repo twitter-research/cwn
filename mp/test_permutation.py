@@ -65,15 +65,15 @@ def _get_sr_embeddings(family, seed, baseline=False):
     readout_dims = (0,1,2)
     init = 'sum'
     jobs = 64
-    seed = 43
+    prepare_seed = 43
     device = torch.device("cuda:" + str(0)) if torch.cuda.is_available() else torch.device("cpu")
 
     # Build and dump dataset if needed
-    prepare(family, jobs, max_ring_size, True, init, seed)
+    prepare(family, jobs, max_ring_size, True, init, prepare_seed)
 
     # Load reference dataset
     complexes = load_dataset(family, max_dim=2, max_ring_size=max_ring_size, init_method=init)
-    permuted_complexes = load_dataset(f'{family}p{seed}', max_dim=2, max_ring_size=max_ring_size, init_method=init)
+    permuted_complexes = load_dataset(f'{family}p{prepare_seed}', max_dim=2, max_ring_size=max_ring_size, init_method=init)
 
     # Instantiate model
     if not baseline:
@@ -124,9 +124,14 @@ def _validate_self_iso_on_sr(embeddings, perm_embeddings):
         assert dist <= eps
 
 def _validate_magnitude_embeddings(embeddings):
-    # At (5)e8, the fp64 granularity is still
-    # (2**29 - 2**28) / (2**52) ≈ 0.000000059604645
-    thresh = 5*1e8
+    # At (5)e8, the fp64 granularity is still (2**29 - 2**28) / (2**52) ≈ 0.000000059604645
+    # The fact that we work in such a safe range can also be verified by running the following:
+    #   a = torch.DoubleTensor([2.5e8])
+    #   d = torch.DoubleTensor([5.0e8])
+    #   b = torch.nextafter(a, d)
+    #   print(b - a)
+    #   >>> tensor([2.9802e-08], dtype=torch.float64)
+    thresh = np.array(5.0*1e8, dtype=np.float64)
     apex = torch.max(torch.abs(embeddings))
     print(apex)
     assert apex < thresh
