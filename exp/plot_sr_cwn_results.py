@@ -66,7 +66,7 @@ def run(exps, codenames, plot_name):
     plt.rcParams['ytick.left'] = plt.rcParams['ytick.labelleft'] = False    
 
     # Plot
-    plt.figure(dpi=300, figsize=(8,5))
+    plt.figure(dpi=300, figsize=(10,7))
     plt.grid(axis='y', lw=0.1, alpha=0.5)
     for r, res in enumerate(results):
         x = xs[r]
@@ -84,7 +84,9 @@ def run(exps, codenames, plot_name):
     plt.yticks([0.0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0])
     handles, labels = plt.gca().get_legend_handles_labels()
     order = [1, 4, 2, 5, 3, 6] + [0]
-    plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], fontsize=10, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.2))
+    plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], fontsize=10, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.15))
+    plt.xlabel('Family', fontsize=15)
+    plt.ylabel('Failure rate', fontsize=15, labelpad=-640, rotation=270)
     plt.tight_layout()
     plt.savefig(f'./sr_exp_{plot_name}.pdf')
     plt.close()
