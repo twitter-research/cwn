@@ -12,7 +12,6 @@ python -m exp.run_sr_exp \
   --nonlinearity elu \
   --readout sum \
   --final_readout sum \
-  --readout_dims 0 1 2 \
   --lr_scheduler None \
   --num_layers 3 \
   --emb_dim 16 \
