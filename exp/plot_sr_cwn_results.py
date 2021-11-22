@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 import numpy as np
 import seaborn as sns
-sns.set_style("white")
+sns.set_style("whitegrid", {'legend.frameon': False})
 
 from matplotlib import cm
 from matplotlib import pyplot as plt
@@ -63,11 +63,13 @@ def run(exps, codenames, plot_name):
     xa = np.asarray([i*disp for i in range(num_families)])
     xs = [xa + i*width for i in range(num_experiments//2)] + [xa + i*width + sep*0.25 for i in range(num_experiments//2, num_experiments)]
     plt.rcParams['ytick.right'] = plt.rcParams['ytick.labelright'] = True
-    plt.rcParams['ytick.left'] = plt.rcParams['ytick.labelleft'] = False    
+    plt.rcParams['ytick.left'] = plt.rcParams['ytick.labelleft'] = False   
+    print(sns.axes_style()) 
+    matplotlib.rc('axes', edgecolor='#c4c4c4', linewidth=0.9)
 
     # Plot
-    plt.figure(dpi=300, figsize=(10,7))
-    plt.grid(axis='y', lw=0.1, alpha=0.5)
+    plt.figure(dpi=300, figsize=(9,6.6))
+    plt.grid(axis='x', alpha=0.0)
     for r, res in enumerate(results):
         x = xs[r]
         y = [10+res[family][0] for family in sorted(res)]
@@ -76,19 +78,18 @@ def run(exps, codenames, plot_name):
                 label=codenames[r], ecolor='grey', error_kw={'lw': 0.75, 'capsize':0.7},
                 edgecolor='white')
                 # hatch=('//' if r<3 else '\\\\'))
-    plt.axhline(y=1.0, color='indianred', lw=1.0, label='3WL')
-    plt.axhline(y=1.0, color='grey', lw=0.5)
+    plt.axhline(y=1.0, color='indianred', lw=1.5, label='3WL')
     plt.ylim([-0.000005, 2])
     plt.yscale(matplotlib.scale.SymmetricalLogScale(axis='y', linthresh=0.00001))
-    plt.xticks(xa+3*width, family_names, fontsize=12, rotation=60, ha='right')
-    plt.yticks([0.0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0])
+    plt.xticks(xa+3*width, family_names, fontsize=12, rotation=315, ha='left')
+    plt.yticks([0.0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0], fontsize=12)
     handles, labels = plt.gca().get_legend_handles_labels()
     order = [1, 4, 2, 5, 3, 6] + [0]
     plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], fontsize=10, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.15))
     plt.xlabel('Family', fontsize=15)
-    plt.ylabel('Failure rate', fontsize=15, labelpad=-640, rotation=270)
+    plt.ylabel('Failure rate', fontsize=15, labelpad=-580, rotation=270)
     plt.tight_layout()
-    plt.savefig(f'./sr_exp_{plot_name}.pdf')
+    plt.savefig(f'./sr_exp_{plot_name}.pdf', bbox_inches='tight', pad_inches=0.1)
     plt.close()
 
 if __name__ == '__main__':
