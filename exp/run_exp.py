@@ -37,6 +37,11 @@ def main(args):
     np.random.seed(args.seed)
     random.seed(args.seed)
 
+    # Set double precision for SR experiments
+    if args.task_type == 'isomorphism':
+        assert args.dataset.startswith('sr')
+        torch.set_default_dtype(torch.float64)
+
     # Create results folder
     result_folder = os.path.join(
         args.result_folder, f'{args.dataset}-{args.exp_name}', f'seed-{args.seed}')
@@ -92,16 +97,16 @@ def main(args):
             test_loader = DataLoader(dataset.get_split('test'), batch_size=args.batch_size,
                 shuffle=False, num_workers=args.num_workers, max_dim=dataset.max_dim)
 
-    # automatic evaluator, takes dataset name as input
-    evaluator = Evaluator(args.eval_metric)
+    # Automatic evaluator, takes dataset name as input
+    evaluator = Evaluator(args.eval_metric, eps=args.iso_eps)
 
-    # use coboundaries?
+    # Use coboundaries?
     use_coboundaries = args.use_coboundaries.lower() == 'true'
 
-    # readout dimensions
+    # Readout dimensions
     readout_dims = tuple(sorted(args.readout_dims))
 
-    # instantiate model
+    # Instantiate model
     # NB: here we assume to have the same number of features per dim
     if args.model == 'cin':
         model = CIN0(dataset.num_features_in_dim(0),          # num_input_features
@@ -375,9 +380,12 @@ def main(args):
         test_curve.append(np.nan)
 
     print('Final Evaluation...')
-    final_train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
-    final_val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
+    final_train_perf = np.nan
+    final_val_perf = np.nan
     final_test_perf = np.nan
+    if not args.dataset.startswith('sr'):
+        final_train_perf, _ = eval(model, device, train_loader, evaluator, args.task_type)
+        final_val_perf, _ = eval(model, device, valid_loader, evaluator, args.task_type)
     if test_loader is not None:
         final_test_perf, _ = eval(model, device, test_loader, evaluator, args.task_type)
 

@@ -13,10 +13,10 @@ python -m exp.run_sr_exp \
   --readout sum \
   --final_readout sum \
   --lr_scheduler None \
-  --num_layers 5 \
+  --num_layers 3 \
   --emb_dim 16 \
   --batch_size 8 \
-  --num_workers 2 \
+  --num_workers 16 \
   --task_type isomorphism \
   --eval_metric isomorphism \
   --max_ring_size $1 \

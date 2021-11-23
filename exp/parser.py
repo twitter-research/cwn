@@ -66,6 +66,8 @@ def get_parser():
                         help='task type, either (bin)classification, regression or isomorphism (default: classification)')    
     parser.add_argument('--eval_metric', type=str, default='accuracy',
                         help='evaluation metric (default: accuracy)')
+    parser.add_argument('--iso_eps', type=int, default=0.01,
+                        help='Threshold to define (non-)isomorphism')                    
     parser.add_argument('--minimize', action='store_true',
                         help='whether to minimize evaluation metric or not')
     parser.add_argument('--max_dim', type=int, default="2",

@@ -89,7 +89,7 @@ def infer(model, device, loader):
     return y_pred
 
 
-def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
+def eval(model, device, loader, evaluator, task_type):
     """
         Evaluates a model over all the batches of a data loader.
     """
@@ -110,6 +110,13 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     y_pred = []
     losses = []
     for step, batch in enumerate(tqdm(loader, desc="Eval iteration")):
+        
+        # Cast features to double precision if that is used
+        if torch.get_default_dtype() == torch.float64:
+            for dim in range(batch.dimension + 1):
+                batch.cochains[dim].x = batch.cochains[dim].x.double()
+                assert batch.cochains[dim].x.dtype == torch.float64, batch.cochains[dim].x.dtype
+
         batch = batch.to(device)
         with torch.no_grad():
             pred = model(batch)
@@ -139,9 +146,11 @@ def eval(model, device, loader, evaluator, task_type, debug_dataset=None):
     
 class Evaluator(object):
     
-    def __init__(self, metric):
+    def __init__(self, metric, **kwargs):
         if metric == 'isomorphism':
             self.eval_fn = self._isomorphism
+            self.eps = kwargs.get('eps', 0.01)
+            self.p_norm = kwargs.get('p', 2)
         elif metric == 'accuracy':
             self.eval_fn = self._accuracy
         elif metric == 'mae':
@@ -158,12 +167,12 @@ class Evaluator(object):
         
     def _isomorphism(self, input_dict):
         # NB: here we return the failure percentage... the smaller the better!
-        p = input_dict.get('p', 2)
-        eps = input_dict.get('eps', 0.01)
         preds = input_dict['y_pred']
         assert preds is not None
-        mm = torch.pdist(torch.tensor(preds, dtype=torch.float32), p=p)
-        wrong = (mm < eps).sum().item()
+        assert preds.dtype == np.float64
+        preds = torch.tensor(preds, dtype=torch.float64)
+        mm = torch.pdist(preds, p=self.p_norm)
+        wrong = (mm < self.eps).sum().item()
         metric = wrong / mm.shape[0]
         return metric
     

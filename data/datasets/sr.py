@@ -21,10 +21,16 @@ def makedirs(path):
             raise e
 
 
-def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
+def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), prefer_pkl=False):
     raw_dir = os.path.join(root, 'SR_graphs', 'raw')
     load_from = os.path.join(raw_dir, '{}.g6'.format(name))
-    data = load_sr_dataset(load_from)
+    load_from_pkl = os.path.join(raw_dir, '{}.pkl'.format(name))
+    if prefer_pkl and osp.exists(load_from_pkl):
+        print(f"Loading SR graph {name} from pickle dump...")
+        with open(load_from_pkl, 'rb') as handle:
+            data = pickle.load(handle)
+    else:
+        data = load_sr_dataset(load_from)
     graphs = list()
     for datum in data:
         edge_index, num_nodes = datum
@@ -40,8 +46,8 @@ def load_sr_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets')):
 class SRDataset(InMemoryComplexDataset):
     """A dataset of complexes obtained by lifting Strongly Regular graphs."""
 
-    def __init__(self, root, name, max_dim=2, num_classes=16,
-                 train_ids=None, val_ids=None, test_ids=None, include_down_adj=False, max_ring_size=None, n_jobs=2):
+    def __init__(self, root, name, max_dim=2, num_classes=16, train_ids=None, val_ids=None, test_ids=None, 
+                 include_down_adj=False, max_ring_size=None, n_jobs=2, init_method='sum'):
         self.name = name
         self._num_classes = num_classes
         self._n_jobs = n_jobs
@@ -51,7 +57,7 @@ class SRDataset(InMemoryComplexDataset):
         if cellular:
             assert max_dim == 2
         super(SRDataset, self).__init__(root, max_dim=max_dim, num_classes=num_classes,
-            include_down_adj=include_down_adj, cellular=cellular)
+            include_down_adj=include_down_adj, cellular=cellular, init_method=init_method)
         
         self.data, self.slices = torch.load(self.processed_paths[0])
             
@@ -73,7 +79,7 @@ class SRDataset(InMemoryComplexDataset):
 
     def process(self):
         
-        graphs, _, _, _ = load_sr_graph_dataset(self.name)
+        graphs, _, _, _ = load_sr_graph_dataset(self.name, prefer_pkl=True)
         exp_dim = self.max_dim
         if self._cellular:
             print(f"Converting the {self.name} dataset to a cell complex...")
@@ -81,7 +87,7 @@ class SRDataset(InMemoryComplexDataset):
                 graphs,
                 max_ring_size=self._max_ring_size,
                 include_down_adj=self.include_down_adj,
-                init_method='sum',
+                init_method=self._init_method,
                 init_edges=True,
                 init_rings=True,
                 n_jobs=self._n_jobs)
@@ -91,7 +97,7 @@ class SRDataset(InMemoryComplexDataset):
                 graphs,
                 expansion_dim=exp_dim,                                               
                 include_down_adj=self.include_down_adj,                    
-                init_method='sum')
+                init_method=self._init_method)
         
         if self._max_ring_size is not None:
             assert max_dim <= 2
