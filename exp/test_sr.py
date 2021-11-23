@@ -16,9 +16,6 @@ def _get_cwn_sr_embeddings(family, seed, baseline=False):
     np.random.seed(seed)
     random.seed(seed)
 
-    # Perform the check in double precision
-    torch.set_default_dtype(torch.float64)
-
     # Please set the parameters below to the ones used in SR experiments.
     # If so, if tests pass then the experiments are deemed sound.
     hidden = 16
@@ -107,17 +104,25 @@ def _validate_magnitude_embeddings(embeddings):
 @pytest.mark.slow
 @pytest.mark.parametrize("family", ['sr16622', 'sr251256', 'sr261034', 'sr281264', 'sr291467', 'sr351668', 'sr351899', 'sr361446', 'sr401224'])
 def test_sparse_cin0_self_isomorphism(family):
+    # Perform the check in double precision
+    torch.set_default_dtype(torch.float64)
     for seed in range(5):
         embeddings, perm_embeddings = _get_cwn_sr_embeddings(family, seed)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
+    # Revert back to float32 for other tests
+    torch.set_default_dtype(torch.float32)
 
 @pytest.mark.slow
 @pytest.mark.parametrize("family", ['sr16622', 'sr251256', 'sr261034', 'sr281264', 'sr291467', 'sr351668', 'sr351899', 'sr361446', 'sr401224'])
 def test_cwn_baseline_self_isomorphism(family):
+    # Perform the check in double precision
+    torch.set_default_dtype(torch.float64)
     for seed in range(5):
         embeddings, perm_embeddings = _get_cwn_sr_embeddings(family, seed, baseline=True)
         _validate_magnitude_embeddings(embeddings)
         _validate_magnitude_embeddings(perm_embeddings)
         _validate_self_iso_on_sr(embeddings, perm_embeddings)
+    # Revert back to float32 for other tests
+    torch.set_default_dtype(torch.float32)
