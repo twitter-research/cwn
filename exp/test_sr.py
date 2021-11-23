@@ -4,7 +4,7 @@ import random
 import pytest
 
 from data.data_loading import DataLoader, load_dataset
-from exp.preprocess_sr_graphs import prepare
+from exp.prepare_sr_tests import prepare
 from mp.models import MessagePassingAgnostic, SparseCIN
 
 def _get_cwn_sr_embeddings(family, seed, baseline=False):

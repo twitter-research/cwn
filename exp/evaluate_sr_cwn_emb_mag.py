@@ -5,7 +5,7 @@ import numpy as np
 import random
 from definitions import ROOT_DIR
 
-from exp.preprocess_sr_graphs import prepare
+from exp.prepare_sr_tests import prepare
 from mp.models import MessagePassingAgnostic, SparseCIN
 from data.data_loading import DataLoader, load_dataset
 
