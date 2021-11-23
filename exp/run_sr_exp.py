@@ -75,7 +75,6 @@ if __name__ == "__main__":
             readout_dims = [str(i) for i in range(max_dim + 1)]
             readout_dims = ['--readout_dims'] + readout_dims
             current_args += readout_dims
-            print(current_args)
             parsed_args = parser.parse_args(current_args)
             curves = main(parsed_args)
             results[f].append(curves)

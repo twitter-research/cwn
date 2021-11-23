@@ -150,7 +150,7 @@ class Evaluator(object):
         if metric == 'isomorphism':
             self.eval_fn = self._isomorphism
             self.eps = kwargs.get('eps', 0.01)
-            self.p = kwargs.get('p', 2)
+            self.p_norm = kwargs.get('p', 2)
         elif metric == 'accuracy':
             self.eval_fn = self._accuracy
         elif metric == 'mae':
@@ -167,14 +167,12 @@ class Evaluator(object):
         
     def _isomorphism(self, input_dict):
         # NB: here we return the failure percentage... the smaller the better!
-        p = self.p
-        eps = self.eps
         preds = input_dict['y_pred']
         assert preds is not None
         assert preds.dtype == np.float64
         preds = torch.tensor(preds, dtype=torch.float64)
-        mm = torch.pdist(preds, p=p)
-        wrong = (mm < eps).sum().item()
+        mm = torch.pdist(preds, p=self.p_norm)
+        wrong = (mm < self.eps).sum().item()
         metric = wrong / mm.shape[0]
         return metric
     
