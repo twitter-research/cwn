@@ -1,6 +1,6 @@
 # CW Networks
 
-![example workflow](https://github.com/twitter-research/scn/actions/workflows/python-package.yml/badge.svg)
+![example workflow](https://github.com/twitter-research/cwn/actions/workflows/python-package.yml/badge.svg)
 
 This repository contains the official code used for the papers
 **[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (NeurIPS 2021)**
