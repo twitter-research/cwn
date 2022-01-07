@@ -34,6 +34,7 @@ Create the environment:
 ```shell
 conda create --name cwn python=3.8
 conda activate cwn
+conda install pip # Make sure the environment pip is used
 ```
 
 Install dependencies:

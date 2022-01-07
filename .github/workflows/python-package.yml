@@ -42,6 +42,7 @@ jobs:
       - name: Set up env
         run: |
           conda activate test
+          conda install pip
       - name: Cache pip
         uses: actions/cache@v2
         with:
@@ -54,16 +55,16 @@ jobs:
             ${{ runner.os }}-
       - name: Install graph-tool
         run: |
-          conda install -c conda-forge graph-tool==2.29
+          conda install -c conda-forge -y graph-tool==2.44
       - name: pytorch
         run: |
-          pip install torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
+          conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch
+      - name: Install pyG
+        run: |
+          ./pyG_install.sh cu102
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-      - name: Install pyG
-        run: |
-          ./pyG_install.sh cpu
       - name: Test with pytest
         run: |
           pytest -v
