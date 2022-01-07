@@ -55,7 +55,7 @@ jobs:
             ${{ runner.os }}-
       - name: Install graph-tool
         run: |
-          ./graph-tool_install.sh
+          conda install -c conda-forge -y graph-tool==2.44
       - name: pytorch
         run: |
           conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch
