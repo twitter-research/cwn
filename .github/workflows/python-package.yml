@@ -58,7 +58,7 @@ jobs:
           conda install -c conda-forge -y graph-tool==2.44
       - name: pytorch
         run: |
-          conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch
+          conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch --update-deps
       - name: Install pyG
         run: |
           ./pyG_install.sh cu102
