@@ -9,7 +9,7 @@ This repository contains the official code used for the papers
 **[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (NeurIPS 2021)**
 and **[Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212) (ICML 2021)**
 
-![alt text](./figures/glue_disks.jpeg)&nbsp;&nbsp;&nbsp;&nbsp;  ![alt text](./figures/sphere.jpeg)&nbsp;&nbsp;  ![alt text](./figures/empty_tetrahderon.jpeg)
+<img align="left" height="300" src="./figures/cwn.png">
 
 *Graph Neural Networks (GNNs) are limited in their expressive power, struggle with long-range 
 interactions and lack a principled way to model higher-order structures. These problems can be 
@@ -27,6 +27,10 @@ effectiveness of one such scheme, based on rings, when applied to molecular grap
 The proposed architecture benefits from provably larger expressivity than commonly used GNNs, 
 principled modelling of higher-order signals and from compressing the distances between nodes. 
 We demonstrate that our model achieves state-of-the-art results on a variety of molecular datasets.*
+
+<p align="center">
+<img src="./figures/glue_disks.jpeg"> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./figures/sphere.jpeg">  <img src="./figures/empty_tetrahderon.jpeg">
+</p>
 
 ## Installation
 
@@ -55,12 +59,7 @@ We suggest running all tests in the repository to verify everything is in place.
 pytest -v .
 ```
 All tests should pass. Note that some tests are skipped since they rely on external
-datasets or take a long time to run. We periodically run these additional tests manually.  
-
-<p align="center">
-  <img height="300" src="./figures/cwn.png">
-</p>
-
+datasets or take a long time to run. We periodically run these additional tests manually.
 
 ## Experiments 
 
@@ -71,7 +70,9 @@ and perform the appropriate graph-lifting procedure (this might take a while).
 
 ### Molecular benchmarks
 
-![alt text](./figures/cell_complex_molecule.png)
+<p align="center">
+  <img width="600" src="./figures/cell_complex_molecule.png">
+</p>
 
 To run an experiment on a molecular benchmark with a CWN, execute:
 ```shell
