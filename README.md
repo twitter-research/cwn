@@ -1,12 +1,17 @@
 # CW Networks
 
-![example workflow](https://github.com/twitter-research/cwn/actions/workflows/python-package.yml/badge.svg)
+![example workflow](https://github.com/twitter-research/cwn/actions/workflows/python-package.yml/badge.svg) 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/twitter-research/cwn/blob/main/LICENSE)
+
+
 
 This repository contains the official code used for the papers
 **[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (NeurIPS 2021)**
 and **[Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212) (ICML 2021)**
 
-![alt text](./figures/glue_disks.jpeg)&nbsp;&nbsp;&nbsp;&nbsp;  ![alt text](./figures/sphere.jpeg)&nbsp;&nbsp;  ![alt text](./figures/empty_tetrahderon.jpeg)
+<p align="center">
+<img src="./figures/glue_disks.jpeg"> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./figures/sphere.jpeg">  <img src="./figures/empty_tetrahderon.jpeg">
+</p>
 
 *Graph Neural Networks (GNNs) are limited in their expressive power, struggle with long-range 
 interactions and lack a principled way to model higher-order structures. These problems can be 
@@ -26,6 +31,8 @@ principled modelling of higher-order signals and from compressing the distances 
 We demonstrate that our model achieves state-of-the-art results on a variety of molecular datasets.*
 
 ## Installation
+
+<img align="left" height="400" src="./figures/cwn.png">
 
 We use `Python 3.8` and `PyTorch 1.7.0` on `CUDA 10.2` for this project.
 Please open a terminal window and follow these steps to prepare the virtual environment needed to run any experiment.
@@ -52,7 +59,7 @@ We suggest running all tests in the repository to verify everything is in place.
 pytest -v .
 ```
 All tests should pass. Note that some tests are skipped since they rely on external
-datasets or take a long time to run. We periodically run these additional tests manually.  
+datasets or take a long time to run. We periodically run these additional tests manually.
 
 ## Experiments 
 
@@ -62,6 +69,10 @@ complete. Before the training starts, the scripts will download / preprocess the
 and perform the appropriate graph-lifting procedure (this might take a while).
 
 ### Molecular benchmarks
+
+<p align="center">
+  <img width="600" src="./figures/cell_complex_molecule.png">
+</p>
 
 To run an experiment on a molecular benchmark with a CWN, execute:
 ```shell
