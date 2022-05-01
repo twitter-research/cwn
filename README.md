@@ -1,6 +1,9 @@
 # CW Networks
 
-![example workflow](https://github.com/twitter-research/cwn/actions/workflows/python-package.yml/badge.svg)
+![example workflow](https://github.com/twitter-research/cwn/actions/workflows/python-package.yml/badge.svg) 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/twitter-research/cwn/blob/main/LICENSE)
+
+
 
 This repository contains the official code used for the papers
 **[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (NeurIPS 2021)**
@@ -54,6 +57,11 @@ pytest -v .
 All tests should pass. Note that some tests are skipped since they rely on external
 datasets or take a long time to run. We periodically run these additional tests manually.  
 
+<p align="center">
+  <img height="300" src="./figures/cwn.png">
+</p>
+
+
 ## Experiments 
 
 We prepared individual scripts for each experiment. The results are written in the
@@ -62,6 +70,8 @@ complete. Before the training starts, the scripts will download / preprocess the
 and perform the appropriate graph-lifting procedure (this might take a while).
 
 ### Molecular benchmarks
+
+![alt text](./figures/cell_complex_molecule.png)
 
 To run an experiment on a molecular benchmark with a CWN, execute:
 ```shell
