@@ -1,9 +1,9 @@
+import graph_tool as gt
+import graph_tool.topology as top
 import numpy as np
 import torch
 import gudhi as gd
 import itertools
-import graph_tool as gt
-import graph_tool.topology as top
 import networkx as nx
 
 from tqdm import tqdm
