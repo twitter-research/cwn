@@ -136,7 +136,7 @@ For attribution in academic contexts, please cite the following papers
 
 ```
 @inproceedings{pmlr-v139-bodnar21a,
-  title = 	 {Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks},
+  title = 	 {Weisfeiler and {Lehman} Go Topological: Message Passing Simplicial Networks},
   author =       {Bodnar, Cristian and Frasca, Fabrizio and Wang, Yuguang and Otter, Nina and Montufar, Guido F and Li{\'o}, Pietro and Bronstein, Michael},
   booktitle = 	 {Proceedings of the 38th International Conference on Machine Learning},
   pages = 	 {1026--1037},
@@ -151,11 +151,14 @@ For attribution in academic contexts, please cite the following papers
 
 ```
 @inproceedings{neurips-bodnar2021b,
-  title={Weisfeiler and Lehman Go Cellular: CW Networks},
-  author={Bodnar, Cristian and Frasca, Fabrizio and Otter, Nina and Wang, Yu Guang and Li{\`o}, Pietro and Mont{\'u}far, Guido and Bronstein, Michael},
-  booktitle = {Advances in Neural Information Processing Systems},
-  volume = {34},
-  year={2021}
+ title = {Weisfeiler and {Lehman} Go Cellular: {CW} Networks},
+ author = {Bodnar, Cristian and Frasca, Fabrizio and Otter, Nina and Wang, Yuguang and Li\`{o}, Pietro and Montufar, Guido F and Bronstein, Michael},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {M. Ranzato and A. Beygelzimer and Y. Dauphin and P.S. Liang and J. Wortman Vaughan},
+ pages = {2625--2640},
+ publisher = {Curran Associates, Inc.},
+ volume = {34},
+ year = {2021}
 }
 ```
 
