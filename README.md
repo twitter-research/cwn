@@ -1,6 +1,6 @@
 # CW Networks
 
-![example workflow](https://github.com/twitter-research/cwn/actions/workflows/python-package.yml/badge.svg) 
+[![example workflow](https://github.com/twitter-research/cwn/actions/workflows/python-package.yml/badge.svg)](https://github.com/twitter-research/cwn/actions) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/twitter-research/cwn/blob/main/LICENSE)
 
 
