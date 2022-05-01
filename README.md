@@ -32,7 +32,7 @@ We demonstrate that our model achieves state-of-the-art results on a variety of 
 
 ## Installation
 
-<img align="left" height="400" src="./figures/cwn.png">
+<img align="right" height="400" src="./figures/cwn.png">
 
 We use `Python 3.8` and `PyTorch 1.7.0` on `CUDA 10.2` for this project.
 Please open a terminal window and follow these steps to prepare the virtual environment needed to run any experiment.
