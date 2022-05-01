@@ -9,7 +9,9 @@ This repository contains the official code used for the papers
 **[Weisfeiler and Lehman Go Cellular: CW Networks](https://arxiv.org/abs/2106.12575) (NeurIPS 2021)**
 and **[Weisfeiler and Lehman Go Topological: Message Passing Simplicial Networks](https://arxiv.org/abs/2103.03212) (ICML 2021)**
 
-<img align="left" height="300" src="./figures/cwn.png">
+<p align="center">
+<img src="./figures/glue_disks.jpeg"> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./figures/sphere.jpeg">  <img src="./figures/empty_tetrahderon.jpeg">
+</p>
 
 *Graph Neural Networks (GNNs) are limited in their expressive power, struggle with long-range 
 interactions and lack a principled way to model higher-order structures. These problems can be 
@@ -28,11 +30,9 @@ The proposed architecture benefits from provably larger expressivity than common
 principled modelling of higher-order signals and from compressing the distances between nodes. 
 We demonstrate that our model achieves state-of-the-art results on a variety of molecular datasets.*
 
-<p align="center">
-<img src="./figures/glue_disks.jpeg"> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./figures/sphere.jpeg">  <img src="./figures/empty_tetrahderon.jpeg">
-</p>
-
 ## Installation
+
+<img align="left" height="400" src="./figures/cwn.png">
 
 We use `Python 3.8` and `PyTorch 1.7.0` on `CUDA 10.2` for this project.
 Please open a terminal window and follow these steps to prepare the virtual environment needed to run any experiment.
