@@ -208,7 +208,7 @@ class PeptidesFunctionalDataset(InMemoryComplexDataset):
         return split_dict
     
 
-def load_pep_f_graph_dataset(root, name):
+def load_pep_f_graph_dataset(root):
     raw_dir = osp.join(root, 'raw')
     data_df = pd.read_csv(osp.join(raw_dir,
                                     'peptide_multi_class_dataset.csv.gz'))
