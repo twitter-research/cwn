@@ -133,19 +133,24 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
             fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'PROTEINS':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'NCI1':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'NCI109':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'PTC':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'MUTAG':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'FLOW':
         dataset = FlowDataset(os.path.join(root, name), name, num_points=kwargs['flow_points'],
             train_samples=1000, val_samples=200, train_orient=kwargs['train_orient'],
