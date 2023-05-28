@@ -47,8 +47,8 @@ class PeptidesFunctionalDataset(InMemoryComplexDataset):
             * The default smiles2graph requires rdkit to be installed *
     """
     def __init__(self, root, max_ring_size, smiles2graph=smiles2graph,
-                 transform=None, pre_transform=None,  pre_filter=None, 
-                 init_method='sum', n_jobs=2):
+                 transform=None, pre_transform=None, pre_filter=None, 
+                 include_down_adj=False, init_method='sum', n_jobs=2):
         self.original_root = root
         self.smiles2graph = smiles2graph
         self.folder = osp.join(root, 'peptides-functional')
@@ -70,7 +70,8 @@ class PeptidesFunctionalDataset(InMemoryComplexDataset):
         self._use_edge_features = True
         self._n_jobs = n_jobs
         super(PeptidesFunctionalDataset, self).__init__(root, transform, pre_transform, pre_filter,
-                                          max_dim=2, init_method=init_method, cellular=True, num_classes=1)
+                                          max_dim=2, init_method=init_method, include_down_adj=include_down_adj,
+                                         cellular=True, num_classes=1)
         
         self.data, self.slices, idx, self.num_tasks = self.load_dataset()
         self.train_ids = idx['train']

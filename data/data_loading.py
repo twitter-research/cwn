@@ -159,9 +159,11 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = RingLookupDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'])
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
+                              include_down_adj=kwargs['include_down_adj'], 
                               use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
     elif name == 'ZINC-FULL':
         dataset = ZincDataset(os.path.join(root, name), subset=False, max_ring_size=kwargs['max_ring_size'],
+                              include_down_adj=kwargs['include_down_adj'], 
                               use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
@@ -172,17 +174,17 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         official_name = 'ogbg-'+name.lower()
         dataset = OGBDataset(os.path.join(root, name), official_name, max_ring_size=kwargs['max_ring_size'],
                              use_edge_features=kwargs['use_edge_features'], simple=kwargs['simple_features'],
-                             init_method=init_method, n_jobs=n_jobs)
+                             include_down_adj=kwargs['include_down_adj'], init_method=init_method, n_jobs=n_jobs)
     elif name == 'DUMMY':
         dataset = DummyDataset(os.path.join(root, name))
     elif name == 'DUMMYM':
         dataset = DummyMolecularDataset(os.path.join(root, name))
     elif name == 'PEPTIDES-F':
         dataset = PeptidesFunctionalDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
-                             init_method=init_method, n_jobs=n_jobs)
+                             include_down_adj=kwargs['include_down_adj'], init_method=init_method, n_jobs=n_jobs)
     elif name == 'PEPTIDES-S':
         dataset = PeptidesStructuralDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
-                             init_method=init_method, n_jobs=n_jobs)
+                             include_down_adj=kwargs['include_down_adj'], init_method=init_method,  n_jobs=n_jobs)
     else:
         raise NotImplementedError(name)
     return dataset
