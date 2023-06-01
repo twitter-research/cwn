@@ -19,6 +19,8 @@ def get_parser():
                         help='model, possible choices: cin, dummy, ... (default: cin)')
     parser.add_argument('--use_coboundaries', type=str, default='False',
                         help='whether to use coboundary features for up-messages in sparse_cin (default: False)')
+    parser.add_argument('--include_down_adj', type=str, default='False',
+                        help='whether to use lower adjacencies (i.e. CIN++ networks) (default: False)') 
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
     parser.add_argument('--indrop_rate', type=float, default=0.0,
                         help='inputs dropout rate for molec models(default: 0.0)')
