@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 from torch.nn import Linear, Embedding, Sequential, BatchNorm1d as BN
 from torch_geometric.nn import JumpingKnowledge, GINEConv
-from mp.layers import InitReduceConv, EmbedVEWithReduce, OGBEmbedVEWithReduce, SparseCINConv
+from mp.layers import InitReduceConv, EmbedVEWithReduce, OGBEmbedVEWithReduce, SparseCINConv, CINppConv
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 from data.complex import ComplexBatch
 from mp.nn import pool_complex, get_pooling_fn, get_nonlinearity, get_graph_norm
@@ -164,6 +164,36 @@ class EmbedSparseCIN(torch.nn.Module):
         return self.__class__.__name__
 
 
+class EmbedCINpp(EmbedSparseCIN):
+    """
+    Inherit from EmbedSparseCIN and add messages from lower adj cells
+    """
+
+    def __init__(self, atom_types, bond_types, out_size, num_layers, hidden,
+                dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, 
+                nonlinearity='relu', readout='sum', train_eps=False, 
+                final_hidden_multiplier: int = 2, readout_dims=(0, 1, 2), 
+                final_readout='sum', apply_dropout_before='lin2', init_reduce='sum', 
+                embed_edge=False, embed_dim=None, use_coboundaries=False, graph_norm='bn'):
+        super(EmbedCINpp, self).__init__(atom_types, bond_types, out_size, num_layers,
+                                         hidden, dropout_rate, max_dim, jump_mode,
+                                         nonlinearity, readout, train_eps, 
+                                         final_hidden_multiplier, readout_dims, 
+                                         final_readout, apply_dropout_before, 
+                                         init_reduce, embed_edge, embed_dim, 
+                                         use_coboundaries, graph_norm)
+        self.convs = torch.nn.ModuleList() #reset convs to use CINppConv instead of SparseCINConv
+        act_module = get_nonlinearity(nonlinearity, return_module=True)
+        for i in range(num_layers):
+            layer_dim = embed_dim if i == 0 else hidden
+            self.convs.append(
+                CINppConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                    boundary_msg_size=layer_dim, passed_msg_boundaries_nn=None,
+                    passed_msg_up_nn=None, passed_msg_down_nn=None, passed_update_up_nn=None,
+                    passed_update_down_nn=None, passed_update_boundaries_nn=None, train_eps=train_eps,
+                    max_dim=self.max_dim, hidden=hidden, act_module=act_module, layer_dim=layer_dim,
+                    graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
+
 class OGBEmbedSparseCIN(torch.nn.Module):
     """
     A cellular version of GIN with some tailoring to nimbly work on molecules from the ogbg-mol* dataset.
@@ -318,6 +348,32 @@ class OGBEmbedSparseCIN(torch.nn.Module):
     def __repr__(self):
         return self.__class__.__name__
 
+class OGBEmbedCINpp(OGBEmbedSparseCIN):
+    """
+    Inherit from EmbedSparseCIN and add messages from lower adj cells
+    """
+    def __init__(self, out_size, num_layers, hidden, dropout_rate: float = 0.5,
+                 indropout_rate: float = 0, max_dim: int = 2, jump_mode=None,
+                 nonlinearity='relu', readout='sum', train_eps=False,
+                 final_hidden_multiplier: int = 2, readout_dims=(0, 1, 2),
+                 final_readout='sum', apply_dropout_before='lin2', init_reduce='sum',
+                 embed_edge=False, embed_dim=None, use_coboundaries=False, graph_norm='bn'):
+        super().__init__(out_size, num_layers, hidden, dropout_rate, indropout_rate,
+                         max_dim, jump_mode, nonlinearity, readout, train_eps,
+                         final_hidden_multiplier, readout_dims, final_readout,
+                         apply_dropout_before, init_reduce, embed_edge, embed_dim,
+                         use_coboundaries, graph_norm)
+        self.convs = torch.nn.ModuleList() #reset convs to use CINppConv instead of SparseCINConv
+        act_module = get_nonlinearity(nonlinearity, return_module=True)
+        for i in range(num_layers):
+            layer_dim = embed_dim if i == 0 else hidden
+            self.convs.append(
+                CINppConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                    boundary_msg_size=layer_dim, passed_msg_boundaries_nn=None,
+                    passed_msg_up_nn=None, passed_msg_down_nn=None, passed_update_up_nn=None,
+                    passed_update_down_nn=None, passed_update_boundaries_nn=None, train_eps=train_eps,
+                    max_dim=self.max_dim, hidden=hidden, act_module=act_module, layer_dim=layer_dim,
+                    graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
 
 class EmbedSparseCINNoRings(torch.nn.Module):
     """

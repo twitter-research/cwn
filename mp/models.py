@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn import Linear, Sequential, BatchNorm1d as BN
 from torch_geometric.nn import JumpingKnowledge
 from mp.layers import (
-    CINConv, EdgeCINConv, SparseCINConv, DummyCellularMessagePassing, OrientedConv)
+    CINConv, EdgeCINConv, SparseCINConv, CINppConv,DummyCellularMessagePassing, OrientedConv)
 from mp.nn import get_nonlinearity, get_pooling_fn, pool_complex, get_graph_norm
 from data.complex import ComplexBatch, CochainBatch
 
@@ -256,7 +256,33 @@ class SparseCIN(torch.nn.Module):
     def __repr__(self):
         return self.__class__.__name__
 
+class CINpp(SparseCIN):
+    """CINpp
     
+    """
+    def __init__(self, num_input_features, num_classes, num_layers, hidden, 
+                 dropout_rate: float = 0.5, max_dim: int = 2, jump_mode=None, 
+                 nonlinearity='relu', readout='sum', train_eps=False, 
+                 final_hidden_multiplier: int = 2, use_coboundaries=False, 
+                 readout_dims=(0, 1, 2), final_readout='sum', 
+                 apply_dropout_before='lin2', graph_norm='bn'):
+        super(CINpp, self).__init__(num_input_features, num_classes, num_layers, hidden,
+                                    dropout_rate, max_dim, jump_mode, nonlinearity,
+                                    readout, train_eps, final_hidden_multiplier,
+                                    use_coboundaries, readout_dims, final_readout,
+                                    apply_dropout_before, graph_norm)
+        self.convs = torch.nn.ModuleList()
+        act_module = get_nonlinearity(nonlinearity, return_module=True)
+        for i in range(num_layers):
+            layer_dim = num_input_features if i == 0 else hidden
+            self.convs.append(
+                CINppConv(up_msg_size=layer_dim, down_msg_size=layer_dim,
+                    boundary_msg_size=layer_dim, passed_msg_boundaries_nn=None, passed_msg_up_nn=None,
+                    passed_msg_down_nn=None, passed_update_up_nn=None, passed_update_down_nn=None,
+                    passed_update_boundaries_nn=None, train_eps=train_eps, max_dim=self.max_dim,
+                    hidden=hidden, act_module=act_module, layer_dim=layer_dim,
+                    graph_norm=self.graph_norm, use_coboundaries=use_coboundaries))
+            
 class EdgeCIN0(torch.nn.Module):
     """
     A variant of CIN0 operating up to edge level. It may optionally ignore two_cell features.
