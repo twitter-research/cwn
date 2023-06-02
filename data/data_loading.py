@@ -34,7 +34,7 @@ from definitions import ROOT_DIR
 from data.complex import Cochain, CochainBatch, Complex, ComplexBatch
 from data.datasets import (
     load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset,
-    load_ring_transfer_dataset, load_ring_lookup_dataset, load_peptides_functional_dataset, load_peptides_structural_dataset)
+    load_ring_transfer_dataset, load_ring_lookup_dataset, load_pep_f_graph_dataset, load_pep_s_graph_dataset)
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
     OceanDataset, ZincDataset, CSLDataset, OGBDataset, RingTransferDataset, RingLookupDataset,
@@ -231,10 +231,10 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
         graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root)
         data = (graph_list, train_ids, val_ids, test_ids, 1)
     elif name == 'PEPTIDES-F':
-        graph_list, train_ids, val_ids, test_ids = load_peptides_functional_dataset(root=root)
+        graph_list, train_ids, val_ids, test_ids = load_pep_f_graph_dataset(root=root)
         data = (graph_list, train_ids, val_ids, test_ids, 2)
     elif name == 'PEPTIDES-S':
-        graph_list, train_ids, val_ids, test_ids = load_peptides_structural_dataset(root=root)
+        graph_list, train_ids, val_ids, test_ids = load_pep_s_graph_dataset(root=root)
         data = (graph_list, train_ids, val_ids, test_ids, 2)
     elif name == 'ZINC-FULL':
         graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root, subset=False)
