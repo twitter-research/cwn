@@ -221,8 +221,8 @@ class CINppCochainConv(SparseCINCochainConv):
                  update_up_nn: Callable[..., Any], update_boundaries_nn: Callable[..., Any],  update_down_nn: Callable[..., Any], 
                  combine_nn: Callable[..., Any], eps: float = 0, train_eps: bool = False):
         super(CINppCochainConv, self).__init__(dim, up_msg_size, down_msg_size, boundary_msg_size, 
-                                               msg_up_nn, msg_boundaries_nn, msg_down_nn, 
-                                               update_up_nn, update_boundaries_nn, update_down_nn,
+                                               msg_up_nn, msg_boundaries_nn,
+                                               update_up_nn, update_boundaries_nn,
                                                combine_nn, eps, train_eps)
         
         self.msg_down_nn = msg_down_nn
