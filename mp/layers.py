@@ -1,6 +1,6 @@
 import torch
 
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 from torch import Tensor
 from mp.cell_mp import CochainMessagePassing, CochainMessagePassingParams
 from torch_geometric.nn.inits import reset
@@ -213,6 +213,53 @@ class SparseCINCochainConv(CochainMessagePassing):
     def message_boundary(self, boundary_x_j: Tensor) -> Tensor:
         return self.msg_boundaries_nn(boundary_x_j)
     
+class CINppCochainConv(SparseCINCochainConv):
+    """CINppCochainConv
+    """
+    def __init__(self, dim: int, up_msg_size: int, down_msg_size: int, boundary_msg_size: int, 
+                 msg_up_nn: Callable[..., Any], msg_boundaries_nn: Callable[..., Any], msg_down_nn: Callable[..., Any], 
+                 update_up_nn: Callable[..., Any], update_boundaries_nn: Callable[..., Any],  update_down_nn: Callable[..., Any], 
+                 combine_nn: Callable[..., Any], eps: float = 0, train_eps: bool = False):
+        super(CINppCochainConv, self).__init__(dim, up_msg_size, down_msg_size, boundary_msg_size, 
+                                               msg_up_nn, msg_boundaries_nn, msg_down_nn, 
+                                               update_up_nn, update_boundaries_nn, update_down_nn,
+                                               combine_nn, eps, train_eps)
+        
+        self.msg_down_nn = msg_down_nn
+        self.update_down_nn = update_down_nn
+        if train_eps:
+            self.eps3 = torch.nn.Parameter(torch.Tensor([eps]))
+        else:
+            self.register_buffer('eps3', torch.Tensor([eps]))
+
+    def reset_parameters(self):
+        super().reset_parameters()
+        reset(self.msg_down_nn)
+        reset(self.update_down_nn)
+        self.eps3.data.fill_(self.initial_eps)
+
+    def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
+        return self.msg_down_nn((down_x_j, down_attr))
+    
+    def forward(self, cochain: CochainMessagePassingParams):
+        out_up, out_down, out_boundaries = self.propagate(cochain.up_index, cochain.down_index,
+                                              cochain.boundary_index, x=cochain.x,
+                                              up_attr=cochain.kwargs['up_attr'],
+                                              boundary_attr=cochain.kwargs['boundary_attr'])
+
+        # As in GIN, we can learn an injective update function for each multi-set
+        out_up += (1 + self.eps1) * cochain.x
+        out_down += (1 + self.eps2) * cochain.x
+        out_boundaries += (1 + self.eps3) * cochain.x
+        out_up = self.update_up_nn(out_up)
+        out_down = self.update_down_nn(out_down)
+        out_boundaries = self.update_boundaries_nn(out_boundaries)
+
+        # We need to combine the three such that the output is injective
+        # Because the cross product of countable spaces is countable, then such a function exists.
+        # And we can learn it with another MLP.
+        return self.combine_nn(torch.cat([out_up, out_down, out_boundaries], dim=-1))
+
 
 class Catter(torch.nn.Module):
     def __init__(self):
@@ -294,6 +341,91 @@ class SparseCINConv(torch.nn.Module):
             else:
                 out.append(self.mp_levels[dim].forward(cochain_params[dim]))
         return out
+
+class CINppConv(SparseCINConv):
+    """
+    """
+    def __init__(self, up_msg_size: int, down_msg_size: int, boundary_msg_size: Optional[int],
+                 passed_msg_up_nn: Optional[Callable], passed_msg_down_nn: Optional[Callable],
+                 passed_msg_boundaries_nn: Optional[Callable],
+                 passed_update_up_nn: Optional[Callable],
+                 passed_update_down_nn: Optional[Callable],
+                 passed_update_boundaries_nn: Optional[Callable],
+                 eps: float = 0., train_eps: bool = False, max_dim: int = 2,
+                 graph_norm=BN, use_coboundaries=False, **kwargs):
+        super(CINppConv, self).__init__(up_msg_size, down_msg_size, boundary_msg_size,
+                                        passed_msg_up_nn, passed_msg_boundaries_nn, 
+                                        passed_update_up_nn, passed_update_boundaries_nn, 
+                                        eps, train_eps, max_dim, graph_norm, use_coboundaries, **kwargs)
+        self.max_dim = max_dim
+        self.mp_levels = torch.nn.ModuleList()
+        for dim in range(max_dim+1):
+            msg_up_nn = passed_msg_up_nn
+            if msg_up_nn is None:
+                if use_coboundaries:
+                    msg_up_nn = Sequential(
+                            Catter(),
+                            Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),
+                            kwargs['act_module']())
+                else:
+                    msg_up_nn = lambda xs: xs[0]
+
+            msg_down_nn = passed_msg_down_nn
+            if msg_down_nn is None:
+                if use_coboundaries:
+                    msg_down_nn = Sequential(
+                            Catter(),
+                            Linear(kwargs['layer_dim'] * 2, kwargs['layer_dim']),
+                            kwargs['act_module']())
+                else:
+                    msg_down_nn = lambda xs: xs[0]
+                    
+            msg_boundaries_nn = passed_msg_boundaries_nn
+            if msg_boundaries_nn is None:
+                msg_boundaries_nn = lambda x: x
+
+            update_up_nn = passed_update_up_nn
+            if update_up_nn is None:
+                update_up_nn = Sequential(
+                    Linear(kwargs['layer_dim'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module'](),
+                    Linear(kwargs['hidden'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module']()
+                )
+                
+            update_down_nn = passed_update_down_nn
+            if update_down_nn is None:
+                update_down_nn = Sequential(
+                    Linear(kwargs['layer_dim'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module'](),
+                    Linear(kwargs['hidden'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module']()
+                )
+
+            update_boundaries_nn = passed_update_boundaries_nn
+            if update_boundaries_nn is None:
+                update_boundaries_nn = Sequential(
+                    Linear(kwargs['layer_dim'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module'](),
+                    Linear(kwargs['hidden'], kwargs['hidden']),
+                    graph_norm(kwargs['hidden']),
+                    kwargs['act_module']()
+                )
+            combine_nn = Sequential(
+                Linear(kwargs['hidden']*3, kwargs['hidden']),
+                graph_norm(kwargs['hidden']),
+                kwargs['act_module']())
+
+            mp = CINppCochainConv(dim, up_msg_size, down_msg_size, boundary_msg_size=boundary_msg_size,
+                msg_up_nn=msg_up_nn, msg_down_nn=msg_down_nn, msg_boundaries_nn=msg_boundaries_nn, update_up_nn=update_up_nn,
+                update_down_nn=update_down_nn, update_boundaries_nn=update_boundaries_nn, combine_nn=combine_nn, eps=eps,
+                train_eps=train_eps)
+            self.mp_levels.append(mp)
 
 
 class OrientedConv(CochainMessagePassing):
