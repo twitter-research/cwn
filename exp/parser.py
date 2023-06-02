@@ -143,6 +143,8 @@ def validate_args(args):
             assert args.graph_norm == 'bn'
     elif args.dataset.startswith('ZINC'):
         assert args.model.startswith('embed')
+        if args.model == 'embed_cin++':
+            assert args.include_down_adj is True
         assert args.task_type == 'regression'
         assert args.minimize
         assert args.eval_metric == 'mae'
@@ -151,7 +153,9 @@ def validate_args(args):
     elif args.dataset in ['MOLHIV', 'MOLPCBA', 'MOLTOX21', 'MOLTOXCAST', 'MOLMUV',
                           'MOLBACE', 'MOLBBBP', 'MOLCLINTOX', 'MOLSIDER', 'MOLESOL',
                           'MOLFREESOLV', 'MOLLIPO']:
-        assert args.model == 'ogb_embed_sparse_cin'
+        assert args.model == 'ogb_embed_sparse_cin' or args.model == "ogb_embed_cin++"
+        if args.model == 'ogb_embed_cin++':
+            assert args.include_down_adj is True
         assert args.eval_metric == 'ogbg-'+args.dataset.lower()
         assert args.jump_mode is None
         if args.dataset in ['MOLESOL', 'MOLFREESOLV', 'MOLLIPO']:
@@ -180,4 +184,3 @@ def validate_args(args):
         assert not args.untrained
         assert not args.simple_features
         assert not args.minimize
-
