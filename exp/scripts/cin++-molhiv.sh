@@ -7,6 +7,7 @@ python -m exp.run_mol_exp \
   --exp_name cin++-molhiv \
   --dataset MOLHIV \
   --model ogb_embed_cin++ \
+  --include_down_adj \
   --use_coboundaries True \
   --indrop_rate 0.0 \
   --drop_rate 0.5 \

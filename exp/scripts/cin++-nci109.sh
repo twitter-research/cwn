@@ -17,6 +17,7 @@ python -m exp.run_tu_exp \
   --lr 0.001 \
   --graph_norm bn \
   --model cin++ \
+  --include_down_adj \
   --nonlinearity relu \
   --num_layers 4 \
   --readout sum \

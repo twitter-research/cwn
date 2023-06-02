@@ -18,6 +18,7 @@ python -m exp.run_mol_exp \
   --lr 0.001 \
   --graph_norm bn \
   --model embed_cin++ \
+  --include_down_adj \
   --nonlinearity relu \
   --num_layers 4 \
   --readout sum \
