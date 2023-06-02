@@ -245,23 +245,23 @@ def main(args):
                                readout_dims=readout_dims  # readout_dims
                                ).to(device)
     elif args.model == 'embed_cin++':
-        model = EmbedCINpp(dataset.num_node_type,  # The number of atomic types
-                            dataset.num_edge_type,  # The number of bond types
-                            dataset.num_classes,  # num_classes
-                            args.num_layers,  # num_layers
-                            args.emb_dim,  # hidden
-                            dropout_rate=args.drop_rate,  # dropout rate
-                            max_dim=dataset.max_dim,  # max_dim
-                            jump_mode=args.jump_mode,  # jump mode
-                            nonlinearity=args.nonlinearity,  # nonlinearity
-                            readout=args.readout,  # readout
-                            final_readout=args.final_readout,  # final readout
-                            apply_dropout_before=args.drop_position,  # where to apply dropout
-                            use_coboundaries=use_coboundaries,
-                            embed_edge=args.use_edge_features,
-                            graph_norm=args.graph_norm,  # normalization layer
-                            readout_dims=readout_dims  # readout_dims
-                            ).to(device)
+        model = EmbedCINpp(atom_types=dataset.num_node_type,  # The number of atomic types
+                           bond_types=dataset.num_edge_type,  # The number of bond types
+                           out_size=dataset.num_classes,  # num_classes
+                           num_layers=args.num_layers,  # num_layers
+                           hidden=args.emb_dim,  # hidden
+                           dropout_rate=args.drop_rate,  # dropout rate
+                           max_dim=dataset.max_dim,  # max_dim
+                           jump_mode=args.jump_mode,  # jump mode
+                           nonlinearity=args.nonlinearity,  # nonlinearity
+                           readout=args.readout,  # readout
+                           final_readout=args.final_readout,  # final readout
+                           apply_dropout_before=args.drop_position,  # where to apply dropout
+                           use_coboundaries=use_coboundaries,
+                           embed_edge=args.use_edge_features,
+                           graph_norm=args.graph_norm,  # normalization layer
+                           readout_dims=readout_dims  # readout_dims
+                           ).to(device)
     elif args.model == 'embed_sparse_cin_no_rings':
         model = EmbedSparseCINNoRings(dataset.num_node_type,  # The number of atomic types
                                       dataset.num_edge_type,  # The number of bond types
