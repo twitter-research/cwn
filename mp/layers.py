@@ -220,26 +220,22 @@ class CINppCochainConv(SparseCINCochainConv):
                  msg_up_nn: Callable[..., Any], msg_boundaries_nn: Callable[..., Any], msg_down_nn: Callable[..., Any], 
                  update_up_nn: Callable[..., Any], update_boundaries_nn: Callable[..., Any],  update_down_nn: Callable[..., Any], 
                  combine_nn: Callable[..., Any], eps: float = 0, train_eps: bool = False):
+        super(CINppCochainConv, self).__init__(dim, up_msg_size, down_msg_size, boundary_msg_size, 
+                                               msg_up_nn, msg_boundaries_nn,
+                                               update_up_nn, update_boundaries_nn,
+                                               combine_nn, eps, train_eps)
         
         self.msg_down_nn = msg_down_nn
         self.update_down_nn = update_down_nn
         if train_eps:
             self.eps3 = torch.nn.Parameter(torch.Tensor([eps]))
         else:
-            self.register_buffer('eps3', torch.Tensor([eps]))  
-            
-        super(CINppCochainConv, self).__init__(dim, up_msg_size, down_msg_size, boundary_msg_size, 
-                                               msg_up_nn, msg_boundaries_nn,
-                                               update_up_nn, update_boundaries_nn,
-                                               combine_nn, eps, train_eps)
+            self.register_buffer('eps3', torch.Tensor([eps]))
         
-
-
-    def reset_parameters(self):
-        super().reset_parameters()
         reset(self.msg_down_nn)
         reset(self.update_down_nn)
         self.eps3.data.fill_(self.initial_eps)
+
 
     def message_down(self, down_x_j: Tensor, down_attr: Tensor) -> Tensor:
         return self.msg_down_nn((down_x_j, down_attr))
