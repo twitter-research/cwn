@@ -184,6 +184,10 @@ class EmbedCINpp(EmbedSparseCIN):
                                          use_coboundaries, graph_norm)
         self.convs = torch.nn.ModuleList() #reset convs to use CINppConv instead of SparseCINConv
         act_module = get_nonlinearity(nonlinearity, return_module=True)
+
+        if embed_dim is None:
+            embed_dim = hidden
+
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
@@ -365,6 +369,10 @@ class OGBEmbedCINpp(OGBEmbedSparseCIN):
                          use_coboundaries, graph_norm)
         self.convs = torch.nn.ModuleList() #reset convs to use CINppConv instead of SparseCINConv
         act_module = get_nonlinearity(nonlinearity, return_module=True)
+
+        if embed_dim is None:
+            embed_dim = hidden
+            
         for i in range(num_layers):
             layer_dim = embed_dim if i == 0 else hidden
             self.convs.append(
