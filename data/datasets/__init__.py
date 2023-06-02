@@ -8,8 +8,8 @@ from data.datasets.zinc import ZincDataset, load_zinc_graph_dataset
 from data.datasets.dummy import DummyDataset, DummyMolecularDataset
 from data.datasets.csl import CSLDataset
 from data.datasets.ogb import OGBDataset, load_ogb_graph_dataset
-from data.datasets.peptides_functional import PeptidesFunctionalDataset, load_peptides_functional_dataset
-from data.datasets.peptides_structural import PeptidesStructuralDataset, load_peptides_structural_dataset
+from data.datasets.peptides_functional import PeptidesFunctionalDataset, load_pep_f_graph_dataset
+from data.datasets.peptides_structural import PeptidesStructuralDataset, load_pep_s_graph_dataset
 from data.datasets.ringtransfer import RingTransferDataset, load_ring_transfer_dataset
 from data.datasets.ringlookup import RingLookupDataset, load_ring_lookup_dataset
 
