@@ -34,11 +34,11 @@ from definitions import ROOT_DIR
 from data.complex import Cochain, CochainBatch, Complex, ComplexBatch
 from data.datasets import (
     load_sr_graph_dataset, load_tu_graph_dataset, load_zinc_graph_dataset, load_ogb_graph_dataset,
-    load_ring_transfer_dataset, load_ring_lookup_dataset)
+    load_ring_transfer_dataset, load_ring_lookup_dataset, load_pep_f_graph_dataset, load_pep_s_graph_dataset)
 from data.datasets import (
     SRDataset, ClusterDataset, TUDataset, ComplexDataset, FlowDataset,
     OceanDataset, ZincDataset, CSLDataset, OGBDataset, RingTransferDataset, RingLookupDataset,
-    DummyDataset, DummyMolecularDataset)
+    DummyDataset, DummyMolecularDataset, PeptidesFunctionalDataset, PeptidesStructuralDataset)
 
 
 class Collater(object):
@@ -133,19 +133,24 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
             fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'PROTEINS':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'NCI1':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'NCI109':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'PTC':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'MUTAG':
         dataset = TUDataset(os.path.join(root, name), name, max_dim=max_dim, num_classes=2,
-            fold=fold, degree_as_tag=False, init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
+            fold=fold, degree_as_tag=False, include_down_adj=kwargs['include_down_adj'],
+            init_method=init_method, max_ring_size=kwargs.get('max_ring_size', None))
     elif name == 'FLOW':
         dataset = FlowDataset(os.path.join(root, name), name, num_points=kwargs['flow_points'],
             train_samples=1000, val_samples=200, train_orient=kwargs['train_orient'],
@@ -159,9 +164,11 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         dataset = RingLookupDataset(os.path.join(root, name), nodes=kwargs['max_ring_size'])
     elif name == 'ZINC':
         dataset = ZincDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
+                              include_down_adj=kwargs['include_down_adj'], 
                               use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
     elif name == 'ZINC-FULL':
         dataset = ZincDataset(os.path.join(root, name), subset=False, max_ring_size=kwargs['max_ring_size'],
+                              include_down_adj=kwargs['include_down_adj'], 
                               use_edge_features=kwargs['use_edge_features'], n_jobs=n_jobs)
     elif name == 'CSL':
         dataset = CSLDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
@@ -172,11 +179,17 @@ def load_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), max_dim=2, fold=
         official_name = 'ogbg-'+name.lower()
         dataset = OGBDataset(os.path.join(root, name), official_name, max_ring_size=kwargs['max_ring_size'],
                              use_edge_features=kwargs['use_edge_features'], simple=kwargs['simple_features'],
-                             init_method=init_method, n_jobs=n_jobs)
+                             include_down_adj=kwargs['include_down_adj'], init_method=init_method, n_jobs=n_jobs)
     elif name == 'DUMMY':
         dataset = DummyDataset(os.path.join(root, name))
     elif name == 'DUMMYM':
         dataset = DummyMolecularDataset(os.path.join(root, name))
+    elif name == 'PEPTIDES-F':
+        dataset = PeptidesFunctionalDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
+                             include_down_adj=kwargs['include_down_adj'], init_method=init_method, n_jobs=n_jobs)
+    elif name == 'PEPTIDES-S':
+        dataset = PeptidesStructuralDataset(os.path.join(root, name), max_ring_size=kwargs['max_ring_size'],
+                             include_down_adj=kwargs['include_down_adj'], init_method=init_method,  n_jobs=n_jobs)
     else:
         raise NotImplementedError(name)
     return dataset
@@ -217,6 +230,12 @@ def load_graph_dataset(name, root=os.path.join(ROOT_DIR, 'datasets'), fold=0, **
     elif name == 'ZINC':
         graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root)
         data = (graph_list, train_ids, val_ids, test_ids, 1)
+    elif name == 'PEPTIDES-F':
+        graph_list, train_ids, val_ids, test_ids = load_pep_f_graph_dataset(root=root)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
+    elif name == 'PEPTIDES-S':
+        graph_list, train_ids, val_ids, test_ids = load_pep_s_graph_dataset(root=root)
+        data = (graph_list, train_ids, val_ids, test_ids, 2)
     elif name == 'ZINC-FULL':
         graph_list, train_ids, val_ids, test_ids = load_zinc_graph_dataset(root=root, subset=False)
         data = (graph_list, train_ids, val_ids, test_ids, 1)

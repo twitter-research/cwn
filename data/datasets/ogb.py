@@ -10,14 +10,16 @@ class OGBDataset(InMemoryComplexDataset):
     """This is OGB graph-property prediction. This are graph-wise classification tasks."""
 
     def __init__(self, root, name, max_ring_size, use_edge_features=False, transform=None,
-                 pre_transform=None, pre_filter=None, init_method='sum', simple=False, n_jobs=2):
+                 pre_transform=None, pre_filter=None, init_method='sum', 
+                 include_down_adj=False, simple=False, n_jobs=2):
         self.name = name
         self._max_ring_size = max_ring_size
         self._use_edge_features = use_edge_features
         self._simple = simple
         self._n_jobs = n_jobs
         super(OGBDataset, self).__init__(root, transform, pre_transform, pre_filter,
-                                         max_dim=2, init_method=init_method, cellular=True)
+                                         max_dim=2, init_method=init_method, 
+                                         include_down_adj=include_down_adj, cellular=True)
         self.data, self.slices, idx, self.num_tasks = self.load_dataset()
         self.train_ids = idx['train']
         self.val_ids = idx['valid']

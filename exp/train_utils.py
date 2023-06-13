@@ -153,6 +153,8 @@ class Evaluator(object):
             self.p_norm = kwargs.get('p', 2)
         elif metric == 'accuracy':
             self.eval_fn = self._accuracy
+        elif metric == 'ap':
+            self.eval_fn = self._ap
         elif metric == 'mae':
             self.eval_fn = self._mae
         elif metric.startswith('ogbg-mol'):
@@ -183,6 +185,15 @@ class Evaluator(object):
         assert y_pred is not None
         metric = met.accuracy_score(y_true, y_pred)
         return metric
+    
+    def _ap(self, input_dict, **kwargs):
+        y_true = input_dict['y_true']
+        y_pred = input_dict['y_pred']
+        assert y_true is not None
+        assert y_pred is not None
+        metric = met.average_precision_score(y_true, y_pred)
+        return metric
+
 
     def _mae(self, input_dict, **kwargs):
         y_true = input_dict['y_true']

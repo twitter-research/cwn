@@ -1,0 +1,37 @@
+#!/bin/bash
+
+python -m exp.run_mol_exp \
+  --device 0 \
+  --start_seed 0 \
+  --stop_seed 3 \
+  --exp_name cwn-pep-s-500k \
+  --dataset PEPTIDES-S \
+  --model ogb_embed_cin++ \
+  --include_down_adj \
+  --use_coboundaries True \
+  --indrop_rate 0.0 \
+  --drop_rate 0.0 \
+  --graph_norm bn \
+  --drop_position lin2 \
+  --nonlinearity relu \
+  --readout mean \
+  --final_readout sum \
+  --lr 0.001 \
+  --num_layers 3 \
+  --emb_dim 64 \
+  --batch_size 128 \
+  --epochs 1000 \
+  --num_workers 0 \
+  --preproc_jobs 32 \
+  --task_type regression \
+  --eval_metric mae \
+  --max_dim 2  \
+  --max_ring_size 8 \
+  --lr_scheduler 'ReduceLROnPlateau'  \
+  --init_method sum \
+  --minimize \
+  --early_stop \
+  --train_eval_period 10 \
+  --use_edge_features \
+  --lr_scheduler_patience 20 \
+  --dump_curves

@@ -11,8 +11,8 @@ from torch_geometric.data import DataLoader as PyGDataLoader
 from exp.train_utils import train, eval, Evaluator
 from exp.parser import get_parser, validate_args
 from mp.graph_models import GIN0, GINWithJK
-from mp.models import CIN0, Dummy, SparseCIN, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
-from mp.molec_models import EmbedSparseCIN, OGBEmbedSparseCIN, EmbedSparseCINNoRings, EmbedGIN
+from mp.models import CIN0, Dummy, SparseCIN, CINpp, EdgeOrient, EdgeMPNN, MessagePassingAgnostic
+from mp.molec_models import EmbedSparseCIN, EmbedCINpp, OGBEmbedSparseCIN, OGBEmbedCINpp, EmbedSparseCINNoRings, EmbedGIN
 from mp.ring_exp_models import RingSparseCIN, RingGIN
 
 
@@ -79,6 +79,7 @@ def main(args):
                                flow_points=args.flow_points, flow_classes=args.flow_classes,
                                max_ring_size=args.max_ring_size,
                                use_edge_features=args.use_edge_features,
+                               include_down_adj=args.include_down_adj,
                                simple_features=args.simple_features, n_jobs=args.preproc_jobs,
                                train_orient=args.train_orient, test_orient=args.test_orient)
         if args.tune:
@@ -121,6 +122,22 @@ def main(args):
                     ).to(device)
     elif args.model == 'sparse_cin':
         model = SparseCIN(dataset.num_features_in_dim(0),     # num_input_features
+                     dataset.num_classes,                     # num_classes
+                     args.num_layers,                         # num_layers
+                     args.emb_dim,                            # hidden
+                     dropout_rate=args.drop_rate,             # dropout rate
+                     max_dim=dataset.max_dim,                 # max_dim
+                     jump_mode=args.jump_mode,                # jump mode
+                     nonlinearity=args.nonlinearity,          # nonlinearity
+                     readout=args.readout,                    # readout
+                     final_readout=args.final_readout,        # final readout
+                     apply_dropout_before=args.drop_position, # where to apply dropout
+                     use_coboundaries=use_coboundaries,       # whether to use coboundaries in up-msg
+                     graph_norm=args.graph_norm,              # normalization layer
+                     readout_dims=readout_dims                # readout_dims
+                    ).to(device)
+    elif args.model == 'cin++':
+        model = CINpp(dataset.num_features_in_dim(0),     # num_input_features
                      dataset.num_classes,                     # num_classes
                      args.num_layers,                         # num_layers
                      args.emb_dim,                            # hidden
@@ -198,7 +215,7 @@ def main(args):
                       nonlinearity=args.nonlinearity,  # nonlinearity
                       dropout_rate=args.drop_rate,  # dropout rate
                       fully_invar=args.fully_orient_invar
-        ).to(device)
+                      ).to(device)
     elif args.model == 'edge_mpnn':
         model = EdgeMPNN(1,
                       dataset.num_classes,
@@ -208,7 +225,7 @@ def main(args):
                       nonlinearity=args.nonlinearity,  # nonlinearity
                       dropout_rate=args.drop_rate,  # dropout rate
                       fully_invar=args.fully_orient_invar,
-        ).to(device)
+                      ).to(device)
     elif args.model == 'embed_sparse_cin':
         model = EmbedSparseCIN(dataset.num_node_type,  # The number of atomic types
                                dataset.num_edge_type,  # The number of bond types
@@ -227,6 +244,24 @@ def main(args):
                                graph_norm=args.graph_norm,  # normalization layer
                                readout_dims=readout_dims  # readout_dims
                                ).to(device)
+    elif args.model == 'embed_cin++':
+        model = EmbedCINpp(atom_types=dataset.num_node_type,  # The number of atomic types
+                           bond_types=dataset.num_edge_type,  # The number of bond types
+                           out_size=dataset.num_classes,  # num_classes
+                           num_layers=args.num_layers,  # num_layers
+                           hidden=args.emb_dim,  # hidden
+                           dropout_rate=args.drop_rate,  # dropout rate
+                           max_dim=dataset.max_dim,  # max_dim
+                           jump_mode=args.jump_mode,  # jump mode
+                           nonlinearity=args.nonlinearity,  # nonlinearity
+                           readout=args.readout,  # readout
+                           final_readout=args.final_readout,  # final readout
+                           apply_dropout_before=args.drop_position,  # where to apply dropout
+                           use_coboundaries=use_coboundaries,
+                           embed_edge=args.use_edge_features,
+                           graph_norm=args.graph_norm,  # normalization layer
+                           readout_dims=readout_dims  # readout_dims
+                           ).to(device)
     elif args.model == 'embed_sparse_cin_no_rings':
         model = EmbedSparseCINNoRings(dataset.num_node_type,  # The number of atomic types
                                       dataset.num_edge_type,  # The number of bond types
@@ -253,7 +288,7 @@ def main(args):
                          readout=args.readout,  # readout
                          apply_dropout_before=args.drop_position,  # where to apply dropout
                          embed_edge=args.use_edge_features,
-        ).to(device)
+                         ).to(device)
     # TODO: handle this as above
     elif args.model == 'ogb_embed_sparse_cin':
         model = OGBEmbedSparseCIN(dataset.num_tasks,                       # out_size
@@ -272,6 +307,23 @@ def main(args):
                                   graph_norm=args.graph_norm,              # normalization layer
                                   readout_dims=readout_dims                # readout_dims
                                  ).to(device)
+    elif args.model == 'ogb_embed_cin++':
+        model = OGBEmbedCINpp(dataset.num_tasks,                       # out_size
+                              args.num_layers,                         # num_layers
+                              args.emb_dim,                            # hidden
+                              dropout_rate=args.drop_rate,             # dropout_rate
+                              indropout_rate=args.indrop_rate,         # in-dropout_rate
+                              max_dim=dataset.max_dim,                 # max_dim
+                              jump_mode=args.jump_mode,                # jump_mode
+                              nonlinearity=args.nonlinearity,          # nonlinearity
+                              readout=args.readout,                    # readout
+                              final_readout=args.final_readout,        # final readout
+                              apply_dropout_before=args.drop_position, # where to apply dropout
+                              use_coboundaries=use_coboundaries,       # whether to use coboundaries
+                              embed_edge=args.use_edge_features,       # whether to use edge feats
+                              graph_norm=args.graph_norm,              # normalization layer
+                              readout_dims=readout_dims                # readout_dims
+                              ).to(device)
     else:
         raise ValueError('Invalid model type {}.'.format(args.model))
 

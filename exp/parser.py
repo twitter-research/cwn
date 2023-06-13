@@ -19,6 +19,8 @@ def get_parser():
                         help='model, possible choices: cin, dummy, ... (default: cin)')
     parser.add_argument('--use_coboundaries', type=str, default='False',
                         help='whether to use coboundary features for up-messages in sparse_cin (default: False)')
+    parser.add_argument('--include_down_adj', action='store_true',
+                        help='whether to use lower adjacencies (i.e. CIN++ networks) (default: False)') 
     # ^^^ here we explicitly pass it as string as easier to handle in tuning
     parser.add_argument('--indrop_rate', type=float, default=0.0,
                         help='inputs dropout rate for molec models(default: 0.0)')
@@ -141,6 +143,8 @@ def validate_args(args):
             assert args.graph_norm == 'bn'
     elif args.dataset.startswith('ZINC'):
         assert args.model.startswith('embed')
+        if args.model == 'embed_cin++':
+            assert args.include_down_adj is True
         assert args.task_type == 'regression'
         assert args.minimize
         assert args.eval_metric == 'mae'
@@ -149,7 +153,9 @@ def validate_args(args):
     elif args.dataset in ['MOLHIV', 'MOLPCBA', 'MOLTOX21', 'MOLTOXCAST', 'MOLMUV',
                           'MOLBACE', 'MOLBBBP', 'MOLCLINTOX', 'MOLSIDER', 'MOLESOL',
                           'MOLFREESOLV', 'MOLLIPO']:
-        assert args.model == 'ogb_embed_sparse_cin'
+        assert args.model == 'ogb_embed_sparse_cin' or args.model == "ogb_embed_cin++"
+        if args.model == 'ogb_embed_cin++':
+            assert args.include_down_adj is True
         assert args.eval_metric == 'ogbg-'+args.dataset.lower()
         assert args.jump_mode is None
         if args.dataset in ['MOLESOL', 'MOLFREESOLV', 'MOLLIPO']:
@@ -178,4 +184,3 @@ def validate_args(args):
         assert not args.untrained
         assert not args.simple_features
         assert not args.minimize
-
